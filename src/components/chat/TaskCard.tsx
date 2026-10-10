@@ -397,7 +397,6 @@ function ScenarioSectionsBlock({
     if (!document) return;
     openDocument(sessionId, { kind: 'mock', id: document.id });
   };
-  const linkedEventId = useSessionStore(s => s.sessions[sessionId]?.eventId ?? '');
   const showResourceMap = RESOURCE_SCENARIO_CAPABILITIES.has(payload.capability);
   // 已物化红头文书：对话里只留标题摘要 + 打开入口，正文/表格/监测图一律在右侧文书看。
   if (document) {
