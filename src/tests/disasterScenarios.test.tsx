@@ -85,7 +85,7 @@ describe('灾种事件与材料隔离', () => {
     expect(screen.getByRole('img',{name:/矿难 甲烷测点记录模拟趋势/})).toBeTruthy();
     expect(screen.queryByRole('img',{name:/地震 余震记录模拟趋势/})).toBeNull();
     fireEvent.click(screen.getByRole('tab',{name:'预案与报告'}));
-    expect(screen.getByRole('heading',{name:'矿井受困救援专业协同预案（模拟参考）'})).toBeTruthy();
+    expect(screen.getByRole('heading',{name:'矿井受困救援专业协同预案（模拟参考·安能战法字段）'})).toBeTruthy();
     expect(screen.getByTestId('disaster-material').textContent).toContain('进入许可');
   });
   it('模拟候选面板列出独立数量，不显示为授权台账零人数', async () => {

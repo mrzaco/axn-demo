@@ -52,6 +52,8 @@ export default function OriginalSystemWorkspace({
   const [mode, setMode] = useState<Mode>('work');
   const [imageIndex, setImageIndex] = useState(0);
   const [zoom, setZoom] = useState(false);
+  /** 截图资源缺失时的当前 src：与原页面 same 值才继续显示空态（切换页面/系统后重新尝试）。 */
+  const [brokenEvidence, setBrokenEvidence] = useState<string | null>(null);
   const [filterDraft, setFilterDraft] = useState<Record<string, string>>({});
   const [applied, setApplied] = useState<Record<string, string>>({});
 
@@ -306,7 +308,7 @@ export default function OriginalSystemWorkspace({
           )}
 
           {mode === 'source' ? (
-            images.length ? (
+            images.length && evidenceSrc(images[imageIndex]) !== brokenEvidence ? (
               <>
                 <div className="axn-os-evidence-tools">
                   <Button
@@ -335,6 +337,7 @@ export default function OriginalSystemWorkspace({
                     src={evidenceSrc(images[imageIndex])}
                     alt={`${sys.title} · ${page.title}原系统截图`}
                     className={zoom ? 'is-zoom' : undefined}
+                    onError={() => setBrokenEvidence(evidenceSrc(images[imageIndex]))}
                   />
                 </div>
               </>
