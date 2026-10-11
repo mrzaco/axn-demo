@@ -1,24 +1,41 @@
 /**
- * 右侧文书工作区（参考图 DB2 的窄对话 + 宽敞阅读面板）：
- * 工具条提供 关闭文书（回到宽对话）与 文书库（独立页面）两个明确操作，内容复用 DocCenterPanel view='workspace'。
- * 关闭只改 UI 可见性：不清空会话/文书数据，也不重新触发生成。
- * 全部数据为模拟数据。
+ * 右侧工作区：与对话分栏内嵌，承载——
+ * 1) 公文（模拟文书 / 真实草稿）
+ * 2) 业务流程补充
+ * 3) 资源与态势（不再用抽屉盖住对话）
+ * 关闭只改 UI 可见性：不清空会话数据，也不重新触发生成。
  */
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App as AntdApp } from 'antd';
 import { NAV_PATH } from '@/components/nav/navRoutes';
+import OperationalFlows from '@/components/chat/OperationalFlows';
+import type { FlowTask } from '@/services/flowStageConfig';
+import { eventDisplayName } from '@/services/factLookup';
+import { resolveEventStage } from '@/services/eventSwitchBriefing';
+import { useConversationStore } from '@/store/conversationStore';
+import { useDemoStore } from '@/store/demoStore';
+import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import DocCenterPanel from './DocCenterPanel';
+import ResourcePanel from './ResourcePanel';
 import '../doc/doc.css';
+import '@/components/chat/chat.css';
 
 export default function DocumentWorkspace() {
   const scope = useActiveScope();
+  const selection = useWorkspaceStore((s) => s.selectionOf(scope));
   const close = useWorkspaceStore((s) => s.close);
   const navigate = useNavigate();
   const { modal } = AntdApp.useApp();
+  const eventId = useDemoStore((s) => s.currentEventId);
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const session = useSessionStore((s) =>
+    s.sessions[s.sessionByConversation[activeConversationId ?? ''] ?? ''],
+  );
+  const eventStage = resolveEventStage(eventId, session);
 
-  /** 关闭文书：不带 token → 抑制最近一次自动打开标记，同一完成不再弹出。 */
+  /** 关闭工作区：不带 token → 抑制最近一次自动打开标记。 */
   const requestClose = useCallback(() => {
     if (!useWorkspaceStore.getState().isDirty(scope)) {
       close(scope);
@@ -26,7 +43,6 @@ export default function DocumentWorkspace() {
     }
     modal.confirm({
       title: '有未保存的文书修改',
-      // 关闭只收起工作区，不会回滚工作副本（回滚只发生在编辑器自己的「放弃修改并关闭」）。
       content: '关闭后修改会保留在本次会话（尚未保存），可再次打开继续编辑。',
       okText: '关闭并保留修改',
       cancelText: '继续编辑',
@@ -60,6 +76,43 @@ export default function DocumentWorkspace() {
     });
   }, [close, modal, navigate, scope]);
 
+  const runFlowTask = useCallback((text: string) => {
+    close(scope);
+    window.dispatchEvent(new CustomEvent('axn:flow-task', { detail: { text } }));
+  }, [close, scope]);
+
+  if (selection?.kind === 'flow') {
+    return (
+      <div className="doc-workspace" data-testid="flow-workspace-shell">
+        <div className="doc-workspace-body">
+          <OperationalFlows
+            key={`${scope}:${eventId}:${selection.id}`}
+            eventId={eventId}
+            eventName={eventDisplayName(eventId)}
+            initial={selection.id as FlowTask}
+            eventStage={eventStage}
+            onClose={requestClose}
+            onTask={runFlowTask}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (selection?.kind === 'resource') {
+    return (
+      <div className="doc-workspace" data-testid="resource-workspace-shell">
+        <div className="doc-workspace-body">
+          <ResourcePanel
+            key={`${scope}:${eventId}:${selection.id}`}
+            initialTab={selection.id}
+            onClose={requestClose}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="doc-workspace" data-testid="document-workspace-shell">
       <div className="doc-workspace-body">
@@ -68,4 +121,3 @@ export default function DocumentWorkspace() {
     </div>
   );
 }
-

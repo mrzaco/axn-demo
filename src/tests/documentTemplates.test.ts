@@ -100,12 +100,49 @@ describe('documentTemplates 一期骨架顺序', () => {
       expect(body).toMatch(/安全预警/);
       expect(body).toMatch(/案例库/);
       expect(body).toMatch(/先遣组/);
+      expect(body).toMatch(/专家技术组/);
       expect(body).toMatch(/人员编组/);
+      expect(body).toMatch(/抽组人员清单/);
+      expect(body).toMatch(/名称 \| 数量 \| 专业能力 \| 状态/);
       expect(body).toMatch(/集结号令/);
       expect(body).toMatch(/应急通信指挥链条/);
       if (nonWater.has(profile.eventId)) {
         expect(body).not.toMatch(/管涌|围井反滤/);
       }
     }
+  });
+
+  it('招标能力缺口补齐写入对应报告正文且一级标题不变', () => {
+    const profile = DISASTER_PROFILES[1];
+    const situation = buildDisasterSections(profile, 'SITUATION_REPORT');
+    expect(situation.map(([t]) => t)).toEqual([...SITUATION_REPORT_TITLES]);
+    const situationBody = situation.map(([, b]) => b).join('\n');
+    expect(situationBody).toContain('建议响应等级');
+    expect(situationBody).toContain('预警推送');
+    expect(situationBody).toContain('内部系统资源叠加');
+    expect(situationBody).toContain('模拟·待接入');
+
+    const resource = buildDisasterSections(profile, 'RESOURCE_REPORT');
+    expect(resource.map(([t]) => t)).toEqual([...RESOURCE_REPORT_TITLES]);
+    const resourceBody = resource.map(([, b]) => b).join('\n');
+    expect(resourceBody).toContain('物联网');
+    expect(resourceBody).toContain('多约束');
+    expect(resourceBody).toMatch(/破拆/);
+
+    const plan = buildDisasterSections(profile, 'RESCUE_PLAN');
+    expect(plan.map(([t]) => t)).toEqual([...RESCUE_PLAN_TITLES]);
+    const planBody = plan.map(([, b]) => b).join('\n');
+    expect(planBody).toContain('预案RAG');
+    expect(planBody).toContain('安全红线');
+
+    const evalDoc = buildDisasterSections(profile, 'RESCUE_EVAL');
+    expect(evalDoc.map(([t]) => t)).toEqual([...RESCUE_EVAL_TITLES]);
+    const evalBody = evalDoc.map(([, b]) => b).join('\n');
+    expect(evalBody).toContain('知识库迭代');
+    expect(evalBody).toContain('时间序列比对');
+
+    const reflect = buildDisasterSections(profile, 'WORK_SUMMARY_REFLECT');
+    expect(reflect.map(([t]) => t)).toEqual([...WORK_SUMMARY_REFLECT_TITLES]);
+    expect(reflect.map(([, b]) => b).join('\n')).toContain('知识库迭代');
   });
 });

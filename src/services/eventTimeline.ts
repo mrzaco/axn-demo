@@ -5,6 +5,7 @@
 import { factText, incidentById, waterObservations } from '@/seed/scenario';
 import { vueWorkspaceEventById } from '@/seed/vueWorkspaceEvents';
 import { eventDisplayName, formatFactValue } from '@/services/factLookup';
+import { tableToText } from '@/services/pipeTable';
 
 export interface EventTimelineItem {
   time: string;
@@ -21,11 +22,36 @@ export interface EventTimelineView {
   notice: string;
 }
 
+export const TIMELINE_TONE_LABEL: Record<EventTimelineItem['tone'], string> = {
+  done: '已完成',
+  active: '进行中',
+  pending: '待办',
+};
+
+export const TIMELINE_TABLE_HEADERS = ['序号', '时间节点', '环节', '记录详情', '状态'] as const;
+
 function formatClock(isoOrText: string): string {
   const match = isoOrText.match(/T(\d{2}:\d{2})/);
   if (match) return match[1];
   if (/^\d{2}:\d{2}/.test(isoOrText)) return isoOrText.slice(0, 5);
   return isoOrText;
+}
+
+/** 写入抢险总结正文的过程时间轴：管道表，红头预览渲染为正式表格。 */
+export function formatTimelineForDocument(eventId: string): string {
+  const view = buildEventTimeline(eventId);
+  const rows = view.items.map((item, index) => [
+    String(index + 1),
+    item.time,
+    item.title,
+    item.detail,
+    TIMELINE_TONE_LABEL[item.tone],
+  ]);
+  return [
+    '过程时间轴（模拟）',
+    tableToText([...TIMELINE_TABLE_HEADERS], rows),
+    view.notice,
+  ].join('\n');
 }
 
 /** 组装当前事件可展示的过程时间轴。 */

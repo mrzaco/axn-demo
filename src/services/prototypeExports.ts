@@ -1,4 +1,4 @@
-import { parsePipeTable } from '@/services/pipeTable';
+import { splitPipeContent } from '@/services/pipeTable';
 
 export function downloadFile(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -16,22 +16,23 @@ export async function exportMaterial(title: string, sections: readonly (readonly
       width: { size: 2400, type: WidthType.DXA },
       children: [new Paragraph({ children: [new TextRun({ text, bold })] })],
     });
+    const pipeTableNode = (headers: string[], rows: string[][]) => new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      rows: [
+        new TableRow({ children: headers.map((header) => cell(header, true)) }),
+        ...rows.map((row) => new TableRow({ children: row.map((value) => cell(value)) })),
+      ],
+    });
     const children = [
       new Paragraph({ text: title, heading: HeadingLevel.TITLE }),
       ...sections.flatMap(([heading, body]) => {
-        const table = parsePipeTable(body);
         const headingPara = new Paragraph({ text: heading, heading: HeadingLevel.HEADING_1 });
-        if (!table) {
-          return [headingPara, ...body.split('\n').map((text) => new Paragraph(text))];
-        }
+        const blocks = splitPipeContent(body);
         return [
           headingPara,
-          new Table({
-            width: { size: 9026, type: WidthType.DXA },
-            rows: [
-              new TableRow({ children: table.headers.map((header) => cell(header, true)) }),
-              ...table.rows.map((row) => new TableRow({ children: row.map((value) => cell(value)) })),
-            ],
+          ...blocks.flatMap((block) => {
+            if (block.kind === 'table') return [pipeTableNode(block.headers, block.rows)];
+            return block.text.split('\n').map((text) => new Paragraph(text));
           }),
         ];
       }),

@@ -31,13 +31,17 @@ describe('招标交互与事件隔离',()=>{
     fireEvent.change(screen.getByLabelText('研判情景依据'),{target:{value:'采样条件发生变化'}});
     expect(screen.queryByText('灾害影响范围与次生风险')).toBeNull();
   });
-  it('编组约束变化必须重新确认',()=>{
+  it('编组约束或改选方案必须重新确认',()=>{
     render(<ResourceComposition profile={DISASTER_PROFILES[6]}/>);
-    fireEvent.change(screen.getByLabelText('专业编组确认人'),{target:{value:'演示核对人'}});
+    expect(screen.getAllByText('已选中').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button',{name:'确认模拟编组建议'}));
-    expect(screen.getByText('演示核对人 已核对 · 待正式调派')).toBeTruthy();
+    expect(screen.getByText(/已核对 · 待正式调派/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio',{name:'方案二 · 增援任务（扩大50%）'}));
+    expect(screen.queryByText(/已核对 · 待正式调派/)).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'确认模拟编组建议'}));
+    expect(screen.getByText(/已核对 · 待正式调派/)).toBeTruthy();
     fireEvent.click(screen.getByRole('checkbox',{name:'主路灾害阻断（模拟）'}));
-    expect(screen.queryByText('演示核对人 已核对 · 待正式调派')).toBeNull();
+    expect(screen.queryByText(/已核对 · 待正式调派/)).toBeNull();
   });
   it('评估缺少计划、实际或证据不生成，修改数量撤销核验',()=>{
     const p=DISASTER_PROFILES[6];render(<RescueEvaluation profile={p}/>);
@@ -59,12 +63,12 @@ describe('招标交互与事件隔离',()=>{
     fireEvent.click(screen.getByRole('button',{name:'模拟调用'}));
     expect(screen.getByText(/SKILL_UNAVAILABLE/)).toBeTruthy();
   });
-  it('隐藏值班与会议纪要入口，同时保留应急文书', () => {
-    expect(isDutyContent('DUTY_DAILY')).toBe(true);
-    expect(isDutyContent('值班日报')).toBe(true);
-    expect(isMeetingMinutesContent('MEETING_MINUTES')).toBe(true);
-    expect(isMeetingMinutesContent('生成会议纪要')).toBe(true);
-    expect(isHiddenPrototypeAction('MEETING_MINUTES')).toBe(true);
+  it('恢复值班与会议纪要入口，同时保留应急文书', () => {
+    expect(isDutyContent('DUTY_DAILY')).toBe(false);
+    expect(isDutyContent('值班日报')).toBe(false);
+    expect(isMeetingMinutesContent('MEETING_MINUTES')).toBe(false);
+    expect(isMeetingMinutesContent('生成会议纪要')).toBe(false);
+    expect(isHiddenPrototypeAction('MEETING_MINUTES')).toBe(false);
     expect(isDutyContent('应急要情')).toBe(false);
     expect(isHiddenPrototypeAction('应急要情')).toBe(false);
   });

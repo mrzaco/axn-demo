@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Button, Checkbox, Input, InputNumber, Space, Table, Tag, Typography } from 'antd';
+import { Button, Checkbox, Input, InputNumber, Space, Table, Tag, Typography } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';
 
@@ -88,12 +88,6 @@ export default function WithdrawalReturn({ profile }: { profile: DisasterProfile
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert
-        type="info"
-        showIcon
-        title="回撤归建"
-        description="分波次登记出动/归建人数与装备、损耗待修、路线与移交签收人。缺值不按零；正式审批与签收回执仍走原系统。"
-      />
       <Table
         size="small"
         pagination={false}
@@ -231,7 +225,6 @@ export default function WithdrawalReturn({ profile }: { profile: DisasterProfile
       </Button>
       {exported && (
         <>
-          <Alert type="success" title="回撤归建对照已生成（模拟）" description="可带入原系统回撤编成/路线栏目查看。" />
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{summary}</Typography.Paragraph>
           <Tag>正式回撤令与签收回执待原系统确认</Tag>
           <OriginalSystemLink

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import { monitoringTrend, resourceComposition } from '@/services/tenderScenario';
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';
@@ -31,21 +31,6 @@ export default function SituationForecast({
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      {replay ? (
-        <Alert
-          showIcon
-          type="success"
-          title="历史过程 · 只读回放"
-          description="当前事件阶段已越过研判环节，以下为按监测样例回放的研判情景（模拟）。"
-        />
-      ) : (
-        <Alert
-          showIcon
-          type="info"
-          title="态势研判预警"
-          description="先核对指标与依据，再生成发展情景、影响范围和资源需求。演示采用简单趋势计算；预警阈值、专业预测模型和真实推送待接入。"
-        />
-      )}
       <Descriptions
         column={1}
         size="small"

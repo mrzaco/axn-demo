@@ -75,6 +75,8 @@ function actionFromLabel(label: string, stage: EventStage): EventNextStepAction 
     生成值班日报: '班次交接前留存处置过程',
     生成应急要情: '汇总基本情况与先期处置',
     评估救援效果: '核对目标完成率、剩余风险与评估结论',
+    复盘总结: '自动汇总复盘要素并生成抢险总结文书',
+    事件沉淀: '汇总本事件案例要点并写入知识库，供复盘与演练引用',
     生成工作总结: '按模拟要素整理经验与改进',
   };
   return action(label, hints[label] ?? `${scenarioForStage(stage).label}场景相关动作`);

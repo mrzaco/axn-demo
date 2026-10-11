@@ -1,12 +1,16 @@
+import CustomerRequestPanel, { CUSTOMER_ACTIONS, type CustomerAction } from './CustomerRequestPanel';
 import {
+  catalogAction,
   catalogScenarioLabel,
   QUICK_ACTION_CATALOG,
   type CatalogScenarioId,
 } from '@/seed/quickActionCatalog';
-import { tenderName } from '@/seed/tenderNames';
-import { isDutyContent, isMeetingMinutesContent } from '@/seed/prototypeVisibility';
-import OperationalFlows, { FLOW_TASKS } from './OperationalFlows';
+import { tenderName, tenderTaskPrompt } from '@/seed/tenderNames';
+import { isDutyContent, isMeetingMinutesContent, SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
+import { FLOW_TASKS } from './OperationalFlows';
 import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
+import { formatResourceAuditChatReply } from '@/services/resourceAudit';
+import { runEventPrecipitation } from '@/services/eventPrecipitation';
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
  * + 圆角一体化输入区（快捷任务 chips：场景关键推荐 + 更多动作折叠）+ 补录表单。
@@ -14,7 +18,8 @@ import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/wo
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { hostPageChipOverride } from '@/seed/hostPageChips';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
   FileText,
@@ -37,8 +42,6 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import { sendMessage, cancelTask } from '@/services/taskRunner';
 import {
-  buildStageMismatchReply,
-  isActionAheadOfStage,
   normalizeCompletedAction,
   resolveActionPrompt,
   splitQuickTasksByStage,
@@ -63,6 +66,7 @@ import {
   buildEventUnlinkBriefing,
   resolveEventStage,
 } from '@/services/eventSwitchBriefing';
+import { documentGeneratedReply } from '@/services/documentGeneratedReply';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
 import AgentSummonCard from './AgentSummonCard';
@@ -134,6 +138,7 @@ const noopOpenDrawer: NonNullable<ChatPanelProps['onOpenDrawer']> = () => {};
 
 export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: ChatPanelProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token } = theme.useToken();
   const { modal, message: notice } = AntdApp.useApp();
   const currentEventId = useDemoStore((s) => s.currentEventId);
@@ -147,7 +152,10 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const tasks = useSessionTasks(session);
   const scope = useActiveScope();
 
-  const [flow, setFlow] = useState<typeof FLOW_TASKS[number] | null>(null);
+  const openFlowWorkspace = (tab: typeof FLOW_TASKS[number]) => {
+    useWorkspaceStore.getState().select(scope, { kind: 'flow', id: tab });
+  };
+  const [customerAction, setCustomerAction] = useState<CustomerAction | null>(null);
   const [input, setInput] = useState('');
   const [clarifyValue, setClarifyValue] = useState('');
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
@@ -164,6 +172,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         .ensureSessionForConversation(activeConversation.id, activeConversation.eventId ?? currentEventId);
     }
   }, [activeConversation, currentEventId]);
+
+  useEffect(() => { setCustomerAction(null); }, [session?.sessionId]);
 
   const runningTask = useMemo(
     () =>
@@ -193,26 +203,57 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     setChoicePicker('');
   };
 
-  const replyStageMismatch = (actionText: string) => {
-    if (!session || !eventStage) return false;
-    if (!isActionAheadOfStage(eventStage, actionText)) return false;
+  const replyResourceAuditInChat = (prompt = '资源数据校验对比') => {
+    if (!session || busy) return;
     const sessionId = session.sessionId;
     const store = useSessionStore.getState();
+    store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: prompt, taskId: null });
     store.appendMessage(sessionId, {
       sessionId,
-      role: 'user',
-      kind: 'text',
-      text: actionText,
+      role: 'assistant',
+      kind: 'agent',
       taskId: null,
+      text: '正在对照基地台账与集团汇总，校验资源管理数据问题（模拟）',
+      agentName: '救援资源管理智能体',
+      agentRole: '资源数据校验对比',
     });
     store.appendMessage(sessionId, {
       sessionId,
       role: 'assistant',
       kind: 'text',
-      text: buildStageMismatchReply(eventStage, actionText),
       taskId: null,
+      text: formatResourceAuditChatReply('异常样例'),
     });
-    return true;
+  };
+
+  const replyEventPrecipitationInChat = (prompt = '事件沉淀') => {
+    if (!session || busy) return;
+    if (session.eventId.startsWith('evt-blank-')) {
+      notice.info('请先关联有效灾情后再做事件沉淀');
+      return;
+    }
+    const sessionId = session.sessionId;
+    const store = useSessionStore.getState();
+    store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: prompt, taskId: null });
+    store.appendMessage(sessionId, {
+      sessionId,
+      role: 'assistant',
+      kind: 'agent',
+      taskId: null,
+      text: '正在汇总本事件案例要点并写入知识库（模拟）',
+      agentName: '救援效果评估智能体',
+      agentRole: '事件沉淀',
+    });
+    const { reply } = runEventPrecipitation(session.eventId);
+    store.appendMessage(sessionId, {
+      sessionId,
+      role: 'assistant',
+      kind: 'text',
+      taskId: null,
+      text: reply,
+    });
+    store.recordFlowProgress(sessionId, '事件沉淀');
+    onOpenDrawer('knowledge');
   };
 
   const handleSend = (raw: string, attachmentOverride?: ChatAttachment | null, sendOpts?: {
@@ -226,20 +267,29 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     if (text && isDutyContent(text)) { notice.info('值班相关内容暂时隐藏'); return; }
     setInput('');
     clearPending();
-    const requestedFlow = FLOW_TASKS.find(name => text === name || text === tenderName(name));
-    if (requestedFlow) { setFlow(requestedFlow); return; }
     if (isMeetingMinutesContent(text)) {
       notice.info('会议纪要入口暂时隐藏');
       return;
     }
-    if (text && replyStageMismatch(text)) return;
+    if (text === '资源数据校验对比' || text.includes('资源数据校验对比')) {
+      replyResourceAuditInChat('资源数据校验对比');
+      return;
+    }
+    if (text === '事件沉淀' || text.includes('事件沉淀')) {
+      replyEventPrecipitationInChat('事件沉淀');
+      return;
+    }
+    const directAction = CUSTOMER_ACTIONS.find(action => text.includes(action) || tenderTaskPrompt(text) === action || normalizeCompletedAction(text) === action);
+    if (directAction) { setCustomerAction(directAction); return; }
+    const requestedFlow = FLOW_TASKS.find(name => text === name || text === tenderName(name));
+    if (requestedFlow) { openFlowWorkspace(requestedFlow); return; }
     const waitingSummary = session.messages.find(message => message.documentWorkflow?.stage === 'waiting_input');
     if (waitingSummary && text) {
       void submitWorkSummaryImprovement(session.sessionId, waitingSummary.messageId, text);
       return;
     }
-    if (text && /生成.*工作总结|工作总结.*生成|生成全面总结|全面总结|抢险总结/.test(text)) {
-      void generateWorkSummary(session.sessionId, text);
+    if (text && /复盘总结|生成.*工作总结|工作总结.*生成|生成全面总结|全面总结|抢险总结/.test(text)) {
+      void generateWorkSummary(session.sessionId, /复盘总结/.test(text) ? '复盘总结' : text);
       return;
     }
     void sendMessage(session.sessionId, {
@@ -429,11 +479,28 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
 
   const handleQuickTask = async (raw: string) => {
     const text = normalizeCompletedAction(resolveActionPrompt(raw)) || resolveActionPrompt(raw);
-    if (replyStageMismatch(text)) return;
-    if (text === '生成工作总结' || text === '生成全面总结') {
+    if (text === '资源数据校验对比' || tenderName(text) === '资源数据校验对比') {
+      replyResourceAuditInChat(text);
+      return;
+    }
+    if (text === '事件沉淀' || tenderName(text) === '事件沉淀') {
+      replyEventPrecipitationInChat(text);
+      return;
+    }
+    if (CUSTOMER_ACTIONS.includes(text as CustomerAction)) { setCustomerAction(text as CustomerAction); return; }
+    const flowLabel = FLOW_TASKS.find(
+      (name) => text === name || text === tenderName(name) || tenderTaskPrompt(text) === name,
+    );
+    const catalog = catalogAction(text) ?? (flowLabel ? catalogAction(flowLabel) : undefined);
+    if (catalog?.kind === 'flow' || flowLabel) {
+      openFlowWorkspace((flowLabel ?? catalog!.label) as typeof FLOW_TASKS[number]);
+      return;
+    }
+    if (text === '复盘总结' || text === '生成工作总结' || text === '生成全面总结') {
       if (session && !busy) {
-        await generateWorkSummary(session.sessionId, text === '生成全面总结' ? '生成全面总结' : text);
-        useSessionStore.getState().recordFlowProgress(session.sessionId, text);
+        const prompt = text === '生成全面总结' ? '生成全面总结' : text === '复盘总结' ? '复盘总结' : text;
+        await generateWorkSummary(session.sessionId, prompt);
+        useSessionStore.getState().recordFlowProgress(session.sessionId, text === '复盘总结' ? '复盘总结' : text);
       }
       return;
     }
@@ -468,14 +535,60 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       useSessionStore.getState().recordFlowProgress(sessionId, text);
       useSessionStore.getState().appendMessage(sessionId, {
         sessionId, role: 'assistant', kind: 'text', taskId: null,
-        text: `已生成《${document.title}》（模拟文书），已在右侧文书工作区打开。`,
+        text: documentGeneratedReply(document.title),
       });
     }
   };
 
-  const chipSplit = useMemo(() => splitQuickTasksByStage(eventStage), [eventStage]);
+  // 右侧内嵌业务流程发出的快捷任务：关闭工作区后在对话中执行
+  const quickTaskRef = useRef(handleQuickTask);
+  quickTaskRef.current = handleQuickTask;
+  useEffect(() => {
+    const onFlowTask = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const text = (event.detail as { text?: unknown } | null)?.text;
+      if (typeof text === 'string' && text.trim()) void quickTaskRef.current(text);
+    };
+    window.addEventListener('axn:flow-task', onFlowTask);
+    return () => window.removeEventListener('axn:flow-task', onFlowTask);
+  }, []);
+
+  const pageChipOverride = useMemo(
+    () => hostPageChipOverride(location.pathname, location.search),
+    [location.pathname, location.search],
+  );
+  const chipSplit = useMemo(() => {
+    if (pageChipOverride) {
+      return {
+        primary: pageChipOverride.primary.map((item) => ({
+          label: item.label,
+          agentId: item.agentId,
+          agentName: item.agentName,
+          action: item.action,
+          title: item.title,
+          scenarioId: 'forceDelivery',
+          clause: '',
+          kind: 'chat' as const,
+        })),
+        secondary: [] as ReturnType<typeof splitQuickTasksByStage>['secondary'],
+        loopLabels: [] as string[],
+        scenarioLabel: null as string | null,
+        agentLabel: null as string | null,
+      };
+    }
+    const staged = splitQuickTasksByStage(eventStage);
+    return {
+      ...staged,
+      primary: staged.primary.map((item) => ({
+        ...item,
+        action: item.label,
+        title: undefined as string | undefined,
+      })),
+    };
+  }, [eventStage, pageChipOverride]);
   // 主区只平铺当前阶段操作；其余按招标场景分组进「更多动作」（PC/手机同一套）
   const moreActionItems: MenuProps['items'] = useMemo(() => {
+    if (pageChipOverride?.hideMoreActions) return [];
     const moreMenu = QUICK_ACTION_CATALOG.moreMenu;
     const order = moreMenu.scenarioOrder;
     const groups = new Map<CatalogScenarioId, typeof chipSplit.secondary>();
@@ -522,12 +635,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           key: '__overall-flow__',
           label: moreMenu.overallFlowEntryLabel,
           disabled: !session || busy,
-          onClick: () => setFlow(moreMenu.overallFlowDefaultTab as typeof FLOW_TASKS[number]),
+          onClick: () => openFlowWorkspace(moreMenu.overallFlowDefaultTab as typeof FLOW_TASKS[number]),
         },
       );
     }
     return items;
-  }, [chipSplit.secondary, chipSplit.loopLabels, session?.sessionId, busy]);
+  }, [pageChipOverride?.hideMoreActions, chipSplit.secondary, chipSplit.loopLabels, session?.sessionId, busy]);
 
   const pending = session?.pendingClarification && tasks[session.pendingClarification.taskId]?.intent !== 'doc_daily' ? session.pendingClarification : null;
   const submitClarification = () => {
@@ -623,7 +736,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   );
 
   const items: BubbleItemType[] = useMemo(() => {
-    const messages = (session?.messages ?? []).filter(m => !isDutyContent(m.taskId ? tasks[m.taskId]?.intent ?? '' : '') && !/值班日报|值守日报|值班专项/.test(m.text ?? ''));
+    const messages = (session?.messages ?? []).filter(m => !isDutyContent(m.taskId ? tasks[m.taskId]?.intent ?? '' : ''));
     const summonedTasks = new Set(messages.filter(message => message.kind === 'agent' && message.taskId && tasks[message.taskId]).map(message => message.taskId));
     return messages.filter(message => !(message.kind === 'task' && summonedTasks.has(message.taskId))).map((m) => {
       if (m.kind === 'task' && m.taskId) {
@@ -647,7 +760,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                 busy={busy}
                 onTask={(prompt) => { void handleQuickTask(prompt); }}
                 onNavigate={(path) => { navigate(path); }}
-                onOpenFlow={(tab) => { setFlow(tab as typeof FLOW_TASKS[number]); }}
+                onOpenFlow={(tab) => { openFlowWorkspace(tab as typeof FLOW_TASKS[number]); }}
               />
             ) : (
               <Tag color="error">任务数据缺失（模拟数据）</Tag>
@@ -687,7 +800,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                   busy={busy}
                   onTask={(prompt) => { void handleQuickTask(prompt); }}
                   onNavigate={(path) => { navigate(path); }}
-                  onOpenFlow={(tab) => { setFlow(tab as typeof FLOW_TASKS[number]); }}
+                  onOpenFlow={(tab) => { openFlowWorkspace(tab as typeof FLOW_TASKS[number]); }}
                 />
               )}
             </AgentSummonCard>
@@ -760,6 +873,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
 
   return (
     <div className="axn-chat-page">
+      {customerAction && session && <CustomerRequestPanel key={`${session.sessionId}:${customerAction}`} action={customerAction} sessionId={session.sessionId} eventId={session.eventId} onClose={() => setCustomerAction(null)} />}
+
           {/* 会话头：左侧收起侧边栏 + 标题 */}
       <div className="axn-chat-head">
         <div className="axn-chat-head-row">
@@ -772,7 +887,9 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           />
           {/* 对话未开始（无消息）时不显示事件标题：此时上下文由下方「关联灾情」选择器承载，
               标题只是重复（标注 vibe_1791303121889）。首条消息出现后标题回归。 */}
-          <Button size="small" onClick={() => navigate(`/events?event=${encodeURIComponent(currentEventId)}`)}>灾种事件库</Button>
+          {SHOW_DISASTER_EVENTS_LIBRARY && (
+            <Button size="small" onClick={() => navigate(`/events?event=${encodeURIComponent(currentEventId)}`)}>灾种事件库</Button>
+          )}
           {hasMessages && (
             <Text strong className="axn-cp-title" data-testid="header-event">
               {eventTitle}
@@ -825,7 +942,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               <Text className="axn-home-greeting" type="secondary">您好，我是安小能（演示）</Text>
             </div>
             <Typography.Paragraph className="axn-home-copy">
-              按灾情研判 → 力量投送 → 实施救援三场景串联演示；下方快捷任务按当前事件阶段推荐关键动作。
+              可直接查询资源、核验物资或生成文书，各功能独立使用；事件阶段作为资料背景。
             </Typography.Paragraph>
 
             <div className="axn-home-block" data-testid="home-construction-scenarios">
@@ -912,30 +1029,32 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               <span className="axn-chips-divider" aria-hidden />
             </>
           ) : null}
-          {chipSplit.primary.map(({ label, agentName, agentId }) => (
+          {chipSplit.primary.map(({ label, agentName, agentId, action, title }) => (
             <Button
               key={label}
               size="small"
               className="axn-chip axn-chip--primary"
-              title={`${tenderName(agentName)} · 当前阶段推荐`}
+              title={title ?? `${tenderName(agentName)} · 独立调用`}
               data-agent-id={agentId}
               data-testid={`chip-primary-${label}`}
               disabled={!session || busy}
-              onClick={() => { void handleQuickTask(label); }}
+              onClick={() => { void handleQuickTask(action); }}
             >
               {tenderName(label)}
             </Button>
           ))}
-          <Dropdown menu={{ items: moreActionItems }} trigger={['click']} placement="topLeft">
-            <Button
-              size="small"
-              className="axn-chip axn-chip--more"
-              disabled={!session || busy}
-              data-testid="chip-more-actions"
-            >
-              更多动作
-            </Button>
-          </Dropdown>
+          {(moreActionItems?.length ?? 0) > 0 ? (
+            <Dropdown menu={{ items: moreActionItems }} trigger={['click']} placement="topLeft">
+              <Button
+                size="small"
+                className="axn-chip axn-chip--more"
+                disabled={!session || busy}
+                data-testid="chip-more-actions"
+              >
+                更多动作
+              </Button>
+            </Dropdown>
+          ) : null}
         </div>
       </div>
       {/* 圆角输入区：灾情选择独立成行，Sender 只保留附件与发送，避免窄屏挤爆 */}
@@ -1065,20 +1184,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         eventId={session?.eventId ?? currentEventId}
         onClose={() => setMaterialsOpen(false)}
       />
-      {flow && (
-        <OperationalFlows
-          key={`${session?.sessionId}:${currentEventId}`}
-          eventId={currentEventId}
-          eventName={eventDisplayName(currentEventId)}
-          initial={flow}
-          eventStage={eventStage}
-          onClose={() => setFlow(null)}
-          onTask={(text) => {
-            setFlow(null);
-            void handleQuickTask(text);
-          }}
-        />
-      )}
     </div>
   );
 }

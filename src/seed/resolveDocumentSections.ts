@@ -19,6 +19,7 @@ import {
 import { vueDemoResourcesForEvent } from './vueDemoResources';
 import { vueWorkspaceEventById } from './vueWorkspaceEvents';
 import { incidentById } from './scenario';
+import { formatTimelineForDocument } from '@/services/eventTimeline';
 import { eventDisplayName, factDisplay } from '@/services/factLookup';
 
 const PLACEHOLDER_MARK = '按当前关联事件生成';
@@ -167,14 +168,14 @@ function buildFromContext(ctx: EventFillContext, code: string): DocumentSection[
       ];
     case 'WORK_SUMMARY':
       return [
-        [WORK_SUMMARY_TEMPLATE_TITLES[0], `${overview(ctx)}${bound}`],
+        [WORK_SUMMARY_TEMPLATE_TITLES[0], `${overview(ctx)}${bound}\n\n${formatTimelineForDocument(ctx.eventId)}`],
         [WORK_SUMMARY_TEMPLATE_TITLES[1], `（一）处置组织：围绕${ctx.disasterType}任务开展核查与协同。\n（二）资源准备：\n${ctx.resourcesText}\n（候选未等于已调派）。`],
         [WORK_SUMMARY_TEMPLATE_TITLES[2], `短板与启示：通信、交接及保障类问题易重复出现；风险关注：${ctx.risks}。不作问责定性。`],
         [WORK_SUMMARY_TEMPLATE_TITLES[3], '按缺口逐项明确责任人、完成时限与验证材料；持续跟踪监测与现场回传（模拟）。'],
       ];
     case 'WORK_SUMMARY_REFLECT':
       return [
-        [WORK_SUMMARY_REFLECT_TITLES[0], `${overview(ctx)}\n力量候选：\n${ctx.resourcesText}${bound}`],
+        [WORK_SUMMARY_REFLECT_TITLES[0], `${overview(ctx)}\n力量候选：\n${ctx.resourcesText}${bound}\n\n${formatTimelineForDocument(ctx.eventId)}`],
         [WORK_SUMMARY_REFLECT_TITLES[1], `围绕「${ctx.disasterType}」组织处置准备；实际执行版本与批准变更以原系统为准。`],
         [WORK_SUMMARY_REFLECT_TITLES[2], `${ctx.risks}\n通信、轮换、物资消耗等保障问题须有单据或影像佐证后再写入正式总结。`],
         [WORK_SUMMARY_REFLECT_TITLES[3], '围绕未完成事项补齐证据与岗位责任；每项改进明确负责人、期限及验证材料（模拟）。'],

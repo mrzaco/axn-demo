@@ -52,7 +52,8 @@ describe('flowStageConfig', () => {
     expect(snap.dispatch).toBe(true);
     expect(snap.progress).toBe(3);
     expect(snap.receipts.length).toBe(3);
-    expect(FLOW_TASKS.length).toBe(12);
+    expect(snap.resourceReceipts.length).toBe(3);
+    expect(FLOW_TASKS.length).toBe(13);
   });
 
   it('每个流程有且仅有一个场景或 support 归属', () => {
@@ -61,7 +62,7 @@ describe('flowStageConfig', () => {
       expect(FLOW_TASK_META[task].agentLabel).toMatch(/智能体$/);
     }
     const business = FLOW_TASKS.filter((t) => FLOW_TASK_META[t].scenarioId !== 'support');
-    expect(business).toHaveLength(11);
+    expect(business).toHaveLength(12);
     expect(FLOW_TASK_META['应急助手场景'].scenarioId).toBe('support');
     expect(FLOW_TASK_META['复盘评估分析'].scenarioId).toBe('rescueOps');
     expect(FLOW_TASK_META['回撤归建'].scenarioId).toBe('rescueOps');
@@ -73,7 +74,7 @@ describe('flowStageConfig', () => {
     const rescue = flowsForScenario('rescueOps');
     expect(situation[0]).toBe('应急助手场景');
     expect(situation).toEqual(expect.arrayContaining(['现场智能勘察', '态势研判预警', '预警推送']));
-    expect(force).toEqual(expect.arrayContaining(['规划梯队投送', '编组确认']));
+    expect(force).toEqual(expect.arrayContaining(['规划梯队投送', '编组确认', '资源预警通知']));
     expect(rescue).toEqual(expect.arrayContaining([
       '方案修订对比', '回撤归建', '复盘评估分析', '资料核验与总结', '知识沉淀入库', '资源维护与导出',
     ]));

@@ -49,6 +49,7 @@ const targets: Record<string, [string, string]> = {
   现场智能勘察: ['coordination', 'S07'],
   规划梯队投送: ['coordination', 'F07'],
   预警推送: ['coordination', 'F02'],
+  资源预警通知: ['coordination', 'F02'],
   知识沉淀入库: ['business', 'K02'],
   编组确认: ['coordination', 'F03'],
   方案修订对比: ['coordination', 'S03'],

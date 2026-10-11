@@ -183,72 +183,25 @@
   padding: 0 2px;
 }
 .axn-gs-agents-clear:hover { text-decoration: underline; }
-.axn-gs-agents-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.axn-gs-agent-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 7px 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--axn-text) 4%, transparent);
-  color: var(--axn-text);
-  cursor: pointer;
-  text-align: left;
-  transition: background .12s, border-color .12s, color .12s;
-}
-.axn-gs-agent-chip:hover {
-  background: color-mix(in srgb, var(--axn-primary) 8%, transparent);
-  border-color: color-mix(in srgb, var(--axn-primary) 20%, transparent);
-}
-.axn-gs-agent-chip.is-active {
-  background: color-mix(in srgb, var(--axn-primary) 12%, var(--axn-surface));
-  border-color: color-mix(in srgb, var(--axn-primary) 40%, transparent);
-  color: var(--axn-primary-text, #426b94);
-}
-.axn-gs-agent-chip-icon {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--axn-primary) 12%, transparent);
-  color: var(--axn-primary);
-}
-.axn-gs-agent-chip.is-active .axn-gs-agent-chip-icon {
-  background: var(--axn-primary);
-  color: #fff;
-}
-.axn-gs-agent-chip-text {
-  min-width: 0;
+.axn-gs-agents-list {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-px);
 }
-.axn-gs-agent-chip-name {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
+.axn-gs-agent-name {
+  flex-shrink: 0;
+}
+.axn-gs-agent-scene {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.axn-gs-agent-chip-scene {
-  font-size: 10px;
-  color: var(--axn-muted);
-  line-height: 1.2;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--fs-caption);
+  font-weight: 400;
+  color: var(--axn-faint);
 }
-.axn-gs-agent-chip.is-active .axn-gs-agent-chip-scene {
-  color: color-mix(in srgb, var(--axn-primary) 70%, var(--axn-muted));
+.axn-gs-nav-item.is-active .axn-gs-agent-scene {
+  color: color-mix(in srgb, var(--axn-primary) 62%, transparent);
 }
 .axn-gs-event {
   display: flex;

@@ -35,6 +35,7 @@ type CategoryDef = {
 
 /** 文书库样稿，不写入正式文书审批与事实快照。 */
 export const DOCUMENT_CATEGORIES: readonly CategoryDef[] = [
+  { code: 'DAILY_WORK_SUMMARY', name: '日常工作总结', prefix: '工作综', redhead: { org: '中国安能建设集团有限公司', type: '工 作 总 结', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: [['一、工作范围', '待填写工作主题与时段'], ['二、工作时间轴', '待补充工作记录'], ['三、亮点与依据', '待补充'], ['四、下一步工作', '待补充']] },
   { code: 'DUTY_DAILY', name: '值班日报', prefix: '应急值', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '值 班 日 报', showNumber: false, showTitle: false, tail: 'duty' }, topics: ['应急值守日报', '夜间值守交接日报'], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'DUTY_DAILY') },
   { code: 'EMERGENCY_BRIEF', name: '应急抢险要情', prefix: '应急报', redhead: { platform: '中央企业应急救援综合平台', org: '中国安能建设集团有限公司', type: '应 急 抢 险 要 情', showNumber: true, showTitle: true, tail: 'brief' }, topics: ['险情处置要情', '应急救援过程要情'], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'EMERGENCY_BRIEF') },
   { code: 'MEETING_MINUTES', name: '会议纪要', prefix: '应急会纪', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '会 议 纪 要', showNumber: true, showTitle: true, tail: 'report' }, topics: ['应急协调会议纪要', '值班值守工作部署会议纪要'], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'MEETING_MINUTES') },

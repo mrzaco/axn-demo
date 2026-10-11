@@ -30,8 +30,11 @@ import {
 } from '@/seed/constructionScenarios';
 import { computeDerived } from '@/seed/derived';
 import { type FixtureFact, type FixtureTeam, type FixtureIncident, type FixtureKnowledge } from '@/seed/scenario';
+import { buildPlanRevisionBasis, formatPlanRevisionHints } from '@/services/planRevisionBasis';
+import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 import { isActiveRun } from '../taskRuns.js';
 import { useDocumentStore } from '@/store/documentStore';
 import { resourceAllowed, factDisplay, latestWaterLevelFactId, resolveFact } from '../factLookup.js';
@@ -45,6 +48,7 @@ import {
 } from '../documentFactory.js';
 import { ensureQaLoaded, getQaItem, matchQa, qaStatusLabel } from '../qaKnowledge.js';
 import { publishConstructionMaterial } from '../agentMaterialDocument.js';
+import { documentGeneratedReply } from '../documentGeneratedReply.js';
 import { vueDemoResourceIdsForEvent } from '@/seed/vueDemoResources';
 import type { ScenarioSectionsArtifact } from '@/domain/types';
 import { buildMultiSourceSnapshot, aggregationCounts, multiSourceMaterial } from '../multiSourceAggregation';
@@ -132,7 +136,7 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
   if (/^(评估救援效果|救援效果评估|评估救援成效)$/.test(text)) {
     return { intent: 'evaluation', params: { capability: 'deviation' }, displayTitle: '评估救援效果' };
   }
-  if (/反思式总结|生成总结报告|过程记录.*总结|复盘.*总结/.test(text)) {
+  if (/反思式总结|生成总结报告|抢险总结|生成工作总结|过程记录.*总结|复盘.*总结/.test(text)) {
     return { intent: 'evaluation', params: { capability: 'summary' }, displayTitle: '生成总结报告' };
   }
   if (/投入偏差|对照.*计划.*实际|分析.*偏差/.test(text)) {
@@ -153,6 +157,10 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
   if (/阶段要情|整理.*要情|进展.*要情|要情初稿/.test(text)) {
     return { intent: 'doc_brief', params: {}, displayTitle: '生成应急要情' };
   }
+  // 建设场景·灾情研判入口须先于「核对资源状态」：文案含「队伍人员状态时效」，否则会被误判为资源核对。
+  if (/分析.*现场资料|次生风险|灾情研判|待核实事项|队伍人员状态时效|人员状态数据/.test(text)) {
+    return { intent: 'summary', params: { capability: 'situation' }, displayTitle: '灾情研判' };
+  }
   if (/^(生成周边资源报告)$/.test(text) || /周边.*资源.*报告|资源分析报告/.test(text)) {
     return { intent: 'resource_query', params: { capability: 'resourceReport' }, displayTitle: '生成周边资源报告' };
   }
@@ -167,9 +175,6 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
   }
   if (/核对道路天气|道路与天气|道路通行.*天气|天气.*投送/.test(text)) {
     return { intent: 'summary', params: { capability: 'situation' }, displayTitle: '核对道路天气' };
-  }
-  if (/分析.*现场资料|次生风险|灾情研判|待核实事项|队伍人员状态时效|人员状态数据/.test(text)) {
-    return { intent: 'summary', params: { capability: 'situation' }, displayTitle: '灾情研判' };
   }
   // 抢险救援知识问答（qa.json，126 条，模拟文档溯源）：归一化精确/双向包含命中，优先于含“要情/最快”等词的业务正则
   if (/查看本事件预案依据|当前事件.*预案|本事件.*预案/.test(text)) return { intent: 'knowledge', params: { currentEventPlan: true }, displayTitle: '查看本事件预案依据' };
@@ -307,16 +312,47 @@ function* publishScenarioMaterial(
   result: ConstructionResult,
 ): Generator<TaskEvent, void, unknown> {
   const document = publishConstructionMaterial(req.sessionId, result.capability, result);
+  if (document) {
+    // 与 WorkspaceSync 双保险：物化当下即打开，避免任务仍 running / 被后续任务抢观察时右侧不弹出。
+    useWorkspaceStore.getState().autoOpen(
+      req.sessionId,
+      `agent-publish:${document.id}`,
+      { kind: 'mock', id: document.id },
+    );
+  }
   yield {
     type: 'artifact',
     artifact: { payload: toScenarioArtifact(result, document) },
   };
   if (document) {
-    yield {
-      type: 'text_delta',
-      text: `已生成《${document.title}》，可在右侧文书工作区预览核对，或点击「查看文书」打开。`,
-    };
+    useSessionStore.getState().appendMessage(req.sessionId, {
+      sessionId: req.sessionId,
+      role: 'assistant',
+      kind: 'text',
+      taskId: null,
+      text: documentGeneratedReply(document.title),
+    });
   }
+}
+
+/** 需绑定真实事件才能执行的意图（空白对话 / 无效事件只给提示，不产出业务材料）。 */
+const EVENT_BOUND_INTENTS = new Set([
+  'summary',
+  'proposal',
+  'doc_brief',
+  'doc_daily',
+  'evaluation',
+  'resource_query',
+  'resource_sort_eta',
+  'resource_sort_distance',
+  'candidate_add_top2',
+  'candidate_remove',
+  'knowledge',
+]);
+
+function hasBoundEvent(eventId: string): boolean {
+  if (!eventId || eventId.startsWith('evt-blank-')) return false;
+  return incidentById.has(eventId);
 }
 
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
@@ -324,7 +360,7 @@ async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEven
   const paceMs = demo.pace === 'fast' ? 130 : 620;
   const summon = summonFor(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
-  if (['summary', 'proposal', 'doc_brief', 'evaluation'].includes(req.intent) && !incidentById.has(req.eventId)) {
+  if (EVENT_BOUND_INTENTS.has(req.intent) && !hasBoundEvent(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };
     await sleep(paceMs, signal);
     assertActive(req);
@@ -410,15 +446,33 @@ async function* runEvaluation(req: Ctx, signal: AbortSignal, paceMs: number): As
   const evalExtra = sample
     ? `阶段性成效：${sample.objective} ${sample.completed}/${sample.target}${sample.unit}；剩余风险：${sample.risk}`
     : `作业记录不足，成效与风险项待补核。事件「${factDisplay(incident.factRefs.title, scope)}」险情状态：${factDisplay(incident.factRefs.controlStatus, scope)}。`;
+  const revisionItems = buildPlanRevisionBasis(req.eventId, evalExtra);
+  const revisionHints = formatPlanRevisionHints(revisionItems);
+  useSessionStore.getState().setPlanRevisionHints(req.sessionId, revisionHints);
+  useKnowledgeCaseStore.getState().publishEventCase({
+    eventId: req.eventId,
+    source: 'evaluation',
+    title: `${factDisplay(incident.factRefs.title, scope)} · 评估案例候选`,
+    body: `${evalExtra}\n\n预案编修依据（模拟）\n${revisionHints}`,
+    tags: ['效果评估', '复盘', '演练参考'],
+  });
+  const withRevision = `${evalExtra}\n\n预案编修依据（模拟，供后续预案编修）：\n${revisionItems.map((item) => `·【${item.dimension}】${item.revisionHint}`).join('\n')}`;
   yield {
     type: 'text_delta',
     text: buildChatMaterialSummary(
       construction,
       req.userInput,
-      capability === 'summary' ? evalExtra : `${evalExtra}（聊天区为摘要；详细评估结构见右侧文书）`,
+      capability === 'summary' ? withRevision : `${withRevision}（聊天区为摘要；详细评估结构见右侧文书）`,
     ),
   };
-  yield* publishScenarioMaterial(req, construction);
+  const constructionWithBasis: ConstructionResult = {
+    ...construction,
+    sections: [
+      ...construction.sections,
+      { title: '预案编修依据（模拟）', text: revisionHints },
+    ],
+  };
+  yield* publishScenarioMaterial(req, constructionWithBasis);
   yield { type: 'step_completed', stepId: 'e3', outputSummary: '救援效果评估已生成（模拟）' };
   yield { type: 'completed', summary: '救援效果评估完成' };
 }
@@ -1052,6 +1106,7 @@ async function* runDocBrief(req: Ctx, signal: AbortSignal, paceMs: number): Asyn
     if (missingSource) injectMissingSource(result.documentId, req);
     assertActive(req);
     useSessionStore.getState().setActiveDocument(req.sessionId, result.documentId);
+    const briefTitle = useDocumentStore.getState().drafts[result.documentId]?.title ?? '应急要情（草稿）';
     yield {
       type: 'step_completed',
       stepId: 'd3',
@@ -1062,13 +1117,19 @@ async function* runDocBrief(req: Ctx, signal: AbortSignal, paceMs: number): Asyn
           kind: 'document',
           documentId: result.documentId,
           templateCode: 'EMERGENCY_BRIEF',
-          title: '应急要情（草稿）',
+          title: briefTitle,
           state: 'draft_created',
           missingFields: [],
         },
       },
     };
-    yield { type: 'text_delta', text: '应急要情草稿已生成：正文数据均绑定模拟来源，可点击数据查看来源；可在文书工作台编辑、校核并保存版本。' };
+    useSessionStore.getState().appendMessage(req.sessionId, {
+      sessionId: req.sessionId,
+      role: 'assistant',
+      kind: 'text',
+      taskId: null,
+      text: documentGeneratedReply(briefTitle),
+    });
     yield { type: 'completed', summary: '草稿已生成' };
   } else {
     yield { type: 'failed', errorCode: 'DOC_CREATE_FAILED', message: result.reason ?? '生成失败', hint: '请检查必填字段后重试。' };
@@ -1128,6 +1189,7 @@ async function* runDocDaily(req: Ctx, signal: AbortSignal, paceMs: number): Asyn
   if (result.ok && result.documentId) {
     assertActive(req);
     useSessionStore.getState().setActiveDocument(req.sessionId, result.documentId);
+    const dailyTitle = useDocumentStore.getState().drafts[result.documentId]?.title ?? '值班日报（草稿）';
     yield {
       type: 'step_completed',
       stepId: 'd3',
@@ -1138,13 +1200,19 @@ async function* runDocDaily(req: Ctx, signal: AbortSignal, paceMs: number): Asyn
           kind: 'document',
           documentId: result.documentId,
           templateCode: 'DUTY_DAILY',
-          title: '值班日报（草稿）',
+          title: dailyTitle,
           state: 'draft_created',
           missingFields: [],
         },
       },
     };
-    yield { type: 'text_delta', text: '值班日报草稿已生成：班次统计为派生事实，交接事项与填报单位为已确认补录。可在文书工作台继续编辑与校核。' };
+    useSessionStore.getState().appendMessage(req.sessionId, {
+      sessionId: req.sessionId,
+      role: 'assistant',
+      kind: 'text',
+      taskId: null,
+      text: documentGeneratedReply(dailyTitle),
+    });
     yield { type: 'completed', summary: '日报草稿已生成' };
   } else {
     yield { type: 'failed', errorCode: 'DOC_CREATE_FAILED', message: result.reason ?? '生成失败', hint: '请检查必填字段后重试。' };

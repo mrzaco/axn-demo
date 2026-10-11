@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildStageMismatchReply,
   computeStageAdvance,
   filterFollowUpLabels,
   isActionAheadOfStage,
@@ -19,44 +18,24 @@ describe('agentFlow', () => {
     expect(scenarioForStage('待复盘').label).toBe('实施救援');
   });
 
-  it('按阶段拆分快捷任务：主推与折叠', () => {
-    const judgment = splitQuickTasksByStage('待研判');
-    expect(judgment.scenarioLabel).toBe('灾情研判');
-    expect(judgment.primary.map((item) => item.label)).toEqual([
-      '生成灾情摘要',
-      '态势研判预警',
-      '生成态势报告',
-    ]);
-    expect(judgment.secondary.some((item) => item.label === '核对道路天气')).toBe(true);
-    expect(judgment.secondary.some((item) => item.label === '评估救援效果')).toBe(true);
-    expect(judgment.secondary.some((item) => item.label === '生成灾情摘要')).toBe(false);
-    expect(judgment.loopLabels).toEqual([]);
+  it('研判/投送/救援中主推客户核心功能；待复盘/已归档主推复盘动作', () => {
+    const core = ['物资核验', '查询周边救援资源', '生成救援方案', '生成态势报告'];
+    for (const stage of ['待研判', '力量投送中', '救援中', null] as const) {
+      const split = splitQuickTasksByStage(stage);
+      expect(split.primary.map(item => item.label)).toEqual(core);
+      expect(split.secondary.some(item => item.label === '生成会议纪要')).toBe(true);
+      expect(split.loopLabels).toEqual([]);
+    }
+    const review = splitQuickTasksByStage('待复盘');
+    expect(review.primary.map(item => item.label)).toEqual(['复盘总结', '事件沉淀']);
+    expect(review.loopLabels).toEqual(['补充态势研判', '返回力量投送']);
+    expect(review.scenarioLabel).toBe('实施救援 · 复盘');
+    expect(review.secondary.some(item => item.label === '物资核验')).toBe(true);
 
-    const rescue = splitQuickTasksByStage('救援中');
-    expect(rescue.primary.map((item) => item.label)).toEqual([
-      '生成救援方案',
-      '生成应急要情',
-      '核对资源状态',
-    ]);
-    expect(rescue.primary.some((item) => item.label === '生成会议纪要')).toBe(false);
-    expect(rescue.secondary.some((item) => item.label === '生成会议纪要')).toBe(false);
-    expect(rescue.secondary.some((item) => item.label === '生成灾情摘要')).toBe(true);
-    expect(rescue.loopLabels).toEqual(['返回力量投送', '补充态势研判']);
-
-    const force = splitQuickTasksByStage('力量投送中');
-    expect(force.primary.map((item) => item.label)).toEqual([
-      '查询周边救援资源',
-      '生成周边资源报告',
-      '核对资源状态',
-    ]);
-    expect(force.secondary.some((item) => item.label === '生成救援方案')).toBe(true);
-    expect(force.secondary.some((item) => item.label === '生成应急要情')).toBe(true);
-  });
-
-  it('无阶段时全部进入折叠区', () => {
-    const blank = splitQuickTasksByStage(null);
-    expect(blank.primary).toEqual([]);
-    expect(blank.secondary.length).toBeGreaterThan(0);
+    const archived = splitQuickTasksByStage('已归档');
+    expect(archived.primary.map(item => item.label)).toEqual(['复盘总结', '事件沉淀']);
+    expect(archived.scenarioLabel).toBe('实施救援 · 复盘');
+    expect(resolveScenarioId('待研判')).toBe('situation');
   });
 
   it('关键动作推进阶段并生成交接包', () => {
@@ -79,32 +58,14 @@ describe('agentFlow', () => {
     expect(noAdvance.advanced).toBe(false);
   });
 
-  it('follow-up 不过界：排除越阶段主推', () => {
-    // 待研判完成摘要后，主推研判预警与态势报告，不应主推评估
-    expect(filterFollowUpLabels('生成灾情摘要', '待研判')).toEqual([
-      '态势研判预警',
-      '生成态势报告',
-    ]);
-    // 推进到力量投送后，链路中与阶段主推相交的资源检索可主推
-    expect(filterFollowUpLabels('生成灾情摘要', '力量投送中')).toEqual([
-      '查询周边救援资源',
-    ]);
-    expect(filterFollowUpLabels('生成救援方案', '救援中')).toContain('返回力量投送');
-    expect(filterFollowUpLabels('生成救援方案', '救援中')).not.toContain('生成灾情摘要');
-    expect(filterFollowUpLabels('生成救援方案', '救援中')).not.toContain('生成会议纪要');
-    expect(filterFollowUpLabels('生成应急要情', '救援中')).not.toContain('生成会议纪要');
-    expect(primaryLabelsForStage('已归档')).toEqual([]);
-  });
-
-  it('越阶段动作：未来拦截、回补放行', () => {
-    expect(minStageForAction('生成工作总结')).toBe('待复盘');
-    expect(isActionAheadOfStage('待研判', '生成工作总结')).toBe(true);
-    expect(isActionAheadOfStage('待复盘', '生成工作总结')).toBe(false);
-    expect(isActionAheadOfStage('救援中', '生成灾情摘要')).toBe(false);
-
-    const reply = buildStageMismatchReply('待研判', '生成工作总结');
-    expect(reply).toContain('灾情研判');
-    expect(reply).toContain('待复盘');
-    expect(reply).toMatch(/多源数据汇聚|态势研判预警|态势报告自动生成/);
+  it('复盘阶段主推复盘总结与事件沉淀，核心功能仍可从更多动作进入', () => {
+    expect(primaryLabelsForStage('待复盘')).toEqual(['复盘总结', '事件沉淀']);
+    expect(primaryLabelsForStage('已归档')).toEqual(['复盘总结', '事件沉淀']);
+    expect(primaryLabelsForStage('已归档')).not.toContain('物资核验');
+    expect(filterFollowUpLabels('生成救援方案', '救援中')).not.toContain('生成救援方案');
+    expect(minStageForAction('复盘总结')).toBe('待复盘');
+    expect(minStageForAction('事件沉淀')).toBe('待复盘');
+    expect(isActionAheadOfStage('待研判', '生成工作总结')).toBe(false);
+    expect(isActionAheadOfStage('待研判', '生成救援方案')).toBe(false);
   });
 });

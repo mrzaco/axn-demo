@@ -1,14 +1,14 @@
 import { exportResourceExcel } from '@/services/prototypeExports';
 /**
- * 资源与态势页（T-009）：Tab 切换「资源列表 / 态势地图」+ 候选管理与派生汇总。
- * 数据源：session.lastResourceResultIds（查询结果）优先；为空时回退本事件种子资源，
- * 便于客户演示打开抽屉即见内容。候选管理仍走 candidateResourceIds。
- * 全部为模拟数据。
+ * 资源与态势（T-009）：嵌在右侧工作区，Tab 切换「资源列表 / 态势地图」+ 候选管理与派生汇总。
+ * 数据源：session.lastResourceResultIds（查询结果）优先；为空时回退本事件种子资源。
+ * 候选管理仍走 candidateResourceIds。全部为模拟数据。
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Alert, Button, Checkbox, Empty, Space, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { X } from 'lucide-react';
 import { useConversationStore } from '@/store/conversationStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
@@ -70,7 +70,13 @@ function kindTag(kind: ResourceRow['kind']): ReactNode {
   return <Tag>其他</Tag>;
 }
 
-export default function ResourcePanel({ initialTab = 'list' }: { initialTab?: PanelTab }) {
+export default function ResourcePanel({
+  initialTab = 'list',
+  onClose,
+}: {
+  initialTab?: PanelTab;
+  onClose?: () => void;
+}) {
   const currentEventId = useDemoStore((s) => s.currentEventId);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
   const sessionId = useSessionStore((s) => {
@@ -337,6 +343,15 @@ export default function ResourcePanel({ initialTab = 'list' }: { initialTab?: Pa
     <div className="axn-resource-panel" data-testid="resource-panel">
       <div className="axn-panel-head">
         <Space size={8} align="center">
+          {onClose && (
+            <Button
+              type="text"
+              size="small"
+              aria-label="关闭资源与态势"
+              icon={<X size={16} />}
+              onClick={onClose}
+            />
+          )}
           <Text strong>资源与态势</Text>
           <Button size="small" disabled={!rows.length} onClick={() => exportResourceExcel(['资源ID', '名称', '类型', '人数', '设备数', '模拟距离(km)', '模拟ETA(分钟)'], rows.map(row => [row.id, row.name, row.kind, String(row.people ?? '待核'), String(row.excavators ?? '待核'), String(row.distanceKm ?? '待核'), String(row.etaMinutes ?? '待核')]))}>导出资源 Excel</Button>
           <Tag color="orange">模拟数据</Tag>
@@ -355,14 +370,6 @@ export default function ResourcePanel({ initialTab = 'list' }: { initialTab?: Pa
           ))}
         </Space>
       </div>
-      <Alert
-        type="info"
-        showIcon
-        style={{ marginBottom: 8 }}
-        title="数据更新时效"
-        description="台账常见维护周期最长约半年；可出动状态必须以状态更新时间为准，过期快照不直接出动。列表含队伍/装备/物资/专家/保障单元及学校、医院、宾馆、加油站等影响目标（演示）。"
-      />
-
       <Tabs
         className="axn-resource-tabs"
         activeKey={activeTab}

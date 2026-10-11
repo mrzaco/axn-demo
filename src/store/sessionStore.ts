@@ -3,7 +3,7 @@ import { resourceAllowed, resolveFact } from '@/services/factLookup';
 import { vueDemoResourceById } from '@/seed/vueDemoResources';
 import { teamById } from '@/seed/scenario';
 import { invalidateAllRuns, isActiveRun } from '@/services/taskRuns';
-import { computeStageAdvance, normalizeCompletedAction, resolveSeedEventStage } from '@/services/agentFlow';
+import { normalizeCompletedAction } from '@/services/agentFlow';
 import type {
   AgentTask,
   AttachmentWorkflow,
@@ -15,6 +15,7 @@ import type {
   TaskEvent,
   TaskStatus,
 } from '@/domain/types';
+import type { WarningPushKind, WarningPushState } from '@/services/warningPush';
 import { DEFAULT_EVENT_ID, DEFAULT_SESSION_ID, factById, incidentById } from '@/seed/scenario';
 import { useDemoStore } from './demoStore.js';
 import { useDocumentStore } from './documentStore.js';
@@ -159,6 +160,8 @@ function emptySession(sessionId: string, eventId: string): Session {
     completedFlowActions: [],
     handoffBundle: null,
     materials: [],
+    warningPushByKind: {},
+    planRevisionHints: null,
     createdAt: new Date().toISOString(),
   };
 }
@@ -204,6 +207,10 @@ interface SessionState {
   setActiveDocument: (sessionId: string, documentId: string | null) => void;
   /** 任务/文书成功后推进三场景演示阶段并写入交接包 */
   recordFlowProgress: (sessionId: string, completedAction: string) => void;
+  /** 写入预警推送 / 资源预警通知会话态（关闭工作区后仍保留） */
+  setWarningPush: (sessionId: string, kind: WarningPushKind, state: WarningPushState) => void;
+  /** 写入预案编修依据摘要（供方案修订对比预填） */
+  setPlanRevisionHints: (sessionId: string, hints: string | null) => void;
   clearSessionRuntime: (sessionId: string) => void;
   resetAll: () => void;
 }
@@ -658,24 +665,48 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       if (!session || !incidentById.get(session.eventId)) return s;
       const key = normalizeCompletedAction(completedAction);
       if (!key) return s;
-      const currentStage = session.eventStageOverride ?? resolveSeedEventStage(session.eventId);
       const completed = [...(session.completedFlowActions ?? [])];
       if (!completed.includes(key)) completed.push(key);
-      const { nextStage, handoff, advanced } = computeStageAdvance(
-        currentStage,
-        key,
-        session.eventId,
-        completed.length,
-      );
       return {
         sessions: {
           ...s.sessions,
           [sessionId]: {
             ...session,
             completedFlowActions: completed,
-            eventStageOverride: advanced && nextStage ? nextStage : session.eventStageOverride,
-            handoffBundle: handoff ?? session.handoffBundle,
+            // 功能完成记录不改变事件的业务阶段。
           },
+        },
+      };
+    });
+  },
+
+  setWarningPush: (sessionId, kind, state) => {
+    set((s) => {
+      const session = s.sessions[sessionId];
+      if (!session) return s;
+      return {
+        sessions: {
+          ...s.sessions,
+          [sessionId]: {
+            ...session,
+            warningPushByKind: {
+              ...(session.warningPushByKind ?? {}),
+              [kind]: { ...state, kind, updatedAt: new Date().toISOString() },
+            },
+          },
+        },
+      };
+    });
+  },
+
+  setPlanRevisionHints: (sessionId, hints) => {
+    set((s) => {
+      const session = s.sessions[sessionId];
+      if (!session) return s;
+      return {
+        sessions: {
+          ...s.sessions,
+          [sessionId]: { ...session, planRevisionHints: hints },
         },
       };
     });
@@ -701,6 +732,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
             eventStageOverride: null,
             completedFlowActions: [],
             handoffBundle: null,
+            warningPushByKind: {},
+            planRevisionHints: null,
           },
         },
       };

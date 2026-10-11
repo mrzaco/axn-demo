@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Checkbox, Space, Table, Tag } from 'antd';
+import { Button, Checkbox, Space, Table, Tag } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import DeliveryRouteMap from './DeliveryRouteMap';
 
@@ -38,11 +38,6 @@ export default function RouteComparison({
   const candidates = rows.filter((r) => r.available).sort((a, b) => a.eta - b.eta);
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert
-        title="投送路径优化"
-        type="info"
-        description="比较主备路线，排除模拟阻断和管制条件，再按示例ETA推荐。里程和时效为预设演示值，未连接地图导航或实时交通。"
-      />
       <DeliveryRouteMap
         profile={profile}
         route={activeRoute}

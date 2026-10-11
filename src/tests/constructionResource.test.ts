@@ -53,4 +53,19 @@ describe('建设场景 · 资源管理能力', () => {
     expect(resolveConstructionCapability('resource_query', '核对资源状态')).toBe('update');
     expect(resolveConstructionCapability('resource_query', '查询周边救援资源')).toBe('search');
   });
+
+  it('建设场景报告正文含招标能力补齐（模拟·待接入）', () => {
+    const situation = buildConstructionResult('situationReport', 'evt-vue-g5513', '生成态势报告');
+    expect(situation.sections.map((s) => s.text).join('\n')).toMatch(/建议响应等级|预警推送/);
+
+    const resource = buildConstructionResult('resourceReport', 'evt-vue-g5513', '生成周边资源报告');
+    expect(resource.sections.map((s) => s.title)).toEqual([...RESOURCE_REPORT_TITLES]);
+    expect(resource.sections.map((s) => s.text).join('\n')).toMatch(/物联网|多约束/);
+
+    const plan = buildConstructionResult('plan', 'evt-vue-g5513', '生成救援方案');
+    expect(plan.sections.map((s) => s.text).join('\n')).toContain('预案RAG');
+
+    const deviation = buildConstructionResult('deviation', 'evt-vue-g5513', '分析投入偏差');
+    expect(deviation.sections.map((s) => s.text).join('\n')).toContain('知识库迭代');
+  });
 });

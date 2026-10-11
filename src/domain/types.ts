@@ -239,6 +239,8 @@ export interface ChatMessage {
     collection?: { question: string; answer: string }[];
     collectedCount?: number;
     reportSections?: [string, string][];
+    documentCode?: string;
+    documentTitle?: string;
     documentId?: string;
   };
   /** 关联灾情切换提示：携带事件 ID，用于「查看时间轴」等结构化动作。 */
@@ -278,6 +280,20 @@ export interface Session {
   handoffBundle?: ScenarioHandoffBundle | null;
   /** 会话资料区：本机补充 / 纳入的模拟附件（无二进制） */
   materials?: SessionMaterial[];
+  /**
+   * 预警推送 / 资源预警通知会话态（本地模拟）。
+   * key：situation | resource
+   */
+  warningPushByKind?: Partial<Record<'situation' | 'resource', {
+    kind: 'situation' | 'resource';
+    targets: string[];
+    warning: string;
+    approved: boolean;
+    receipts: { id: string; target: string; status: '失败' | '已送达' | '已响应' }[];
+    updatedAt: string;
+  }>>;
+  /** 评估生成的预案编修依据摘要，供方案修订对比预填 */
+  planRevisionHints?: string | null;
   createdAt: string;
 }
 

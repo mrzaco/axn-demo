@@ -1,7 +1,7 @@
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';
 import { useSessionStore } from '@/store/sessionStore';
 import { exportMaterial } from '@/services/prototypeExports';
-import { parsePipeTable } from '@/services/pipeTable';
+import { splitPipeContent } from '@/services/pipeTable';
 import { useEffect, useState } from 'react';
 // message 反馈走 AntdApp.useApp()：antd v5 静态方法不消费 ConfigProvider 主题，会退回默认 token。
 // useApp() 在 <App> 之外（如直接渲染本组件的单元测试）返回空实现，故调用点用可选链避免抛错。
@@ -19,42 +19,69 @@ import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import DocumentDetailToolbar from './DocumentDetailToolbar';
 import { isRedheadSubhead, splitRedheadParagraphs } from './redheadBody';
 
-/** 管道表正文渲染为红头表格；普通正文按行拆段，避免 \n 被折叠成一堆文字。 */
-function RedheadSectionBody({ body }: { body: string }) {
-  const table = parsePipeTable(body);
-  if (table) {
-    return (
-      <div className="axn-redhead-table-wrap">
-        <table className="axn-redhead-table">
-          <thead>
-            <tr>
-              {table.headers.map((header) => (
-                <th key={header}>{header}</th>
+/** 临时隐藏文书工具栏「提交到原系统 / 打开综合管理平台」，需要时改回 true。 */
+const SHOW_ORIGINAL_SYSTEM_TOOLBAR = false;
+
+function RedheadPipeTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <div className="axn-redhead-table-wrap">
+      <table className="axn-redhead-table">
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th key={header}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <td key={`${rowIndex}-${cellIndex}`}>{cell}</td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {table.rows.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {row.map((cell, cellIndex) => (
-                  <td key={`${rowIndex}-${cellIndex}`}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** 管道表正文渲染为红头表格；普通正文按行拆段，避免 \n 被折叠成一堆文字。支持正文内嵌表格。 */
+function RedheadSectionBody({ body }: { body: string }) {
+  const blocks = splitPipeContent(body);
+  if (blocks.length === 1 && blocks[0]?.kind === 'table') {
+    return <RedheadPipeTable headers={blocks[0].headers} rows={blocks[0].rows} />;
+  }
+  if (blocks.every((block) => block.kind === 'text') || blocks.length === 0) {
+    const paragraphs = splitRedheadParagraphs(body);
+    if (paragraphs.length === 0) return <p>{body}</p>;
+    return (
+      <>
+        {paragraphs.map((para, index) => (
+          <p key={`${index}-${para.slice(0, 12)}`} className={isRedheadSubhead(para) ? 'axn-redhead-subhead' : undefined}>
+            {para}
+          </p>
+        ))}
+      </>
     );
   }
-  const paragraphs = splitRedheadParagraphs(body);
-  if (paragraphs.length === 0) return <p>{body}</p>;
   return (
     <>
-      {paragraphs.map((para, index) => (
-        <p key={`${index}-${para.slice(0, 12)}`} className={isRedheadSubhead(para) ? 'axn-redhead-subhead' : undefined}>
-          {para}
-        </p>
-      ))}
+      {blocks.map((block, blockIndex) => {
+        if (block.kind === 'table') {
+          return <RedheadPipeTable key={`table-${blockIndex}`} headers={block.headers} rows={block.rows} />;
+        }
+        const paragraphs = splitRedheadParagraphs(block.text);
+        return paragraphs.map((para, index) => (
+          <p
+            key={`text-${blockIndex}-${index}-${para.slice(0, 12)}`}
+            className={isRedheadSubhead(para) ? 'axn-redhead-subhead' : undefined}
+          >
+            {para}
+          </p>
+        ));
+      })}
     </>
   );
 }
@@ -143,9 +170,9 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
       onSave={save}
       onCancel={() => setEditing(false)}
       onDiscard={discard}
-      onSubmitToOriginal={openTransfer}
+      onSubmitToOriginal={SHOW_ORIGINAL_SYSTEM_TOOLBAR ? openTransfer : undefined}
       submitLabel={handoff ? '查看原系统回执' : '提交到原系统'}
-      platformAction={(
+      platformAction={SHOW_ORIGINAL_SYSTEM_TOOLBAR ? (
         <OriginalSystemLink
           code={document.code}
           eventId={eventId}
@@ -155,7 +182,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
           buttonLabel="打开综合管理平台"
           size="middle"
         />
-      )}
+      ) : undefined}
     />
     {editing && dirty && <div className="doc-dirty-note" data-testid="mock-dirty-note">有未保存修改 · 「取消编辑」保留内容，「放弃修改」丢弃，保存后写入当前会话文书库</div>}
     {handoff && !editing && (

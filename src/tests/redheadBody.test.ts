@@ -11,6 +11,7 @@ describe('redheadBody 分段', () => {
     expect(isRedheadSubhead('（一）救援基本条件与侦测依据')).toBe(true);
     expect(isRedheadSubhead('1. 侦测处置分队（先遣组）：负责现场侦测')).toBe(true);
     expect(isRedheadSubhead('人员编组建议（演示·待原系统锁定）：')).toBe(true);
+    expect(isRedheadSubhead('抽组人员清单（候选人装，未等于已调派）：')).toBe(true);
     expect(isRedheadSubhead('道路通行、作业展开面待核。')).toBe(false);
   });
 

@@ -1,9 +1,26 @@
 /**
  * 一期过程公文 / 处置方案材料对齐的文书章节骨架与十类灾种填充。
  * 章节名固定；正文随 DisasterProfile 变化。不写入历史案例人数/联系人。
- * 仅 type-only 引用 profile，避免与 disasterScenarios 循环依赖。
+ * 仅 type-only 引用 profile，避免与 disasterScenarios / eventTimeline 循环依赖。
  */
+import { slashResourcesToPipeTable } from '@/services/pipeTable';
+import {
+  evalCapabilitySupplement,
+  planCapabilitySupplement,
+  resourceCapabilitySupplement,
+  situationCapabilitySupplement,
+} from '@/services/tenderReportSupplements';
 import type { DisasterProfile } from './disasterScenarios';
+
+function tenderCtx(p: DisasterProfile) {
+  return {
+    eventName: p.name,
+    disasterType: p.category,
+    location: p.location,
+    risks: p.risks,
+    planTitle: p.planTitle,
+  };
+}
 
 export type DocumentSection = [string, string];
 
@@ -15,6 +32,39 @@ function disasterMonitoringText(p: DisasterProfile): string {
 
 function disasterResourcesText(p: DisasterProfile): string {
   return p.resources.map((r) => `${r.name} / ${r.amount} / ${r.capability} / ${r.status}`).join('\n');
+}
+
+/** 与 disasterWorkspaceEvents.timeline 同源结构，避免模板层再引 eventTimeline；管道表供红头预览。 */
+function formatProfileTimeline(p: DisasterProfile): string {
+  const first = p.monitoring[0];
+  const rows: string[][] = [
+    ['1', '08:30', '信息接报', p.description, '已完成'],
+    ...(first
+      ? first.times.map((time, i) => [
+        String(i + 2),
+        time,
+        first.label,
+        `${first.values[i]} ${first.unit}（模拟）；${first.source}`,
+        '已完成',
+      ])
+      : []),
+    [
+      String((first?.times.length ?? 0) + 2),
+      '当前',
+      p.stage,
+      `${p.objective} ${p.completed}/${p.target}${p.unit}（模拟）；${p.gaps}`,
+      '进行中',
+    ],
+  ];
+  const table = [
+    ['序号', '时间节点', '环节', '记录详情', '状态'].join(' | '),
+    ...rows.map((row) => row.join(' | ')),
+  ].join('\n');
+  return [
+    '过程时间轴（模拟）',
+    table,
+    '时间轴为模拟过程记录；监测读数、到场回执与正式结论须由值班与专业岗位核对。',
+  ].join('\n');
 }
 
 /** 文书 code：含智能体样稿与一期模板章。 */
@@ -152,6 +202,7 @@ function buildSituationReport(p: DisasterProfile): DocumentSection[] {
   const teams = formatList(teamResources(p), '本事件尚无队伍候选记录，可出动状态与更新时间待核。');
   const hospitals = formatList(hospitalResources(p), '医院接诊容量、路线及属地联系人待卫健岗位确认。');
   const secondary = p.riskDistribution.map((r) => `${r.area}：${r.count}条模拟风险线索`).join('\n');
+  const sit = situationCapabilitySupplement(tenderCtx(p));
   return [
     [
       '一、灾情概况',
@@ -159,11 +210,11 @@ function buildSituationReport(p: DisasterProfile): DocumentSection[] {
     ],
     [
       '二、安全态势与发展关注',
-      `主要风险：${p.risks}\n次生灾害关注：\n${secondary || '次生风险线索待补'}\n能监测·会预警：监测指标见下；预警触发阈值与推送责任人待核。\n监测（模拟）：\n${disasterMonitoringText(p)}\n安全范围由专业勘察确认；演示检索圈层约 100 公里，不等于灾害边界。`,
+      `主要风险：${p.risks}\n次生灾害关注：\n${secondary || '次生风险线索待补'}\n能监测·会预警：监测指标见下；预警触发阈值与推送责任人待核。\n监测（模拟）：\n${disasterMonitoringText(p)}\n安全范围由专业勘察确认；演示检索圈层约 100 公里，不等于灾害边界。\n\n${sit.multiSourceAndLevel}\n\n${sit.warningPush}`,
     ],
     [
       '三、队伍与人员状态时效',
-      `${teams}\n配套装备与物资候选（模拟）：\n${formatList(equipmentResources(p), '装备与物资明细待核。')}\n台账常见维护周期最长约半年；可出动状态必须以状态更新时间为准，过期快照不直接出动。冲突值保留来源并人工确认。候选资源未形成正式调派。`,
+      `${teams}\n配套装备与物资候选（模拟）：\n${formatList(equipmentResources(p), '装备与物资明细待核。')}\n台账常见维护周期最长约半年；可出动状态必须以状态更新时间为准，过期快照不直接出动。冲突值保留来源并人工确认。候选资源未形成正式调派。\n\n${sit.resourceOverlay}`,
     ],
     [
       '四、安全场所与医疗资源核查',
@@ -181,6 +232,7 @@ function buildResourceReport(p: DisasterProfile): DocumentSection[] {
     equipmentResources(p),
     '未取得本事件安能装备明细，类型、名称、数量、所属队伍及技术状态待补。',
   );
+  const res = resourceCapabilitySupplement(tenderCtx(p));
   return [
     [
       '一、抢险基本信息',
@@ -208,7 +260,7 @@ function buildResourceReport(p: DisasterProfile): DocumentSection[] {
     ],
     [
       '七、范围与数据核验',
-      '一期样例资源查询曾采用300公里、重点目标采用10公里。本事件查询半径尚未指定，不沿用样例固定数值；查询范围不代表灾害影响边界。台账常见维护周期最长约半年，可出动状态须以状态更新时间为准。各类汇总须注明统计时间、单位和去重口径。',
+      `一期样例资源查询曾采用300公里、重点目标采用10公里。本事件查询半径尚未指定，不沿用样例固定数值；查询范围不代表灾害影响边界。台账常见维护周期最长约半年，可出动状态须以状态更新时间为准。各类汇总须注明统计时间、单位和去重口径。\n\n${res.full}`,
     ],
   ];
 }
@@ -222,16 +274,19 @@ function historyCaseRefs(p: DisasterProfile): string {
 
 /** 人员编组与先遣组（侦测处置分队）行动要点，供处置方案复用。 */
 export function personnelGroupingText(resourcesText: string): string {
+  const rosterTable = slashResourcesToPipeTable(resourcesText);
   return [
     '人员编组建议（演示·待原系统锁定）：',
     '1. 侦测处置分队（先遣组）：负责现场侦测、情报搜集、属地对接与展开条件核实；先完成风险隐患评估后再投入主力作业。',
-    '2. 主力作业梯队：按任务目标展开专业处置作业，规模由负责人核定。',
-    '3. 综合保障组：负责运输、油料、物资、通信与后勤保障。',
+    '2. 专家技术组：负责风险隐患评估、工法参数论证与安全技术指导；主力作业前形成评估结论，关键技术参数待专家组确认。',
+    '3. 主力作业梯队：按任务目标展开专业处置作业，规模由负责人核定。',
+    '4. 综合保障组：负责运输、油料、物资、通信与后勤保障。',
     '',
     '先遣组工作要点：侦测处置分队（先遣组）搜集掌握情况通常采取研究上级通报、与地方有关部门对接，并应用侦测设备开展情报收集。',
     '集结与出动准备：救援队伍指挥员应迅速发出集结号令，组织人员集结，传达任务和上级指示，明确具体行动和保障事项；救援队员依据预案和指挥员要求迅速组织设备启动、油料补充、物资装载和车辆编队，与上级公司建立应急通信指挥链条。',
     '',
-    `候选人装（未等于已调派）：\n${resourcesText}`,
+    '抽组人员清单（候选人装，未等于已调派）：',
+    rosterTable,
   ].join('\n');
 }
 
@@ -245,19 +300,20 @@ function advanceDetectWorkText(): string {
 function buildRescuePlan(p: DisasterProfile): DocumentSection[] {
   const detect = planSectionByKeyword(p, ['侦测', '适用险情'], measureSlot(p, 0, '侦测依据待补。'));
   const tactics = planSectionByKeyword(p, ['主战法', '战法'], measureSlot(p, 1, '战法与工法参数待专业岗位论证补充。'));
-  const force = planSectionByKeyword(p, ['人装', '料源'], `专业人装与料源：\n${disasterResourcesText(p)}`);
   const watch = planSectionByKeyword(p, ['监测预警', '撤离'], measureSlot(p, 3, '监测预警与撤离触发待安全岗位确认。'));
   const safety = planSectionByKeyword(p, ['安全红线', '待核'], measureSlot(p, 4, '进入条件、停工撤离触发条件、撤离路线及人员清点安排待安全岗位确认。'));
   const command = planSectionByKeyword(p, ['指挥协同', '审签'], '现场指挥机构、技术组、安全组及保障组岗位名单待原系统确认；本草稿不成立新的指挥关系。');
   const grouping = personnelGroupingText(disasterResourcesText(p));
+  const forceNote = '装备大类对齐侦测搜寻/通信指挥/挖装保通/排水救援中的本灾种需要；正式抽组走原系统。';
+  const planSup = planCapabilitySupplement(tenderCtx(p));
   return [
     [
       '一、基本情况',
-      `${overviewLine(p)}\n适用预案参考：${p.planTitle}（模拟参考，非正式签发版；吸收安能公开战法关键词，不冒充九分案正文）。\n灾种关键监测最新值（模拟）：${keyMonitoringLine(p)}\n研判口径：先成立专家组完成风险隐患评估，再展开救援；先遣组完成现场侦测与通行条件核对后投入主力。\n${detect}\n中国安能集团抢险救灾典型案例（中性摘要，不写入他案人数）：\n${historyCaseRefs(p)}`,
+      `${overviewLine(p)}\n适用预案参考：${p.planTitle}（模拟参考，非正式签发版；吸收安能公开战法关键词，不冒充九分案正文）。\n灾种关键监测最新值（模拟）：${keyMonitoringLine(p)}\n研判口径：先成立专家组完成风险隐患评估，再展开救援；先遣组完成现场侦测与通行条件核对后投入主力。\n${detect}\n中国安能集团抢险救灾典型案例（中性摘要，不写入他案人数）：\n${historyCaseRefs(p)}\n\n${planSup.ragAndRules}`,
     ],
     [
       '二、任务受领与力量抽组',
-      `任务目标（模拟）：${p.objective}，阶段进度 ${p.completed}/${p.target}${p.unit}。\n${grouping}\n编组原则：精干高效，数量由经验人员最终敲定；正式抽组、报备与锁定仍走原系统流程。\n${force}`,
+      `任务目标（模拟）：${p.objective}，阶段进度 ${p.completed}/${p.target}${p.unit}。\n${grouping}\n编组原则：精干高效，数量由经验人员最终敲定；正式抽组、报备与锁定仍走原系统流程。\n${forceNote}`,
     ],
     [
       '三、指挥机构',
@@ -271,7 +327,7 @@ function buildRescuePlan(p: DisasterProfile): DocumentSection[] {
         '（二）主战法与作业步骤（内部战法参考·演示）',
         `${tactics}\n行动战法仅限授权人员查看，禁止下载；本草稿不替代正式战法库或九分案审批稿。`,
         '（三）人装编组与料源',
-        `${grouping}\n按任务与展开条件控制规模，岗位人数由负责人核定。\n${force}`,
+        `按先遣组、专家技术组、主力作业梯队、综合保障组编成。\n${grouping}\n按任务与展开条件控制规模，岗位人数由负责人核定。\n${forceNote}`,
         '（四）安全预警与撤离',
         `${watch}\n${safety}\n次生风险变化时同步预警推送责任岗位；撤离路线与人员清点待安全岗确认。`,
         '（五）综合保障',
@@ -280,7 +336,7 @@ function buildRescuePlan(p: DisasterProfile): DocumentSection[] {
     ],
     [
       '五、风险困难与附件落款',
-      `主要风险与困难：${p.risks}\n${p.gaps}\n${safety}\n附件：现场照片、监测曲线、人装编组清单、先遣组侦测记录、安全交底、中国安能集团抢险救灾典型案例索引（待补）。\n落款：拟稿单位待补；审签流程沿用原处置方案模块。以上为演示初稿，不构成现场作业指令。`,
+      `主要风险与困难：${p.risks}\n${p.gaps}\n${safety}\n附件：现场照片、监测曲线、人装编组清单、先遣组侦测记录、安全交底、中国安能集团抢险救灾典型案例索引（待补）。\n落款：拟稿单位待补；审签流程沿用原处置方案模块。以上为演示初稿，不构成现场作业指令。\n\n${planSup.versionAndRedline}`,
     ],
   ];
 }
@@ -332,7 +388,7 @@ function buildWorkSummaryTemplate(p: DisasterProfile): DocumentSection[] {
   return [
     [
       '一、基本情况',
-      `${overviewLine(p)}\n阶段目标：${p.objective}，进度 ${p.completed}/${p.target}${p.unit}（模拟）。任务成果与投入以正式台账为准。`,
+      `${overviewLine(p)}\n阶段目标：${p.objective}，进度 ${p.completed}/${p.target}${p.unit}（模拟）。任务成果与投入以正式台账为准。\n\n${formatProfileTimeline(p)}`,
     ],
     [
       '二、主要经验做法',
@@ -350,10 +406,11 @@ function buildWorkSummaryTemplate(p: DisasterProfile): DocumentSection[] {
 }
 
 function buildWorkSummaryReflect(p: DisasterProfile): DocumentSection[] {
+  const evalSup = evalCapabilitySupplement(tenderCtx(p));
   return [
     [
       '一、实际处置过程',
-      `${overviewLine(p)}\n监测（模拟）：\n${disasterMonitoringText(p)}\n力量候选：\n${disasterResourcesText(p)}`,
+      `${overviewLine(p)}\n监测（模拟）：\n${disasterMonitoringText(p)}\n力量候选：\n${disasterResourcesText(p)}\n\n${formatProfileTimeline(p)}`,
     ],
     [
       '二、处置方案',
@@ -361,17 +418,18 @@ function buildWorkSummaryReflect(p: DisasterProfile): DocumentSection[] {
     ],
     [
       '三、存在不足',
-      `${p.gaps}\n风险：${p.risks}。通信、轮换、物资消耗等保障问题须有单据或影像佐证后再写入正式总结。`,
+      `${p.gaps}\n风险：${p.risks}。通信、轮换、物资消耗等保障问题须有单据或影像佐证后再写入正式总结。\n\n${evalSup.materialCheck}`,
     ],
     [
       '四、下一步改进计划',
-      `围绕未完成目标（${p.objective} ${p.completed}/${p.target}${p.unit}）补齐证据与岗位责任；每项改进明确负责人、期限及验证材料（模拟）。`,
+      `围绕未完成目标（${p.objective} ${p.completed}/${p.target}${p.unit}）补齐证据与岗位责任；每项改进明确负责人、期限及验证材料（模拟）。\n\n${evalSup.knowledgeLoop}`,
     ],
   ];
 }
 
 function buildRescueEval(p: DisasterProfile): DocumentSection[] {
   const rate = p.target > 0 ? Math.round((p.completed / p.target) * 100) : 0;
+  const evalSup = evalCapabilitySupplement(tenderCtx(p));
   return [
     [
       '一、当前处置情况',
@@ -379,15 +437,15 @@ function buildRescueEval(p: DisasterProfile): DocumentSection[] {
     ],
     [
       '二、阶段性救援成效',
-      `目标：${p.objective}；计划 ${p.target}${p.unit}，已完成 ${p.completed}${p.unit}，完成率约 ${rate}%（模拟口径）。\n监测摘要：\n${disasterMonitoringText(p)}`,
+      `目标：${p.objective}；计划 ${p.target}${p.unit}，已完成 ${p.completed}${p.unit}，完成率约 ${rate}%（模拟口径）。\n监测摘要：\n${disasterMonitoringText(p)}\n\n${evalSup.deviationFull}`,
     ],
     [
       '三、评估结论',
-      '模拟记录显示阶段目标正在推进，仍有未完成事项，尚不能判定救援任务全部完成。正式评价须对照生效方案版本与执行回执。',
+      `模拟记录显示阶段目标正在推进，仍有未完成事项，尚不能判定救援任务全部完成。正式评价须对照生效方案版本与执行回执。\n\n${evalSup.materialCheck}`,
     ],
     [
       '四、剩余风险与改进建议',
-      `剩余风险：${p.risks}\n改进建议：${p.gaps}`,
+      `剩余风险：${p.risks}\n改进建议：${p.gaps}\n\n${evalSup.knowledgeLoop}`,
     ],
   ];
 }

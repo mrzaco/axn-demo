@@ -92,7 +92,7 @@ export const SCENARIO_FLOW: ScenarioMeta[] = [
     agentLabel: '救援方案生成智能体 / 救援效果评估智能体',
     stages: ['救援中', '待复盘', '已归档'],
     primaryLabels: [],
-    advanceOn: ['评估救援效果', '生成工作总结'],
+    advanceOn: ['评估救援效果', '生成工作总结', '复盘总结'],
     nextStage: null,
     handoffTo: null,
     handoffSummary: '',
@@ -107,11 +107,14 @@ export const ARCHIVE_NAV_LABEL = '打开文书箱';
 export function normalizeCompletedAction(raw: string): string {
   const text = raw.replace(/\s+/g, '').trim();
   if (!text) return '';
+  if (/^事件沉淀$|数据及知识沉淀/.test(text)) return '事件沉淀';
+  if (/复盘总结/.test(text)) return '复盘总结';
   if (/全面总结|抢险总结（全面）/.test(text)) return '生成全面总结';
+  if (/日常.*总结/.test(text)) return '生成日常工作总结';
   if (/工作总结|抢险总结/.test(text)) return '生成工作总结';
   if (/值班日报/.test(text)) return '生成值班日报';
   if (/应急抢险要情|应急要情/.test(text)) return '生成应急要情';
-  if (/评估救援|救援效果/.test(text)) return '评估救援效果';
+  if (/评估救援|救援效果|复盘评估/.test(text)) return '评估救援效果';
   if (/总结报告/.test(text)) return '生成总结报告';
   if (/投入偏差/.test(text)) return '分析投入偏差';
   if (/周边资源报告/.test(text)) return '生成周边资源报告';
@@ -146,6 +149,12 @@ export function resolveScenarioId(stage: EventStage): ScenarioId {
   return scenarioForStage(stage).id;
 }
 
+/** 界面「当前场景」文案：待复盘/已归档落在实施救援·复盘，不与救援中混用。 */
+export function scenarioDisplayLabel(stage: EventStage): string {
+  if (stage === '待复盘' || stage === '已归档') return '实施救援 · 复盘';
+  return scenarioForStage(stage).label;
+}
+
 export function primaryLabelsForStage(stage: EventStage): string[] {
   return [...stageChipConfig(stage).primary];
 }
@@ -168,8 +177,8 @@ export function splitQuickTasksByStage(stage: EventStage | null): {
   const visibleTasks = AGENT_QUICK_TASKS.filter((t) => !isHiddenPrototypeAction(t.label));
   if (!stage) {
     return {
-      primary: [],
-      secondary: [...visibleTasks],
+      primary: ['物资核验', '查询周边救援资源', '生成救援方案', '生成态势报告'].flatMap(label => visibleTasks.filter(t => t.label === label)),
+      secondary: visibleTasks.filter(t => !['物资核验', '查询周边救援资源', '生成救援方案', '生成态势报告'].includes(t.label)),
       loopLabels: [],
       scenarioLabel: null,
       agentLabel: null,
@@ -187,7 +196,7 @@ export function splitQuickTasksByStage(stage: EventStage | null): {
     primary,
     secondary,
     loopLabels: loopLabelsForStage(stage).filter((label) => !isHiddenPrototypeAction(label)),
-    scenarioLabel: scenario.label,
+    scenarioLabel: scenarioDisplayLabel(stage),
     agentLabel: scenario.agentLabel,
   };
 }
@@ -227,15 +236,15 @@ export function computeStageAdvance(
     };
   }
 
-  if (currentStage === '待复盘' && key === '生成工作总结') {
+  if (currentStage === '待复盘' && (key === '生成工作总结' || key === '复盘总结' || key === '生成全面总结')) {
     return {
       nextStage: '已归档',
       handoff: {
         fromScenario: 'rescueOps',
         toScenario: 'rescueOps',
         eventId,
-        versionLabel: `抢险总结 v${completedCount + 1}`,
-        summary: '总结草稿已生成（演示归档终点），正式归档仍走原系统',
+        versionLabel: `复盘总结 v${completedCount + 1}`,
+        summary: '复盘总结草稿已生成（演示归档终点），正式归档仍走原系统',
         bullets: ['处置过程与不足', '改进计划', '待审知识候选'],
         verified: 'draft',
       },
@@ -280,10 +289,13 @@ export const ACTION_FOLLOW_UP_LABELS: Record<string, string[]> = {
   核对资源状态: ['查询周边救援资源', '生成救援方案'],
   生成救援方案: ['生成应急要情', '生成会议纪要', '评估救援效果', '返回力量投送'],
   形成处置建议: ['生成应急要情', '生成会议纪要', '评估救援效果'],
-  评估救援效果: ['生成工作总结', '打开文书箱'],
-  生成总结报告: ['生成工作总结', '打开文书箱'],
-  分析投入偏差: ['评估救援效果', '生成工作总结'],
+  评估救援效果: ['复盘总结', '打开文书箱'],
+  复盘总结: ['事件沉淀', '打开文书箱', '专家知识问答'],
+  事件沉淀: ['复盘总结', '打开文书箱', '专家知识问答'],
+  生成总结报告: ['复盘总结', '打开文书箱'],
+  分析投入偏差: ['复盘总结', '打开文书箱'],
   生成工作总结: ['打开文书箱', '专家知识问答'],
+  生成全面总结: ['打开文书箱', '专家知识问答'],
   生成值班日报: ['生成应急要情', '打开文书箱'],
   生成应急要情: ['生成会议纪要', '打开文书箱'],
   生成会议纪要: ['生成应急要情', '打开文书箱'],
@@ -300,17 +312,8 @@ export function filterFollowUpLabels(
   stage: EventStage,
 ): string[] {
   const key = normalizeCompletedAction(completedActionRaw);
-  const primary = new Set([
-    ...primaryLabelsForStage(stage),
-    ...loopLabelsForStage(stage),
-  ]);
-  if (stage === '已归档') {
-    primary.add('专家知识问答');
-    primary.add(ARCHIVE_NAV_LABEL);
-  }
-
   const chained = ACTION_FOLLOW_UP_LABELS[key] ?? [];
-  const intersected = chained.filter((label) => primary.has(label) || label === ARCHIVE_NAV_LABEL);
+  const intersected = chained.filter(label => !isHiddenPrototypeAction(label));
   if (intersected.length > 0) {
     return unique(intersected.filter((label) => normalizeCompletedAction(label) !== key));
   }
@@ -353,14 +356,18 @@ export const ACTION_MIN_STAGE: Record<string, EventStage> = {
   生成态势报告: '待研判',
   核对道路天气: '待研判',
   态势研判预警: '待研判',
+  预警推送: '待研判',
   查询周边救援资源: '力量投送中',
   生成周边资源报告: '力量投送中',
   生成救援方案: '力量投送中',
   形成处置建议: '力量投送中',
   核对资源状态: '力量投送中',
+  资源预警通知: '力量投送中',
   生成应急要情: '救援中',
   生成会议纪要: '救援中',
   评估救援效果: '待复盘',
+  复盘总结: '待复盘',
+  事件沉淀: '待复盘',
   生成工作总结: '待复盘',
   生成全面总结: '待复盘',
   生成总结报告: '待复盘',
@@ -374,10 +381,8 @@ export function minStageForAction(labelRaw: string): EventStage | null {
 }
 
 /** 动作所属阶段是否严格晚于当前事件阶段（越阶段）。 */
-export function isActionAheadOfStage(currentStage: EventStage, labelRaw: string): boolean {
-  const min = minStageForAction(labelRaw);
-  if (!min) return false;
-  return stageIndex(min) > stageIndex(currentStage);
+export function isActionAheadOfStage(_currentStage: EventStage, _labelRaw: string): boolean {
+  return false; // 客户确认各功能独立调用，阶段仅用于推荐。
 }
 
 /** 越阶段点击时的安小能纠错回复（演示口吻）。 */

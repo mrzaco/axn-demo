@@ -13,19 +13,7 @@
 .axn-portal-bg {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgba(6, 22, 58, 0.28) 0%, rgba(6, 22, 58, 0.18) 45%, rgba(6, 22, 58, 0.42) 100%),
-    url('/portal-entry-bg.jpg') center center / cover no-repeat;
-  transform: scale(1.01);
-}
-
-.axn-portal-veil {
-  position: absolute;
-  inset: 0;
-  /* 压暗截图中部原卡区域，避免与可点击卡叠影 */
-  background:
-    radial-gradient(ellipse 78% 58% at 50% 52%, rgba(8, 28, 70, 0.55) 0%, rgba(8, 28, 70, 0.18) 48%, transparent 72%);
-  pointer-events: none;
+  background: #06163a;
 }
 
 .axn-portal-main {

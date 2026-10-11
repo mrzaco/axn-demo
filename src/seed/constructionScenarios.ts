@@ -9,10 +9,17 @@ import {
   disasterResourcesText,
   disasterTacticSection,
 } from './disasterScenarios';
+import { personnelGroupingText } from './documentTemplates';
 import { DEMO_CLOCK, factById, incidentById } from '@/seed/scenario';
 import { vueDemoResourcesForEvent, type VueDemoResource } from '@/seed/vueDemoResources';
 import { vueWorkspaceEventById } from '@/seed/vueWorkspaceEvents';
 import { factDisplay } from '@/services/factLookup';
+import {
+  evalCapabilitySupplement,
+  planCapabilitySupplement,
+  resourceCapabilitySupplement,
+  situationCapabilitySupplement,
+} from '@/services/tenderReportSupplements';
 
 export type ConstructionCapability =
   | 'situation'
@@ -188,6 +195,14 @@ function searchResultFromResources(
   table: ConstructionTable,
 ): ConstructionResult {
   const query = userInput || '查询事发周边队伍、保障单元、装备、物资、专家，以及学校、医院、宾馆、加油站等影响目标';
+  const vue = vueWorkspaceEventById.get(eventId);
+  const ctx = eventContext(eventId);
+  const nl = resourceCapabilitySupplement({
+    eventName: vue?.name ?? ctx.title,
+    disasterType: vue?.category ?? ctx.disasterType,
+    location: vue?.location ?? ctx.location,
+    risks: vue?.risks ?? ctx.risks,
+  }).nlSearch;
   return {
     capability: 'search',
     agentId: 'agent-resource',
@@ -199,8 +214,8 @@ function searchResultFromResources(
       {
         title: '查询说明',
         text: hasAuthorizedResourceLedger(eventId)
-          ? '可按专业、区域、距离及可出动状态查询。距离与预计到达时间为当前事件授权台账中的模拟字段；医院、学校和保障单元需另核实可用性。'
-          : '以下为当前事件演示候选，不沿用其他事件的距离或预计到达时间；医院、学校和保障单元需另核实可用性。',
+          ? `可按专业、区域、距离及可出动状态查询。距离与预计到达时间为当前事件授权台账中的模拟字段；医院、学校和保障单元需另核实可用性。\n\n${nl}`
+          : `以下为当前事件演示候选，不沿用其他事件的距离或预计到达时间；医院、学校和保障单元需另核实可用性。\n\n${nl}`,
       },
       {
         title: '待核字段',
@@ -381,10 +396,25 @@ export function buildConstructionResult(
       result.title = `${profile.name} · 资源智能检索`;
       result.summary = `${profile.category}；${profile.location}；${profile.capturedAt}。${result.summary}`;
       result.dataTime = profile.capturedAt;
+      const resSup = resourceCapabilitySupplement({
+        eventName: profile.name,
+        disasterType: profile.category,
+        location: profile.location,
+        risks: profile.risks,
+        planTitle: profile.planTitle,
+      });
       result.sections.unshift({title:'事件与检索范围',text:`${profile.name} / ${profile.category} / ${profile.location}。${profile.gaps}。资源为当前事件独立候选（模拟），未正式调派。`});
+      result.sections.push({ title: '招标能力补齐（模拟）', text: `${resSup.nlSearch}\n\n${resSup.multiConstraint}` });
       return result;
     }
     if (capability === 'update') {
+      const resSup = resourceCapabilitySupplement({
+        eventName: profile.name,
+        disasterType: profile.category,
+        location: profile.location,
+        risks: profile.risks,
+        planTitle: profile.planTitle,
+      });
       return {
         capability,
         agentId: 'agent-resource',
@@ -398,7 +428,7 @@ export function buildConstructionResult(
           { title: '当前材料', text: disasterResourcesText(profile) },
           {
             title: '更新方式',
-            text: '可在对话中补充校正信息，形成待核材料。正式台账更新机制、IoT接入与写入接口由平台确认。',
+            text: `可在对话中补充校正信息，形成待核材料。正式台账更新机制、IoT接入与写入接口由平台确认。\n\n${resSup.dataUpdate}`,
           },
         ],
         notice: NOTICE,
@@ -419,15 +449,32 @@ export function buildConstructionResult(
     };
     const labels: Record<ConstructionCapability, string> = { situation: '灾情研判', situationReport: '灾情态势报告初稿', search: '专业资源查询', resourceReport: '周边资源分析报告初稿', update: '专业资源状态核对', group: '专业力量编组建议', plan: '救援方案初稿', revise: '方案修订建议', deviation: '阶段目标与投入核对', summary: '反思式总结初稿' };
     const sections = (disasterDocumentSections(eventId, codes[capability]) ?? []).map(([title, text]) => ({ title, text }));
-    if (capability === 'group') sections.push({ title: '专业编组', text: `围绕${profile.objective}配置技术、安全、作业与保障岗位；${disasterResourcesText(profile)}。具体人数和装备配组需负责人核定。` });
+    const profileTender = {
+      eventName: profile.name,
+      disasterType: profile.category,
+      location: profile.location,
+      risks: profile.risks,
+      planTitle: profile.planTitle,
+    };
+    if (capability === 'group') {
+      const resSup = resourceCapabilitySupplement(profileTender);
+      sections.push({ title: '专业编组', text: `围绕${profile.objective}配置技术、安全、作业与保障岗位；${disasterResourcesText(profile)}。具体人数和装备配组需负责人核定。\n\n${resSup.multiConstraint}` });
+    }
     if (capability === 'revise') sections.push({ title: '本次现场反馈', text: userInput || '尚无现场反馈，请补充后复核对应章节。' });
-    if (capability === 'deviation') sections.push({ title: '投入偏差边界', text: '本事件只有专业资源候选和阶段目标样例，未配置批准的投入计划及实际出动回执，不计算投入偏差。' });
+    if (capability === 'deviation') {
+      const evalSup = evalCapabilitySupplement(profileTender);
+      sections.push({
+        title: '投入偏差边界',
+        text: `本事件只有专业资源候选和阶段目标样例，未配置批准的投入计划及实际出动回执，不计算投入偏差。\n\n${evalSup.deviationFull}\n\n${evalSup.knowledgeLoop}`,
+      });
+    }
     const isResources = ['search', 'resourceReport', 'update', 'group'].includes(capability);
     const expertFirst = '到达现场不盲目施救，先成立专家组完成风险隐患评估，再展开救援。';
     if (capability === 'revise') {
+      const planSup = planCapabilitySupplement(profileTender);
       sections.push({
         title: '动态调控说明',
-        text: '先遣组到场后实时回传现场情况，后方结合历史案例对照一边抢险一边完善方案；现场由基地领导巡查各点位、动态调剂人员装备。',
+        text: `先遣组到场后实时回传现场情况，后方结合历史案例对照一边抢险一边完善方案；现场由基地领导巡查各点位、动态调剂人员装备。\n\n${planSup.reviseNote}\n\n${planSup.versionAndRedline}`,
       });
     }
     if (capability === 'group') {
@@ -462,6 +509,16 @@ export function buildConstructionResult(
     : `围绕「${ctx.disasterType}」核实现场条件、受威胁对象与适用工法；技术参数与安全条件由专业岗位复核，未签发工法或正式调度命令。`;
   const gaps = '连续作业量、人员救助确认、安全检测、验收及撤收回执尚不完整；不据此推定零消耗、无伤亡或任务已完成。';
   const dataTime = DEMO_CLOCK;
+  const tenderCtx = {
+    eventName: ctx.title,
+    disasterType: ctx.disasterType,
+    location: ctx.location,
+    risks: ctx.risks,
+  };
+  const sitSup = situationCapabilitySupplement(tenderCtx);
+  const resSup = resourceCapabilitySupplement(tenderCtx);
+  const planSup = planCapabilitySupplement(tenderCtx);
+  const evalSup = evalCapabilitySupplement(tenderCtx);
 
   switch (capability) {
     case 'situation': {
@@ -476,15 +533,15 @@ export function buildConstructionResult(
           { title: '当前依据', text: timeline },
           {
             title: '风险与勘察重点',
-            text: `建议重点核实${ctx.risks}。人员情况：${ctx.casualty}。影响范围：${ctx.impact}。与本灾种相关的安全检测和工程勘察资料未取得，需由技术、安全岗位复核。次生灾害须做到能监测、会预警。`,
+            text: `建议重点核实${ctx.risks}。人员情况：${ctx.casualty}。影响范围：${ctx.impact}。与本灾种相关的安全检测和工程勘察资料未取得，需由技术、安全岗位复核。次生灾害须做到能监测、会预警。\n\n${sitSup.multiSourceAndLevel}`,
           },
           {
             title: '队伍与人员状态时效',
-            text: `${realtime.text} 用户重点关注可出动状态、在岗人数与状态更新时间；冲突值保留来源并人工确认。`,
+            text: `${realtime.text} 用户重点关注可出动状态、在岗人数与状态更新时间；冲突值保留来源并人工确认。\n\n${sitSup.resourceOverlay}`,
           },
           {
             title: '道路与天气',
-            text: roadWeatherDemo(ctx.disasterType, ctx.isFlood),
+            text: `${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}\n\n${sitSup.warningPush}`,
           },
         ],
         notice: NOTICE,
@@ -510,11 +567,11 @@ export function buildConstructionResult(
           { title: '灾情概况', text: `${timeline}\n研判口径：先成立专家组完成风险隐患评估，再展开救援。` },
           {
             title: '安全态势与发展关注',
-            text: `主要风险：${ctx.risks}。能监测·会预警：次生灾害监测指标与预警触发待核；需补连续监测和现场勘察。演示检索圈层约 100 公里，不代表灾害边界。\n道路与天气：${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}`,
+            text: `主要风险：${ctx.risks}。能监测·会预警：次生灾害监测指标与预警触发待核；需补连续监测和现场勘察。演示检索圈层约 100 公里，不代表灾害边界。\n道路与天气：${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}\n\n${sitSup.multiSourceAndLevel}\n\n${sitSup.warningPush}`,
           },
           {
             title: '队伍与人员状态时效',
-            text: `${realtime.text} 态势报告优先列出状态更新时间与可出动核对事项，避免把历史名册当作实时力量。`,
+            text: `${realtime.text} 态势报告优先列出状态更新时间与可出动核对事项，避免把历史名册当作实时力量。\n\n${sitSup.resourceOverlay}`,
           },
           {
             title: '资源信息核对提示',
@@ -618,7 +675,7 @@ export function buildConstructionResult(
           },
           {
             title: '七、范围与数据核验',
-            text: `一期样例资源查询采用300公里、重点目标采用10公里。本事件查询半径尚未指定，不沿用样例固定数值；查询范围不代表灾害影响边界。${LEDGER_MAINTENANCE_HINT}各类汇总须注明统计时间、单位和去重口径。`,
+            text: `一期样例资源查询采用300公里、重点目标采用10公里。本事件查询半径尚未指定，不沿用样例固定数值；查询范围不代表灾害影响边界。${LEDGER_MAINTENANCE_HINT}各类汇总须注明统计时间、单位和去重口径。\n\n${resSup.full}`,
           },
         ],
         notice: NOTICE,
@@ -646,7 +703,7 @@ export function buildConstructionResult(
           { title: '当前材料', text: resources },
           {
             title: '更新方式',
-            text: '可在对话中补充校正信息，形成待核材料。正式台账更新机制、IoT接入与写入接口由平台确认。',
+            text: `可在对话中补充校正信息，形成待核材料。正式台账更新机制、IoT接入与写入接口由平台确认。\n\n${resSup.dataUpdate}`,
           },
         ],
         notice: NOTICE,
@@ -678,7 +735,7 @@ export function buildConstructionResult(
           },
           {
             title: '精干高效与缺口',
-            text: '结合现场空间、道路、装备展开条件控制编组规模。先确认运输、驾驶、操作、安全与保障岗位，未确认数量不计入正式出动力量。',
+            text: `结合现场空间、道路、装备展开条件控制编组规模。先确认运输、驾驶、操作、安全与保障岗位，未确认数量不计入正式出动力量。\n\n${resSup.multiConstraint}`,
           },
           {
             title: '梯队与通行堵点',
@@ -701,20 +758,11 @@ export function buildConstructionResult(
         sections: [
           {
             title: '一、基本情况',
-            text: `${timeline}\n研判口径：先成立专家组完成风险隐患评估，再展开救援。\n历史案例参考（案例库·演示）：同类处置强调先遣评估与通行条件核对，不写入他案人数或联系人。`,
+            text: `${timeline}\n研判口径：先成立专家组完成风险隐患评估，再展开救援。\n历史案例参考（案例库·演示）：同类处置强调先遣评估与通行条件核对，不写入他案人数或联系人。\n\n${planSup.ragAndRules}`,
           },
           {
             title: '二、任务受领与力量抽组',
-            text: [
-              '人员编组建议（演示·待原系统锁定）：',
-              '1. 侦测处置分队（先遣组）：负责现场侦测、情报搜集、属地对接与展开条件核实。',
-              '2. 主力作业梯队：按任务目标展开专业处置作业。',
-              '3. 综合保障组：负责运输、油料、物资、通信与后勤保障。',
-              '先遣组工作要点：侦测处置分队（先遣组）搜集掌握情况通常采取研究上级通报、与地方有关部门对接，并应用侦测设备开展情报收集。',
-              '集结与出动准备：救援队伍指挥员应迅速发出集结号令，组织人员集结，传达任务和上级指示，明确具体行动和保障事项；救援队员依据预案和指挥员要求迅速组织设备启动、油料补充、物资装载和车辆编队，与上级公司建立应急通信指挥链条。',
-              resources,
-              '编组原则：精干高效，数量由经验人员敲定；正式抽组、报备与锁定仍走原系统流程。',
-            ].join('\n'),
+            text: `${personnelGroupingText(resources)}\n编组原则：精干高效，数量由经验人员敲定；正式抽组、报备与锁定仍走原系统流程。`,
           },
           {
             title: '三、指挥机构',
@@ -722,11 +770,11 @@ export function buildConstructionResult(
           },
           {
             title: '四、主要措施',
-            text: `（一）救援基本条件与侦测依据\n${siteCondition} ${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}\n先遣组侦测处置：侦测处置分队（先遣组）搜集掌握情况通常采取研究上级通报、与地方有关部门对接，并应用侦测设备开展情报收集。\n（二）战法要点（内部战法参考·演示）\n${planText} 工法和工程参数须由专家组论证；行动战法禁止下载。\n（三）人装编组与料源\n按先遣组、主力作业梯队、综合保障组编成；候选人装：\n${resources}\n（四）安全预警与撤离\n补齐风险检测、进入条件、停工撤离触发条件、撤离路线及人员清点；次生风险变化时推送责任岗位。\n（五）综合保障\n核实运输、供电、餐食、服装、医疗、通信及人员轮换，明确责任岗位；与上级公司建立应急通信指挥链条。宣传口径待宣传岗位确认。`,
+            text: `（一）救援基本条件与侦测依据\n${siteCondition} ${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}\n先遣组侦测处置：侦测处置分队（先遣组）搜集掌握情况通常采取研究上级通报、与地方有关部门对接，并应用侦测设备开展情报收集。\n（二）战法要点（内部战法参考·演示）\n${planText} 工法和工程参数须由专家组论证；行动战法禁止下载。\n（三）人装编组与料源\n按先遣组、专家技术组、主力作业梯队、综合保障组编成。\n${personnelGroupingText(resources)}\n（四）安全预警与撤离\n补齐风险检测、进入条件、停工撤离触发条件、撤离路线及人员清点；次生风险变化时推送责任岗位。\n（五）综合保障\n核实运输、供电、餐食、服装、医疗、通信及人员轮换，明确责任岗位；与上级公司建立应急通信指挥链条。宣传口径待宣传岗位确认。`,
           },
           {
             title: '五、风险困难与附件落款',
-            text: `主要风险：${ctx.risks}。未核实事项：人员情况（${ctx.casualty}）、影响范围（${ctx.impact}）。\n附件：现场照片、监测材料、人装编组清单、先遣组侦测记录、历史案例索引（待补）。落款与审签沿用原处置方案模块。`,
+            text: `主要风险：${ctx.risks}。未核实事项：人员情况（${ctx.casualty}）、影响范围（${ctx.impact}）。\n附件：现场照片、监测材料、人装编组清单、先遣组侦测记录、历史案例索引（待补）。落款与审签沿用原处置方案模块。\n\n${planSup.versionAndRedline}`,
           },
         ],
         notice: NOTICE,
@@ -747,7 +795,7 @@ export function buildConstructionResult(
           },
           {
             title: '修订边界',
-            text: '原方案有效版本、现场记录和批准变更须补齐。当前只能形成调整建议，不自动重新部署人员装备或覆盖正式方案。',
+            text: `原方案有效版本、现场记录和批准变更须补齐。当前只能形成调整建议，不自动重新部署人员装备或覆盖正式方案。\n\n${planSup.reviseNote}\n\n${planSup.versionAndRedline}`,
           },
         ],
         notice: NOTICE,
@@ -778,7 +826,10 @@ export function buildConstructionResult(
             },
         sections: [
           { title: '口径与依据', text: resources },
-          { title: '资料缺项', text: '缺少消耗、处置量与有效回执，暂不计算效率或绩效等级。' },
+          {
+            title: '资料缺项',
+            text: `缺少消耗、处置量与有效回执，暂不计算效率或绩效等级。\n\n${evalSup.deviationFull}\n\n${evalSup.materialCheck}\n\n${evalSup.knowledgeLoop}`,
+          },
         ],
         notice: NOTICE,
         dataTime,
@@ -794,11 +845,11 @@ export function buildConstructionResult(
           { title: '二、处置方案', text: planText },
           {
             title: '三、存在不足',
-            text: `${gaps} 重点复核通信与后勤保障问题；人员情况仍记为：${ctx.casualty}。`,
+            text: `${gaps} 重点复核通信与后勤保障问题；人员情况仍记为：${ctx.casualty}。\n\n${evalSup.materialCheck}`,
           },
           {
             title: '四、下一步改进计划',
-            text: '补核装备差额原因、通信保障、服装食物和人员轮换；每项改进由责任岗位确认负责人、期限及验证材料。',
+            text: `补核装备差额原因、通信保障、服装食物和人员轮换；每项改进由责任岗位确认负责人、期限及验证材料。\n\n${evalSup.knowledgeLoop}`,
           },
         ],
         notice: NOTICE,

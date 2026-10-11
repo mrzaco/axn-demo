@@ -14,15 +14,30 @@ import { sendMessage } from '@/services/taskRunner';
 import { resetDemoData } from '@/store/resetDemo';
 import { exportMaterial } from '@/services/prototypeExports';
 import { factText, knowledgeById, teamById } from '@/seed/scenario';
+import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
 import './workspace.css';
 
 const { Text, Paragraph } = Typography;
+
+const SOURCE_LABEL: Record<string, string> = {
+  evaluation: '效果评估',
+  summary: '工作总结',
+  flow: '知识沉淀流程',
+  precipitation: '事件沉淀',
+};
 
 export default function KnowledgePanel() {
   const currentEventId = useDemoStore((s) => s.currentEventId);
   const conversationId = useConversationStore(s => s.activeConversationId);
   const session = useSessionStore((s) => s.sessions[s.sessionByConversation[conversationId ?? ''] ?? s.sessionByEvent[currentEventId] ?? '']);
   const tasks = useSessionTasks(session);
+  // 订阅整表再 memo 过滤：selector 内 filter 会每次返回新数组，触发无限重渲染。
+  const allCases = useKnowledgeCaseStore((s) => s.cases);
+  const caseEventId = session?.eventId ?? currentEventId;
+  const publishedCases = useMemo(
+    () => allCases.filter((c) => c.eventId === caseEventId),
+    [allCases, caseEventId],
+  );
   // 展示优先级：已采纳建议 > 本会话最近生成的建议（生成后即使未采纳也可查看/采纳）
   const latestProposalId = useMemo(() => {
     if (!session) return null;
@@ -139,12 +154,6 @@ export default function KnowledgePanel() {
             }
             style={{ marginBottom: 12 }}
           >
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 10 }}
-              title="本建议由规则模拟生成，仅供评估，需人工审核确认后方可作为处置依据。"
-            />
             {proposalStale && <Alert type="warning" showIcon style={{ marginBottom: 10 }}
               title="下列为原候选集合生成的历史建议，不能作为当前建议采纳。"
               action={<Button size="small" disabled={busy} onClick={askProposal}>重新生成建议</Button>} />}
@@ -216,6 +225,50 @@ export default function KnowledgePanel() {
             </Empty>
           </Card>
         )}
+
+        <Card
+          size="small"
+          style={{ marginBottom: 12 }}
+          title={
+            <Space size={6} wrap>
+              本会话/本事件已沉淀案例（模拟）
+              <Tag>共 {publishedCases.length} 条</Tag>
+            </Space>
+          }
+          data-testid="published-event-cases"
+        >
+          {publishedCases.length === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="尚无本事件案例候选。可在待复盘阶段点击「事件沉淀」，或完成复盘总结 / 知识沉淀入库后出现在此。"
+            />
+          ) : (
+            publishedCases.map((item) => (
+              <Card
+                key={item.id}
+                type="inner"
+                size="small"
+                style={{ marginBottom: 8 }}
+                title={
+                  <Space size={6} wrap>
+                    <span>{item.title}</span>
+                    <Tag color={item.status === '已入库（模拟）' ? 'success' : 'processing'}>{item.status}</Tag>
+                    <Tag>{SOURCE_LABEL[item.source] ?? item.source}</Tag>
+                  </Space>
+                }
+              >
+                <Paragraph style={{ marginBottom: 4, fontSize: 12, whiteSpace: 'pre-wrap' }}>
+                  {item.body.slice(0, 420)}{item.body.length > 420 ? '…' : ''}
+                </Paragraph>
+                <Space size={4} wrap>
+                  {item.tags.map((tag) => (
+                    <Tag key={tag}>{tag}</Tag>
+                  ))}
+                </Space>
+              </Card>
+            ))
+          )}
+        </Card>
 
         {/* 知识依据 */}
         <Card size="small" title={<Space size={6}>相关依据与知识 <Tag>共 {knowledgeIds.length} 条</Tag></Space>}>

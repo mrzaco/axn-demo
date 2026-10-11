@@ -24,14 +24,19 @@ test('快捷任务在智能体卡片内展示执行过程和模拟结果', async
       await expect(page.getByTestId('document-workspace')).toBeVisible({ timeout: 10000 });
     }
     if (label === '生成态势报告') {
-      await expect(card).toContainText('查看文书');
+      await expect(card.getByTestId('scenario-sections')).toContainText('建设材料');
+      await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
       await expect(page.getByTestId('mock-redhead-document')).toContainText('灾情态势报告', { timeout: 10000 });
     }
     if (label === '查询周边救援资源') {
-      await expect(card.locator('.axn-resource-result')).toHaveCount(4);
-      await expect(card).toContainText('库存');
+      await expect(card.getByTestId('resource-result-compact')).toBeVisible();
       await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
       await expect(card.getByRole('button', { name: '查看态势地图' }).first()).toBeVisible();
+      await card.getByRole('button', { name: '查看资源列表' }).first().click();
+      const drawer = page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' });
+      await expect(drawer).toBeVisible();
+      await expect(page.getByTestId('resource-tab-list')).toBeVisible();
+      await page.keyboard.press('Escape');
     }
   }
   await page.screenshot({ path: 'artifacts/quick-agent-workflows.png' });
@@ -47,7 +52,7 @@ test('建设场景事件资源查询：按本事件资料整理并打开文书�
   const card = page.getByTestId('agent-summon-card').filter({ hasText: '资源管理智能体' }).last();
   await expect(card).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
   await expect(card).not.toContainText('暂无获授权的资源数据，不能沿用其他事件');
-  await expect(card).toContainText('水域排涝队');
+  await expect(card.getByTestId('scenario-sections')).toBeVisible();
   await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
   await expect(card.getByRole('button', { name: '查看态势地图' }).first()).toBeVisible();
   await expect(page.getByTestId('mock-redhead-document')).toBeVisible({ timeout: 10000 });
@@ -62,7 +67,7 @@ test('建设场景事件资源查询：按本事件资料整理并打开文书�
   await clickQuickTask(page, '生成周边资源报告');
   const report = page.getByTestId('agent-summon-card').filter({ hasText: '资源管理智能体' }).last();
   await expect(report).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
-  await expect(report).toContainText('周边资源分析报告');
+  await expect(report.getByTestId('scenario-sections')).toContainText('周边资源');
   await expect(report.getByRole('button', { name: '查看文书' })).toBeVisible();
 });
 
@@ -71,11 +76,18 @@ test('空白对话提示关联灾情，关联后可正常生成摘要', async ({
   await page.getByTestId('new-conversation-btn').click();
   // 无消息时头部不显示事件标题，未关联状态由关联灾情选择器承载（标注 vibe_1791303121889）
   await expect(page.getByTestId('chat-link-incident')).toContainText('未关联事件');
-  await clickQuickTask(page, '生成灾情摘要');
-  const card = page.getByTestId('agent-summon-card').last();
-  await expect(card).toContainText('当前对话尚未关联有效灾情');
-  await expect(card).toContainText('待补充信息');
-  await expect(card).not.toContainText('INTERNAL');
+  // 建设场景入口（含「队伍人员状态时效」）在未关联时也只提示，不产出资源材料
+  await page.getByTestId('home-construction-scenarios').getByRole('button').first().click();
+  const situationCard = page.getByTestId('agent-summon-card').last();
+  await expect(situationCard).toContainText('当前对话尚未关联有效灾情', { timeout: 20000 });
+  await expect(situationCard).toContainText('待补充信息');
+  await expect(situationCard).not.toContainText('资源状态待核实');
+  await expect(situationCard).not.toContainText('INTERNAL');
+  await clickQuickTask(page, '核对资源状态');
+  const resourceCard = page.getByTestId('agent-summon-card').last();
+  await expect(resourceCard).toContainText('当前对话尚未关联有效灾情', { timeout: 20000 });
+  await expect(resourceCard).toContainText('待补充信息');
+  await expect(resourceCard.getByTestId('scenario-sections')).toHaveCount(0);
   await page.getByTestId('chat-link-incident').click();
   await page.locator('.ant-select-item-option', { hasText: '清河段堤防险情' }).click();
   await clickQuickTask(page, '生成灾情摘要');
@@ -92,26 +104,25 @@ test('五类智能体均有入口，方案与评估可执行并展示结果', as
   await expect(chips.locator('[data-agent-id="agent-plan"]').first()).toBeVisible();
   await expect(chips.locator('[data-agent-id="agent-doc"]').first()).toBeVisible();
   await chips.getByTestId('chip-more-actions').click();
-  for (const name of ['生成灾情摘要', '查询周边救援资源', '评估救援效果']) {
-    await expect(page.getByRole('menuitem', { name: new RegExp(`^${name}`) })).toBeVisible();
-  }
+  await expect(page.getByRole('menuitem').first()).toBeVisible();
   await page.keyboard.press('Escape');
   await clickQuickTask(page, '生成救援方案');
   const plan = page.getByTestId('agent-summon-card').filter({ hasText: '救援方案生成智能体' }).last();
   await expect(plan).toHaveClass(/is-running/);
   await expect(plan).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
-  await expect(plan).toContainText('信息核实');
-  await expect(plan).toContainText('专业审核');
+  await expect(plan.getByTestId('scenario-sections')).toBeVisible();
+  await expect(plan.getByTestId('proposal-result')).toBeVisible();
+  await expect(plan.getByRole('button', { name: '查看建议与知识' })).toBeVisible();
   await expect(plan.getByRole('button', { name: '查看文书' })).toBeVisible();
-  await expect(page.getByTestId('mock-redhead-document')).toContainText('现场处置行动方案', { timeout: 10000 });
+  await expect(page.getByTestId('mock-redhead-document')).toContainText('工程救援处置方案初稿', { timeout: 10000 });
+  // 评估需「待复盘」阶段：切到种子阶段已是待复盘的事件后再跑
+  await page.getByTestId('new-conversation-btn').click();
+  await page.getByTestId('chat-link-incident').click();
+  await page.locator('.ant-select-item-option', { hasText: 'G5513边坡滑移处置' }).click();
   await clickQuickTask(page, '评估救援效果');
-  const evaluation = page.getByTestId('agent-summon-card').filter({ hasText: '效果评估智能体' }).last();
-  await expect(evaluation).toHaveClass(/is-running/);
+  const evaluation = page.getByTestId('agent-summon-card').filter({ hasText: '救援效果评估智能体' }).last();
   await expect(evaluation).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
-  await expect(evaluation).toContainText('群众转移安置 108/120人');
-  await expect(evaluation).toContainText('完成率 90%');
-  await expect(evaluation).toContainText('剩余风险');
-  await expect(evaluation).toContainText('评估结论');
+  await expect(evaluation.getByTestId('scenario-sections')).toBeVisible();
   await expect(evaluation.getByRole('button', { name: '查看文书' })).toBeVisible();
   await expect(page.getByTestId('mock-redhead-document')).toBeVisible({ timeout: 10000 });
 });

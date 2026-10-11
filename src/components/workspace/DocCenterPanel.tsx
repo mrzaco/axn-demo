@@ -1,3 +1,4 @@
+import CustomerRequestPanel, { type CustomerAction } from '@/components/chat/CustomerRequestPanel';
 import { useDocumentNavigation } from './useDocumentNavigation';
 /**
  * 文书内容中枢（UI 改版）：同一份文书内容以两个显式视图呈现。
@@ -20,6 +21,7 @@ import { EMPTY_LIBRARY, useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { refreshDraftSnapshot } from '@/services/documentFactory';
+import { documentGeneratedReply } from '@/services/documentGeneratedReply';
 import { generateWorkSummary } from '@/services/workSummaryWorkflow';
 import { shiftEventIds, formatFactValue } from '@/services/factLookup';
 import { templateByCode } from '@/seed/scenario';
@@ -91,6 +93,7 @@ function HintButton({ hint, ...buttonProps }: React.ComponentProps<typeof Button
 
 export default function DocCenterPanel({ view, onClose = () => window.dispatchEvent(new Event('axn:close-document')), onOpenLibrary }: { view: DocView; onClose?: () => void; onOpenLibrary?: () => void }) {
   const { message } = AntdApp.useApp();
+  const [customerAction, setCustomerAction] = useState<CustomerAction | null>(null);
   const draftsMap = useDocumentStore((s) => s.drafts);
   const revisionsMap = useDocumentStore((s) => s.revisions);
   const activeReportMap = useDocumentStore((s) => s.activeReportByDocument);
@@ -135,12 +138,23 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
   const generateMock = useCallback(
     (code: string) => {
       if (isHiddenPrototypeAction(code)) return;
+      const customerCodes: Record<string, CustomerAction> = { DUTY_DAILY: '生成值班日报', MEETING_MINUTES: '生成会议纪要', DAILY_WORK_SUMMARY: '生成日常工作总结', RESCUE_PLAN: '生成救援方案' };
+      if (customerCodes[code]) { setCustomerAction(customerCodes[code]); return; }
       navigate(NAV_PATH.assistant);
       if (code === 'WORK_SUMMARY' && sessionId) {
         void generateWorkSummary(sessionId);
         return;
       }
-      void useMockDocumentStore.getState().generate(libraryScope, code);
+      void useMockDocumentStore.getState().generate(libraryScope, code).then((document) => {
+        if (!document || !sessionId || !useSessionStore.getState().sessions[sessionId]) return;
+        useSessionStore.getState().appendMessage(sessionId, {
+          sessionId,
+          role: 'assistant',
+          kind: 'text',
+          taskId: null,
+          text: documentGeneratedReply(document.title),
+        });
+      });
     },
     [libraryScope, navigate, sessionId],
   );
@@ -158,7 +172,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
 
   // 切换事件/会话时关闭抽屉，但不清空业务数据（工作区可见性由 workspaceStore 按作用域维护）。
   useEffect(() => {
-    setEditorDocId(null); setVersionDocId(null); setSourceOpen(false); setSourceDocumentId(null); setSourceFactId(null);
+    setCustomerAction(null); setEditorDocId(null); setVersionDocId(null); setSourceOpen(false); setSourceDocumentId(null); setSourceFactId(null);
   }, [currentEventId, sessionId]);
 
   const selectedDraft = selection?.kind === 'draft' ? drafts.find((d) => d.documentId === selection.id) : undefined;
@@ -405,6 +419,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       className={`doc-center doc-center--${view}`}
       data-testid={view === 'library' ? 'document-library' : 'document-workspace'}
     >
+      {customerAction && sessionId && <CustomerRequestPanel key={`${sessionId}:${customerAction}`} action={customerAction} sessionId={sessionId} eventId={currentEventId} onClose={() => setCustomerAction(null)} />}
       {view === 'library' && <header className="doc-agent-header">
         <span className="doc-agent-avatar"><Bot /></span>
         <div className="doc-agent-heading"><h2>文书库</h2><p>规范成文，让每一份文书清晰有据</p></div>

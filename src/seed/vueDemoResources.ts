@@ -1,7 +1,7 @@
 import { disasterDemoResources } from './disasterScenarios';
 /**
  * 建设场景事件的演示资源叠加点位（对齐 Vue ResourceForce 台账样例）。
- * 仅用于「资源与态势」抽屉的列表 / 地图分布示意，不写入授权台账，不参与正式候选调派。
+ * 仅用于「资源与态势」右侧工作区的列表 / 地图分布示意，不写入授权台账，不参与正式候选调派。
  */
 export type VueDemoResourceKind =
   | 'team'

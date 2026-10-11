@@ -13,8 +13,10 @@ import {
   type EventStage,
   type ScenarioId,
 } from '@/services/agentFlow';
+import { buildWarningPushSeed, type FlowReceipt } from '@/services/warningPush';
 
 export { STAGE_ORDER, stageIndex };
+export type { FlowReceipt } from '@/services/warningPush';
 
 export const FLOW_TASKS = [
   '应急助手场景',
@@ -22,6 +24,7 @@ export const FLOW_TASKS = [
   '态势研判预警',
   '规划梯队投送',
   '预警推送',
+  '资源预警通知',
   '知识沉淀入库',
   '编组确认',
   '方案修订对比',
@@ -50,6 +53,7 @@ export const FLOW_TASK_META: Record<FlowTask, FlowTaskMeta> = {
   现场智能勘察: { scenarioId: 'situation', owner: 'situation', agentLabel: '态势感知智能体' },
   态势研判预警: { scenarioId: 'situation', owner: 'situation', agentLabel: '态势感知智能体' },
   预警推送: { scenarioId: 'situation', owner: 'situation', agentLabel: '态势感知智能体' },
+  资源预警通知: { scenarioId: 'forceDelivery', owner: 'resource', agentLabel: '救援资源管理智能体' },
   规划梯队投送: { scenarioId: 'forceDelivery', owner: 'resource', agentLabel: '救援资源管理智能体' },
   编组确认: { scenarioId: 'forceDelivery', owner: 'resource', agentLabel: '救援资源管理智能体' },
   方案修订对比: { scenarioId: 'rescueOps', owner: 'plan', agentLabel: '救援方案生成智能体' },
@@ -71,6 +75,7 @@ const FLOW_TAB_MIN_STAGE: Record<FlowTask, EventStage> = {
   现场智能勘察: '待研判',
   态势研判预警: '待研判',
   预警推送: '待研判',
+  资源预警通知: '力量投送中',
   规划梯队投送: '力量投送中',
   编组确认: '力量投送中',
   方案修订对比: '救援中',
@@ -152,12 +157,6 @@ export type FlowRecordRow = {
   verified: boolean;
 };
 
-export type FlowReceipt = {
-  id: string;
-  target: string;
-  status: '失败' | '已送达' | '已响应';
-};
-
 /** 历史回放用的本地演示快照（不接真实接口）。 */
 export type FlowSeedSnapshot = {
   records: FlowRecordRow[];
@@ -173,6 +172,11 @@ export type FlowSeedSnapshot = {
   warning: string;
   approved: boolean;
   receipts: FlowReceipt[];
+  /** 力量投送阶段资源预警回放 */
+  resourceTargets: string[];
+  resourceWarning: string;
+  resourceApproved: boolean;
+  resourceReceipts: FlowReceipt[];
   caseText: string;
   caseStatus: string;
   reason: string;
@@ -224,9 +228,8 @@ export function buildFlowSeedSnapshot(
 ): FlowSeedSnapshot {
   const records = surveyRecords(eventId, profile);
   const risks = profile?.risks ?? '现场风险';
-  const targets = ['现场安全员（演示）', '应急协调员（演示）', '技术负责人（演示）'];
-  const warning =
-    `${eventName}次生风险预警草稿（模拟）：关注${risks}。依据现场待核线索，请技术、安全岗位复核；关注条件变化，保持撤离路线可用。有效期与风险阈值待确认。`;
+  const situationPush = buildWarningPushSeed('situation', eventId, profile, eventName);
+  const resourcePush = buildWarningPushSeed('resource', eventId, profile, eventName);
   const feedback =
     `专家组已完成隐患初评（模拟回放）：关注「${risks}」。未完成正式会签前不展开救援作业；通信与撤离路线保持可用。`;
   const caseText =
@@ -247,14 +250,14 @@ export function buildFlowSeedSnapshot(
     dispatch: true,
     progress: 3,
     owner: '先遣组负责人（演示）',
-    targets,
-    warning,
-    approved: true,
-    receipts: targets.map((target, i) => ({
-      id: `${eventId}:receipt:${i}`,
-      target,
-      status: '已响应' as const,
-    })),
+    targets: situationPush.targets,
+    warning: situationPush.warning,
+    approved: situationPush.approved,
+    receipts: situationPush.receipts,
+    resourceTargets: resourcePush.targets,
+    resourceWarning: resourcePush.warning,
+    resourceApproved: resourcePush.approved,
+    resourceReceipts: resourcePush.receipts,
     caseText,
     caseStatus: '已入库',
     reason: '限定内部可见（演示回放）',

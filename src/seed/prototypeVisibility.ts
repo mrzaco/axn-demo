@@ -1,11 +1,11 @@
-/** 值班模块暂时隐藏，保留模板、历史记录及原系统映射，便于恢复。 */
-export const SHOW_DUTY_CONTENT = false;
+/** 按客户要求开放值班日报入口与历史记录。 */
+export const SHOW_DUTY_CONTENT = true;
 export function isDutyContent(value: string): boolean {
   return !SHOW_DUTY_CONTENT && /DUTY_DAILY|doc_daily|值班|值守|交接日报/.test(value);
 }
 
-/** 会议纪要入口暂时隐藏（快捷任务 / 下一步建议 / 文书库分类），模板与生成逻辑保留便于恢复。 */
-export const SHOW_MEETING_MINUTES = false;
+/** 按客户要求开放会议纪要入口、快捷任务及文书库分类。 */
+export const SHOW_MEETING_MINUTES = true;
 export function isMeetingMinutesContent(value: string): boolean {
   return !SHOW_MEETING_MINUTES && /MEETING_MINUTES|会议纪要/.test(value);
 }
@@ -14,3 +14,6 @@ export function isMeetingMinutesContent(value: string): boolean {
 export function isHiddenPrototypeAction(value: string): boolean {
   return isDutyContent(value) || isMeetingMinutesContent(value);
 }
+
+/** 按客户要求隐藏「灾种事件库」整页模块及入口。 */
+export const SHOW_DISASTER_EVENTS_LIBRARY = false;

@@ -115,20 +115,10 @@ describe('sameMockDocument', () => {
 });
 
 describe('模拟文书提交到原系统', () => {
-  it('工具栏可打开确认框并写回 handoff 回执', async () => {
-    const onSave = vi.fn();
-    mount(onSave);
-
-    fireEvent.click(screen.getByTestId('submit-to-original-btn'));
-    expect(screen.getByText('确认提交到原系统')).toBeTruthy();
-
-    fireEvent.click(screen.getByTestId('transfer-check'));
-    fireEvent.click(screen.getByTestId('confirm-submit-original'));
-
-    expect(onSave).toHaveBeenCalledTimes(1);
-    const saved = onSave.mock.calls[0][0] as typeof DOCUMENT;
-    expect(saved.handoff?.status).toBe('uploaded');
-    expect(saved.handoff?.target?.length).toBeGreaterThan(0);
-    expect(saved.handoff?.receiptId).toMatch(/^AXN-RCPT-/);
+  // 文书工具栏「提交到原系统 / 打开综合管理平台」临时隐藏（SHOW_ORIGINAL_SYSTEM_TOOLBAR=false）
+  it('工具栏暂不展示提交到原系统入口', () => {
+    mount(vi.fn());
+    expect(screen.queryByTestId('submit-to-original-btn')).toBeNull();
+    expect(screen.queryByTestId('original-system-link')).toBeNull();
   });
 });

@@ -8,6 +8,7 @@
  * 调用方：设置弹窗的「演示数据」区、兜底错误页，以及 ResourcePanel / KnowledgePanel 的
  * “会话未初始化”提示（原先文案让用户去重置，但界面上没有入口）。
  */
+import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
 import { useConversationStore } from './conversationStore';
 import { useSessionStore } from './sessionStore';
 import { useWorkspaceStore } from './workspaceStore';
@@ -17,4 +18,5 @@ export function resetDemoData(): void {
   useSessionStore.getState().resetAll();
   useConversationStore.getState().resetAll();
   useWorkspaceStore.getState().resetAll();
+  useKnowledgeCaseStore.getState().resetAll();
 }

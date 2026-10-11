@@ -39,7 +39,8 @@ describe('补充业务流程的确认边界', () => {
         onClose={() => {}}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: '提炼当前事件案例草稿' }));
+    expect((screen.getByLabelText('复盘知识材料') as HTMLTextAreaElement).value).toMatch(/复盘案例草稿/);
+    expect(screen.getByRole('button', { name: '重新提炼案例草稿' })).toBeTruthy();
     expect((screen.getByRole('button', { name: '模拟审批通过并入库' }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '提交入库审核' }));
     fireEvent.change(screen.getByLabelText('知识审核意见'), { target: { value: '限定内部可见' } });
@@ -97,6 +98,7 @@ describe('补充业务流程的确认边界', () => {
     expect(screen.getByTestId('flow-scenario-intro').textContent).toMatch(/救援资源管理/);
     expect(screen.getByText('投送路径优化')).toBeTruthy();
     expect(screen.getByText('编组确认')).toBeTruthy();
+    expect(screen.getByText('资源协调预警通知（演示）')).toBeTruthy();
     expect(screen.queryByText('智能勘察分析')).toBeNull();
   });
 
@@ -114,21 +116,33 @@ describe('补充业务流程的确认边界', () => {
     expect(screen.queryByText('载入演示过程资料')).toBeNull();
   });
 
-  it('按建设场景划分流程：力量投送中默认落力量投送，可见投送路径与编组', () => {
+  it('待研判可打开预警推送面板且默认预填草稿', () => {
     render(
       <OperationalFlows
         eventId="evt-demo-001"
         eventName="事件A"
-        initial="规划梯队投送"
+        initial="预警推送"
+        eventStage="待研判"
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByTestId('warning-push-situation')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '重新生成预警草稿' })).toBeTruthy();
+    expect((screen.getByLabelText('预警内容') as HTMLTextAreaElement).value).toMatch(/预警草稿/);
+  });
+
+  it('力量投送中资源预警通知默认预填草稿', () => {
+    render(
+      <OperationalFlows
+        eventId="evt-demo-001"
+        eventName="事件A"
+        initial="资源预警通知"
         eventStage="力量投送中"
         onClose={() => {}}
       />,
     );
-    expect(screen.getByTestId('flow-scenario-rail')).toBeTruthy();
-    expect(screen.getByTestId('flow-scenario-intro').textContent).toMatch(/力量投送/);
-    expect(screen.getByTestId('flow-scenario-intro').textContent).toMatch(/救援资源管理/);
-    expect(screen.getByText('投送路径优化')).toBeTruthy();
-    expect(screen.getByText('编组确认')).toBeTruthy();
-    expect(screen.queryByText('智能勘察分析')).toBeNull();
+    expect(screen.getByTestId('warning-push-resource')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '重新生成资源预警草稿' })).toBeTruthy();
+    expect((screen.getByLabelText('资源预警内容') as HTMLTextAreaElement).value).toMatch(/资源预警通知草稿/);
   });
 });

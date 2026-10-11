@@ -504,24 +504,48 @@
 .axn-resource-result { display: flex; flex-direction: column; gap: var(--space-2-5); font-size: var(--fs-body); line-height: var(--lh-normal); }
 .axn-resource-result .ant-typography { margin: 0 !important; font-size: var(--fs-body); overflow-wrap: anywhere; }
 .axn-artifact > .axn-resource-result { margin: var(--space-3) var(--space-4); }
-/* 处置建议：章节块与底栏左右边距对齐，避免「其余章节 / 查看」贴边或错位 */
-.axn-proposal-body {
+/* 四智能体产物：单行条（类型 · 名称省略 · 查看） */
+.axn-result-line {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4) 0;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--axn-border);
+  border-radius: var(--radius-md);
+  background: var(--axn-soft);
 }
-.axn-proposal-body > .axn-resource-result { margin: 0; }
-.axn-proposal-foot {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2-5);
-  padding: var(--space-3) var(--space-4) var(--space-4);
-  box-sizing: border-box;
+.axn-result-line__label {
+  flex: 0 0 auto;
+  color: var(--axn-muted);
+  font-size: var(--fs-meta);
+  line-height: 1;
+  white-space: nowrap;
 }
-.axn-proposal-foot .ant-typography { margin: 0 !important; }
+.axn-result-line__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 !important;
+  font-size: var(--fs-body) !important;
+  line-height: 1.3 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.axn-result-line__actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.axn-result-line__actions .ant-btn {
+  height: 28px;
+  padding-inline: 8px;
+  font-size: var(--fs-meta);
+}
+.axn-task-card > .axn-result-line { margin-top: var(--space-2); }
 .axn-qa { padding: var(--space-3); }
 .axn-qa .axn-artifact-row { padding-inline: 0; }
 /* 来源块靠底色（--axn-soft）与圆角区分即可，左侧不加高亮条（标注反馈，勿再加 border-left）。 */
@@ -665,3 +689,37 @@
 .axn-cp-select-tip-note { margin-top: 6px; font-size: 11px; opacity: 0.72; }
 .axn-cp-select-popup.ant-select-dropdown { min-width: 320px !important; }
 .axn-cp-select-popup .ant-select-item-option-content { overflow: hidden; }
+
+/* 业务流程补充：与公文同一右侧工作区槽位内嵌 */
+.axn-flow-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--axn-surface);
+}
+.axn-flow-workspace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--axn-border);
+}
+.axn-flow-workspace-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.axn-flow-workspace-sub {
+  font-size: var(--fs-caption) !important;
+}
+.axn-flow-workspace-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-4);
+}

@@ -1,10 +1,11 @@
 import { disasterProfileById } from '@/seed/disasterScenarios';
 import { tenderName } from '@/seed/tenderNames';
 import OriginalSystemLink from './OriginalSystemLink';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Button, Card, Checkbox, Drawer, Input, InputNumber, Segmented, Select, Space, Steps, Table, Tabs, Tag, Upload, Typography,
+  Alert, Button, Card, Checkbox, Input, InputNumber, Segmented, Select, Space, Steps, Table, Tabs, Tag, Upload, Typography,
 } from 'antd';
+import { X } from 'lucide-react';
 import { exportMaterial, exportResourceExcel } from '@/services/prototypeExports';
 import { WORK_SUMMARY_REFLECT_TITLES, WORK_SUMMARY_TEMPLATE_TITLES } from '@/seed/documentTemplates';
 import { buildConstructionResult } from '@/seed/constructionScenarios';
@@ -16,6 +17,7 @@ import RescueEvaluation from '@/components/events/RescueEvaluation';
 import WithdrawalReturn from '@/components/events/WithdrawalReturn';
 import RouteComparison from '@/components/events/RouteComparison';
 import DeliveryRouteMap from '@/components/events/DeliveryRouteMap';
+import WarningPushPanel from './WarningPushPanel';
 import { buildMultiSourceSnapshot } from '@/services/multiSourceAggregation';
 import {
   checkPlanRules,
@@ -34,25 +36,18 @@ import {
   flowsForScenario,
   scenarioIntro,
   scenarioRailForFlow,
-  type FlowReceipt,
   type FlowRecordRow,
   type FlowTabMode,
   type FlowTask,
 } from '@/services/flowStageConfig';
+import { formatTimelineForDocument } from '@/services/eventTimeline';
+import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
+import { useConversationStore } from '@/store/conversationStore';
+import { useSessionStore } from '@/store/sessionStore';
 
 export { FLOW_TASKS, type FlowTask } from '@/services/flowStageConfig';
 
 function HistoryBanner({ mode }: { mode: FlowTabMode }) {
-  if (mode === 'past') {
-    return (
-      <Alert
-        showIcon
-        type="success"
-        title="历史过程 · 只读回放"
-        description="该环节早于当前事件阶段，已按种子资料回放结果；演示不要求再逐步点选。"
-      />
-    );
-  }
   if (mode === 'future') {
     return (
       <Alert
@@ -122,29 +117,9 @@ export default function OperationalFlows({
   const [progress, setProgress] = useState(
     () => (flowTabMode(eventStage, '规划梯队投送') === 'past' ? seed.progress : 0),
   );
-  const [owner, setOwner] = useState(
-    () => (
-      flowTabMode(eventStage, '规划梯队投送') === 'past'
-      || flowTabMode(eventStage, '编组确认') === 'past'
-        ? seed.owner
-        : ''
-    ),
-  );
-  const [targets, setTargets] = useState<string[]>(
-    () => (flowTabMode(eventStage, '预警推送') === 'past' ? seed.targets : []),
-  );
-  const [warning, setWarning] = useState(
-    () => (flowTabMode(eventStage, '预警推送') === 'past' ? seed.warning : ''),
-  );
-  const [approved, setApproved] = useState(
-    () => flowTabMode(eventStage, '预警推送') === 'past' && seed.approved,
-  );
-  const [fail, setFail] = useState(false);
-  const [receipts, setReceipts] = useState<FlowReceipt[]>(
-    () => (flowTabMode(eventStage, '预警推送') === 'past' ? seed.receipts : []),
-  );
+  const [owner, setOwner] = useState(() => seed.owner);
   const [caseText, setCaseText] = useState(
-    () => (flowTabMode(eventStage, '知识沉淀入库') === 'past' ? seed.caseText : ''),
+    () => useKnowledgeCaseStore.getState().pendingBodyForEvent(eventId) ?? seed.caseText,
   );
   const [classified, setClassified] = useState(true);
   const [caseStatus, setCaseStatus] = useState(
@@ -194,23 +169,46 @@ export default function OperationalFlows({
     setAnalysis(false);
     setReviewed(false);
   };
-  const resetWarning = () => {
-    setApproved(false);
-    setReceipts([]);
-  };
   const basePlan = buildConstructionResult('plan', eventId).sections.map((s) => `${s.title}：${s.text}`).join('\n');
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const sessionId = useSessionStore((s) => s.sessionByConversation[activeConversationId ?? ''] ?? null);
+  const situationPush = useSessionStore((s) =>
+    sessionId ? s.sessions[sessionId]?.warningPushByKind?.situation : undefined,
+  );
+  const resourcePush = useSessionStore((s) =>
+    sessionId ? s.sessions[sessionId]?.warningPushByKind?.resource : undefined,
+  );
+  const planRevisionHints = useSessionStore((s) =>
+    sessionId ? (s.sessions[sessionId]?.planRevisionHints ?? null) : null,
+  );
+  useEffect(() => {
+    if (planRevisionHints?.trim() && !revisionBasis.trim()) {
+      setRevisionBasis(planRevisionHints);
+    }
+  }, [planRevisionHints, revisionBasis]);
 
   const modeOf = (name: FlowTask) => flowTabMode(eventStage, name);
 
   return (
-    <Drawer title={`${eventName} · 业务流程补充`} size={900} open onClose={onClose} destroyOnHidden>
-      <Alert
-        type="info"
-        showIcon
-        title={`当前事件阶段：${eventStage} · 本地模拟`}
-        description="早于当前阶段的过程已按事件状态回放展示；当前阶段仍可交互确认。样例识别、路线、推送和入库只在本面板演示，不发送实际消息或修改原系统。关闭面板后本次操作状态不保留。"
-        style={{ marginBottom: 12 }}
-      />
+    <div className="axn-flow-workspace" data-testid="operational-flows">
+      <header className="axn-flow-workspace-head">
+        <div className="axn-flow-workspace-title">
+          <Typography.Text strong>{eventName} · 业务流程补充</Typography.Text>
+          <Typography.Text type="secondary" className="axn-flow-workspace-sub">
+            与文书相同嵌在右侧工作区（模拟）
+          </Typography.Text>
+        </div>
+        <Button
+          type="text"
+          icon={<X size={16} />}
+          aria-label="关闭业务流程"
+          onClick={onClose}
+          data-testid="flow-workspace-close"
+        >
+          关闭
+        </Button>
+      </header>
+      <div className="axn-flow-workspace-body">
       <div data-testid="flow-scenario-rail" style={{ marginBottom: 12 }}>
         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
           按建设场景查看流程能力（主责智能体）
@@ -267,8 +265,8 @@ export default function OperationalFlows({
                         : (
                           <Alert
                             type="info"
-                            title="请在灾种事件库选择当前事件"
-                            description="十类模拟事件已配置独立监测指标；当前事件尚未配置专业趋势序列，不套用其他事件数据。"
+                            title="请先关联已配置专业监测的灾种事件"
+                            description="十类模拟事件已配置独立监测指标；当前事件尚未配置专业趋势序列，不套用其他事件数据。可在侧栏关联灾情中选择。"
                           />
                         )
                     )}
@@ -305,11 +303,6 @@ export default function OperationalFlows({
                             { title: '专家复核' },
                             { title: '形成材料' },
                           ]}
-                        />
-                        <Alert
-                          type="info"
-                          title="先评估再救援"
-                          description="到达现场不盲目施救：须完成专家组风险隐患评估后再展开救援。政府渠道资料（微信群/传真）为非正式台账，待结构化入库。"
                         />
                         {mode === 'current' && (
                           <Space wrap>
@@ -423,12 +416,11 @@ export default function OperationalFlows({
                             </Typography.Text>
                             {mode === 'past' ? (
                               <>
-                                <Alert
-                                  type="success"
-                                  title="复核意见已记录（模拟回放）"
-                                  description={`评估结论待核：${feedback}`}
-                                  style={{ marginTop: 12 }}
-                                />
+                                {feedback && (
+                                  <Typography.Paragraph style={{ marginTop: 12 }}>
+                                    专家意见：{feedback}
+                                  </Typography.Paragraph>
+                                )}
                                 <Button
                                   style={{ marginTop: 8 }}
                                   onClick={() =>
@@ -457,13 +449,7 @@ export default function OperationalFlows({
                                 >
                                   确认专家复核
                                 </Button>
-                                {reviewed && (
-                                  <Alert
-                                    type="success"
-                                    title="复核意见已记录（模拟）"
-                                    description={`评估结论待核：${feedback}。未完成专家组评估前不展开救援作业。`}
-                                  />
-                                )}
+                                {reviewed && <Tag color="green">复核意见已记录（模拟）</Tag>}
                                 <Button
                                   disabled={!reviewed}
                                   onClick={() =>
@@ -484,9 +470,6 @@ export default function OperationalFlows({
                           style={{ marginTop: 12 }}
                           data-testid="flow-multi-source"
                         >
-                          <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                            对话「多源数据汇聚」产出的六类来源明细在此查看；聊天区仅保留摘要入口。
-                          </Typography.Paragraph>
                           <MultiSourceSummary snapshot={buildMultiSourceSnapshot(eventId)} />
                         </Card>
                       </>
@@ -544,11 +527,9 @@ export default function OperationalFlows({
                                 setProgress(0);
                               }}
                             />
-                            <Alert
-                              type="warning"
-                              title="道路条件需核实"
-                              description="示例：主路封闭、东侧绕行待通行保障确认。组织方式：先遣队 + 机动中队，按第一、二、三梯队派出。堵点集中在通行保障、交通票务、对外协调。未接高德或实时路况，不计算真实最优路线。"
-                            />
+                            <Button size="small" type="link" onClick={() => setTab('资源预警通知')}>
+                              资源预警通知
+                            </Button>
                             <Select
                               aria-label="投送路线"
                               value={route}
@@ -634,108 +615,23 @@ export default function OperationalFlows({
                       </>
                     )}
                     {name === '预警推送' && (
-                      mode === 'past' ? (
-                        <>
-                          <Card size="small" title="预警内容（回放）">
-                            <Typography.Paragraph>{warning}</Typography.Paragraph>
-                            <p>责任岗位：{targets.join('、')}</p>
-                          </Card>
-                          {receipts.map((r) => (
-                            <Card size="small" key={r.id} title={r.target}>
-                              <Tag color="green">{r.status}（模拟）</Tag>
-                              <Typography.Text type="secondary">回执 {r.id}</Typography.Text>
-                            </Card>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          <Select
-                            mode="multiple"
-                            aria-label="预警责任人"
-                            placeholder="选择责任岗位"
-                            value={targets}
-                            onChange={(v) => {
-                              setTargets(v);
-                              resetWarning();
-                            }}
-                            options={['现场安全员（演示）', '应急协调员（演示）', '技术负责人（演示）'].map((value) => ({
-                              value,
-                              label: value,
-                            }))}
-                          />
-                          <Input.TextArea
-                            aria-label="预警内容"
-                            placeholder="风险、依据、影响范围、建议措施、有效期"
-                            value={warning}
-                            onChange={(e) => {
-                              setWarning(e.target.value);
-                              resetWarning();
-                            }}
-                          />
-                          <Button
-                            onClick={() => {
-                              setWarning(
-                                `${eventName}次生风险预警草稿（模拟）：关注${profile?.risks ?? '现场风险'}。依据现场待核线索，请技术、安全岗位复核；关注条件变化，保持撤离路线可用。有效期与风险阈值待确认。`,
-                              );
-                              resetWarning();
-                            }}
-                          >
-                            生成预警草稿
-                          </Button>
-                          <Checkbox
-                            checked={approved}
-                            onChange={(e) => {
-                              setApproved(e.target.checked);
-                              setReceipts([]);
-                            }}
-                          >
-                            已核对内容和责任岗位，批准本地模拟发送
-                          </Checkbox>
-                          <Checkbox checked={fail} onChange={(e) => setFail(e.target.checked)}>
-                            模拟发送失败
-                          </Checkbox>
-                          <Button
-                            type="primary"
-                            disabled={!approved || !targets.length || !warning.trim() || receipts.length > 0}
-                            onClick={() =>
-                              setReceipts(
-                                targets.map((target) => ({
-                                  id: crypto.randomUUID(),
-                                  target,
-                                  status: fail ? '失败' : '已送达',
-                                })),
-                              )}
-                          >
-                            模拟推送
-                          </Button>
-                          {receipts.map((r) => (
-                            <Card size="small" key={r.id} title={r.target}>
-                              <Tag color={r.status === '失败' ? 'red' : 'green'}>{r.status}（模拟）</Tag>
-                              <Typography.Text type="secondary">回执 {r.id}</Typography.Text>
-                              {r.status === '失败' ? (
-                                <Button
-                                  onClick={() =>
-                                    setReceipts((old) =>
-                                      old.map((v) => (v.id === r.id ? { ...v, status: '已送达' } : v)),
-                                    )}
-                                >
-                                  重试模拟发送
-                                </Button>
-                              ) : (
-                                <Button
-                                  disabled={r.status === '已响应'}
-                                  onClick={() =>
-                                    setReceipts((old) =>
-                                      old.map((v) => (v.id === r.id ? { ...v, status: '已响应' } : v)),
-                                    )}
-                                >
-                                  记录模拟响应
-                                </Button>
-                              )}
-                            </Card>
-                          ))}
-                        </>
-                      )
+                      <WarningPushPanel
+                        kind="situation"
+                        mode={mode}
+                        eventId={eventId}
+                        eventName={eventName}
+                        sessionId={sessionId}
+                      />
+                    )}
+                    {name === '资源预警通知' && (
+                      <WarningPushPanel
+                        kind="resource"
+                        mode={mode}
+                        eventId={eventId}
+                        eventName={eventName}
+                        sessionId={sessionId}
+                        roadHint={road}
+                      />
                     )}
                     {name === '知识沉淀入库' && (
                       mode === 'past' ? (
@@ -745,13 +641,6 @@ export default function OperationalFlows({
                             <Tag>{caseStatus}</Tag>
                             <p>审核意见：{reason}</p>
                           </Card>
-                          {published && (
-                            <Alert
-                              type="success"
-                              title="模拟知识条目 V1 已入库，迭代任务已创建"
-                              description={`事件 ${eventId}；审核意见：${reason}；范围：${classified ? '内部核心人员、禁止下载' : '当前事件授权范围'}。真实知识库接口尚未接入。`}
-                            />
-                          )}
                         </>
                       ) : (
                         <>
@@ -767,14 +656,12 @@ export default function OperationalFlows({
                           />
                           <Button
                             onClick={() => {
-                              setCaseText(
-                                `${eventName}复盘案例草稿：现有资料存在通信与交接缺口。建议复核作业记录，完善双通道通信与轮换交接。因果关系尚待专家确认，未经审核不作为战法。`,
-                              );
+                              setCaseText(seed.caseText);
                               setCaseStatus('草稿');
                               setPublished(false);
                             }}
                           >
-                            提炼当前事件案例草稿
+                            重新提炼案例草稿
                           </Button>
                           <Checkbox
                             checked={classified}
@@ -811,19 +698,21 @@ export default function OperationalFlows({
                               onClick={() => {
                                 setCaseStatus('已入库');
                                 setPublished(true);
+                                useKnowledgeCaseStore.getState().publishEventCase({
+                                  eventId,
+                                  source: 'flow',
+                                  title: `${eventName} · 知识沉淀案例`,
+                                  body: caseText,
+                                  tags: ['知识沉淀', '复盘', '演练参考', classified ? '内部核心' : '授权范围'],
+                                  status: '已入库（模拟）',
+                                });
                               }}
                             >
                               模拟审批通过并入库
                             </Button>
                           </Space>
                           <Tag>{caseStatus}</Tag>
-                          {published && (
-                            <Alert
-                              type="success"
-                              title="模拟知识条目 V1 已入库，迭代任务已创建"
-                              description={`事件 ${eventId}；审核意见：${reason}；范围：${classified ? '内部核心人员、禁止下载' : '当前事件授权范围'}。任务：重新核对案例索引与引用。真实知识库接口尚未接入。`}
-                            />
-                          )}
+                          {published && <Tag color="green">已入库（模拟）</Tag>}
                         </>
                       )
                     )}
@@ -860,10 +749,9 @@ export default function OperationalFlows({
                                 />
                               </label>
                             </Space>
-                            <Alert
-                              title={`一车一组经验模板：${cars}组，共${cars * people}人（拟编组）`}
-                              description="驾驶、操作、安全、保障岗位由负责人核定；现场空间和可用库存待核。不自动下达调派命令。"
-                            />
+                            <Typography.Text type="secondary">
+                              一车一组经验模板：{cars}组，共{cars * people}人（拟编组）
+                            </Typography.Text>
                             <Input
                               aria-label="编组确认人"
                               placeholder="经验负责人"
@@ -893,15 +781,13 @@ export default function OperationalFlows({
                           </>
                         )}
                         {(mode === 'past' || (profile && mode === 'current' && groupConfirmed)) && (
-                          <Alert
-                            type="success"
-                            title={mode === 'past' ? '编组已确认（回放）' : '编组已确认（模拟）'}
-                            description={
-                              profile
-                                ? `按本事件资源样例回放；确认人：${owner || '先遣组负责人（演示）'}。不代表已调派。`
-                                : `${cars}组 / ${cars * people}人；确认人：${owner}`
-                            }
-                          />
+                          <Tag color="green">
+                            {mode === 'past' ? '编组已确认（回放）' : '编组已确认（模拟）'}
+                            {' · '}
+                            {profile
+                              ? `确认人：${owner || '先遣组负责人（演示）'}`
+                              : `${cars}组 / ${cars * people}人；确认人：${owner}`}
+                          </Tag>
                         )}
                         {mode === 'past' && !profile && (
                           <Button
@@ -1061,11 +947,6 @@ export default function OperationalFlows({
                     {name === '资料核验与总结' && (
                       mode === 'past' ? (
                         <>
-                          <Alert
-                            type="success"
-                            title="过程资料已核验（回放）"
-                            description={`${records.length} 份演示资料均已人工核对；以下为反思式总结初稿。`}
-                          />
                           {records.map((r) => (
                             <Tag key={r.id} color="green" style={{ marginBottom: 4 }}>
                               {r.name} · 已核验
@@ -1076,10 +957,6 @@ export default function OperationalFlows({
                         </>
                       ) : (
                         <>
-                          <Alert
-                            title="按应用场景选择报告结构"
-                            description="反思式总结与全面总结分属不同应用场景：反思式用于复盘短板改进；全面总结用于阶段性工作归档。核验由人员判断，不自动证明真实性。"
-                          />
                           <Button onClick={sample}>载入演示过程资料</Button>
                           {records.map((r) => (
                             <Checkbox
@@ -1118,19 +995,25 @@ export default function OperationalFlows({
                           <Button
                             type="primary"
                             disabled={!records.length || !records.every((r) => r.verified)}
-                            onClick={() =>
+                            onClick={() => {
+                              const timeline = formatTimelineForDocument(eventId);
+                              const titles = summaryType === '反思式'
+                                ? WORK_SUMMARY_REFLECT_TITLES
+                                : WORK_SUMMARY_TEMPLATE_TITLES;
                               setSummary(
-                                (summaryType === '反思式'
-                                  ? WORK_SUMMARY_REFLECT_TITLES
-                                  : WORK_SUMMARY_TEMPLATE_TITLES
-                                )
-                                  .map((h) =>
-                                    `${h}：${/不足|问题|启示/.test(h)
-                                      ? '通信类、保障类（人员轮换、食物、服装）等重复短板需复核，并结合历史案例沉淀改进'
-                                      : `根据${records.length}份已人工核对的模拟资料整理，详细内容待补`}`,
-                                  )
-                                  .join('\n'),
-                              )}
+                                titles
+                                  .map((h, index) => {
+                                    if (index === 0) {
+                                      return `${h}：根据${records.length}份已人工核对的模拟资料整理。\n${timeline}`;
+                                    }
+                                    if (/不足|问题|启示/.test(h)) {
+                                      return `${h}：通信类、保障类（人员轮换、食物、服装）等重复短板需复核，并结合历史案例沉淀改进`;
+                                    }
+                                    return `${h}：根据${records.length}份已人工核对的模拟资料整理，详细内容待补`;
+                                  })
+                                  .join('\n\n'),
+                              );
+                            }}
                           >
                             生成所选总结初稿
                           </Button>
@@ -1152,19 +1035,8 @@ export default function OperationalFlows({
                     )}
                     {name === '资源维护与导出' && (
                       <>
-                        {mode === 'past' && resources.length > 0 && (
-                          <Alert
-                            type="success"
-                            title="校正记录已回放"
-                            description="以下为按本事件种子生成的本地校正样例，未写原系统。"
-                          />
-                        )}
                         {mode === 'current' && (
                           <>
-                            <Alert
-                              title="人工校正与写回确认（模拟）"
-                              description="更新记录关联当前事件和维护岗位；本地保存不写原系统。IoT记录仅可登记来源，未接实时设备。"
-                            />
                             <Input
                               aria-label="资源名称"
                               placeholder="资源/队伍/专家/保障单元名称"
@@ -1240,7 +1112,7 @@ export default function OperationalFlows({
                         </Button>
                       </>
                     )}
-                    {!['应急助手场景', '态势研判预警', '复盘评估分析', '回撤归建'].includes(name)
+                    {!['应急助手场景', '态势研判预警', '复盘评估分析', '回撤归建', '现场智能勘察'].includes(name)
                       && !(profile && name === '编组确认') && (
                       <OriginalSystemLink
                         code={name}
@@ -1251,12 +1123,12 @@ export default function OperationalFlows({
                           ['当前流程', tenderName(name)],
                           [
                             '本次内容',
-                            name === '现场智能勘察'
-                              ? `${records.map((r) => `${r.name} / ${r.source} / ${r.time}`).join('\n')}\n专家意见：${feedback || '待补'}`
-                              : name === '规划梯队投送'
-                                ? `路线：${route}\n道路条件：${road}\n负责人：${owner || '待确认'}\n轨迹节点：${progress}/3`
-                                : name === '预警推送'
-                                  ? `${warning}\n责任人：${targets.join('、')}\n回执：${receipts.map((r) => `${r.target} ${r.status}`).join('、')}`
+                            name === '规划梯队投送'
+                              ? `路线：${route}\n道路条件：${road}\n负责人：${owner || '待确认'}\n轨迹节点：${progress}/3`
+                              : name === '预警推送'
+                                ? `${situationPush?.warning ?? seed.warning}\n责任人：${(situationPush?.targets ?? seed.targets).join('、')}\n回执：${(situationPush?.receipts ?? seed.receipts).map((r) => `${r.target} ${r.status}`).join('、')}`
+                                : name === '资源预警通知'
+                                  ? `${resourcePush?.warning ?? seed.resourceWarning}\n责任人：${(resourcePush?.targets ?? seed.resourceTargets).join('、')}\n回执：${(resourcePush?.receipts ?? seed.resourceReceipts).map((r) => `${r.target} ${r.status}`).join('、')}`
                                   : name === '知识沉淀入库'
                                     ? `${caseText}\n审核：${caseStatus} ${reason}\n权限：${classified ? '内部核心人员，禁止下载' : '当前事件授权范围'}`
                                     : name === '编组确认'
@@ -1277,6 +1149,7 @@ export default function OperationalFlows({
           };
         })}
       />
-    </Drawer>
+      </div>
+    </div>
   );
 }

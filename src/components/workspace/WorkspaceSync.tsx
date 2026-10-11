@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { ensureWorkSummaryDocument } from '@/services/workSummaryWorkflow';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
@@ -24,51 +25,90 @@ export default function WorkspaceSync() {
         .filter((t) => t.sessionId === scope && t.eventId === session.eventId && ['doc_brief', 'doc_daily'].includes(t.intent))
         .sort((a, b) => b.seq - a.seq)[0];
       if (task) {
-        const token = `run:${task.taskId}:${task.attemptId}`;
+        const base = `run:${task.taskId}:${task.attemptId}`;
         const artifact = task.artifacts.find((a) => a.payload.kind === 'document' && a.payload.state === 'draft_created');
         const documentId = artifact?.payload.kind === 'document' ? artifact.payload.documentId : null;
         const pending = ['queued', 'running', 'waiting_input'].includes(task.status);
-        const signature = `${token}:${pending ? 'pending' : documentId ?? task.status}`;
+        // 生成中与完成后使用不同 token：关闭「生成中」不应抑制完成后的自动打开。
+        const token = pending ? `${base}:pending` : `${base}:done:${documentId ?? task.status}`;
+        const signature = token;
         if (observed.current.get(`task:${scope}`) !== signature) {
           observed.current.set(`task:${scope}`, signature);
           if (pending) workspace.autoOpen(scope, token, { kind: 'generating' });
           else if (documentId) workspace.autoOpen(scope, token, { kind: 'draft', id: documentId });
-          else workspace.finish(scope, token);
+          else workspace.finish(scope, `${base}:pending`);
         }
       }
 
       // 四智能体材料/方案：scenario_sections 物化为 mock 红头文书后自动打开右侧工作区。
-      const agentTask = Object.values(tasks)
+      // 优先跟踪「仍在跑」的任务；若无，则跟踪最近一份已物化文书的任务（避免被后续无文书任务抢走）。
+      const agentTasks = Object.values(tasks)
         .filter((t) => t.sessionId === scope && t.eventId === session.eventId
           && ['summary', 'proposal', 'evaluation', 'resource_query'].includes(t.intent))
-        .sort((a, b) => b.seq - a.seq)[0];
+        .sort((a, b) => b.seq - a.seq);
+      const runningAgent = agentTasks.find((t) => ['queued', 'running', 'waiting_input'].includes(t.status));
+      const materialAgent = agentTasks.find((t) =>
+        t.artifacts.some((a) => a.payload.kind === 'scenario_sections' && a.payload.documentId));
+      const agentTask = runningAgent ?? materialAgent;
       if (agentTask) {
-        const token = `agent-material:${agentTask.taskId}:${agentTask.attemptId}`;
+        const base = `agent-material:${agentTask.taskId}:${agentTask.attemptId}`;
         const scenario = agentTask.artifacts.find((a) => a.payload.kind === 'scenario_sections');
-        const mockId = scenario?.payload.kind === 'scenario_sections' ? scenario.payload.documentId : null;
+        const mockId = scenario?.payload.kind === 'scenario_sections' ? scenario.payload.documentId ?? null : null;
         const pending = ['queued', 'running', 'waiting_input'].includes(agentTask.status);
-        const signature = `${token}:${pending ? 'pending' : mockId ?? agentTask.status}`;
+        const hasDoc = !!mockId && !!libraries[scope]?.documents.some((d) => d.id === mockId);
+        // 文书一旦写入库即用 done token 打开正文；勿在「仍 running 但已有 documentId」时停留在生成中壳层。
+        const token = hasDoc && mockId
+          ? `${base}:done:${mockId}`
+          : pending
+            ? `${base}:pending`
+            : `${base}:wait:${mockId ?? agentTask.status}`;
+        const signature = token;
         if (observed.current.get(`agent:${scope}`) !== signature) {
           observed.current.set(`agent:${scope}`, signature);
-          if (pending) workspace.autoOpen(scope, token, { kind: 'generating' });
-          else if (mockId && libraries[scope]?.documents.some((d) => d.id === mockId)) {
-            workspace.autoOpen(scope, token, { kind: 'mock', id: mockId });
-          } else workspace.finish(scope, token);
+          if (hasDoc && mockId) workspace.autoOpen(scope, token, { kind: 'mock', id: mockId });
+          else if (pending) workspace.autoOpen(scope, token, { kind: 'generating' });
+          else if (mockId) {
+            // 产物已带 documentId、文书库尚未同步：保持生成中，勿 finish 以免错过打开。
+            workspace.autoOpen(scope, `${base}:pending`, { kind: 'generating' });
+          } else workspace.finish(scope, `${base}:pending`);
         }
       }
 
       const message = session.messages.filter((m) => m.documentWorkflow).at(-1);
       const workflow = message?.documentWorkflow;
       if (message && workflow) {
-        const token = `workflow:${message.messageId}`;
-        const signature = `${token}:${workflow.stage}:${workflow.documentId ?? ''}`;
+        let documentId = workflow.documentId;
+        if (workflow.stage === 'completed' && workflow.reportSections?.length) {
+          const libDocs = useMockDocumentStore.getState().libraries[scope]?.documents ?? [];
+          const missing = !documentId || !libDocs.some((d) => d.id === documentId);
+          if (missing) {
+            const restored = ensureWorkSummaryDocument(scope, workflow, message.messageId);
+            documentId = restored?.id ?? documentId;
+          }
+        }
+        const base = `workflow:${message.messageId}`;
+        const inProgress = ['collecting', 'calling', 'generating', 'waiting_input'].includes(workflow.stage);
+        const libHas = !!documentId && (
+          libraries[scope]?.documents.some((d) => d.id === documentId)
+          || !!useMockDocumentStore.getState().libraries[scope]?.documents.some((d) => d.id === documentId)
+        );
+        const token = inProgress
+          ? `${base}:pending:${workflow.stage}`
+          : workflow.stage === 'completed' && documentId
+            ? `${base}:done:${documentId}`
+            : `${base}:${workflow.stage}`;
+        const signature = token;
         if (observed.current.get(`workflow:${scope}`) !== signature) {
           observed.current.set(`workflow:${scope}`, signature);
-          if (['collecting', 'calling', 'generating', 'waiting_input'].includes(workflow.stage)) {
+          if (inProgress) {
             workspace.autoOpen(scope, token, { kind: 'generating' });
-          } else if (workflow.stage === 'completed' && workflow.documentId && libraries[scope]?.documents.some((d) => d.id === workflow.documentId)) {
-            workspace.autoOpen(scope, token, { kind: 'mock', id: workflow.documentId });
-          } else workspace.finish(scope, token);
+          } else if (workflow.stage === 'completed' && documentId && libHas) {
+            workspace.autoOpen(scope, token, { kind: 'mock', id: documentId });
+          } else {
+            for (const stage of ['collecting', 'calling', 'generating', 'waiting_input'] as const) {
+              workspace.finish(scope, `${base}:pending:${stage}`);
+            }
+          }
         }
       }
     }

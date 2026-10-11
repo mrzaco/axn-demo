@@ -20,8 +20,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Drawer } from 'antd';
 import { Menu } from 'lucide-react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { useUrlNavSync } from '@/components/nav/navRoutes';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { NAV_PATH, useUrlNavSync } from '@/components/nav/navRoutes';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useConversationStore } from '@/store/conversationStore';
@@ -29,6 +29,7 @@ import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import ChatPanel from '@/components/chat/ChatPanel';
 import GlobalSidebar from '@/components/nav/GlobalSidebar';
 import WorkspaceSync from '@/components/workspace/WorkspaceSync';
+import { SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 
 // URL 路径 → NavPage 映射表与「URL → store」单向同步都放在 navRoutes.ts，
 // 路由表与代码内跳转共用同一套路径。
@@ -36,7 +37,6 @@ import WorkspaceSync from '@/components/workspace/WorkspaceSync';
 /** 工作区抽屉中按需渲染的面板。 */
 const DocumentLibraryPage = lazy(() => import('@/components/workspace/DocumentLibraryPage'));
 const DocumentWorkspace = lazy(() => import('@/components/workspace/DocumentWorkspace'));
-const ResourcePanel = lazy(() => import('@/components/workspace/ResourcePanel'));
 const KnowledgePanel = lazy(() => import('@/components/workspace/KnowledgePanel'));
 const NavPageContent = lazy(() => import('@/components/nav/NavPages').then(m => ({ default: m.NavPageContent })));
 const DisasterEventsPage = lazy(() => import('@/components/events/DisasterEventsPage'));
@@ -88,11 +88,15 @@ export default function AppRoot() {
     return !!scopeState && (scopeState.generating || scopeState.selection !== null);
   });
 
-  // 资源/知识面板抽屉（由对话任务卡触发）；资源抽屉可指定默认 Tab（列表 / 态势地图）。
-  const [panelDrawer, setPanelDrawer] = useState<'resource' | 'knowledge' | null>(null);
-  const [resourceDrawerTab, setResourceDrawerTab] = useState<'list' | 'map'>('list');
+  // 知识面板仍用抽屉；资源与态势改入右侧工作区（与公文同槽）。
+  const [panelDrawer, setPanelDrawer] = useState<'knowledge' | null>(null);
+  const navigate = useNavigate();
   const openPanelDrawer = (target: 'resource' | 'knowledge', options?: { tab?: 'list' | 'map' }) => {
-    if (target === 'resource') setResourceDrawerTab(options?.tab ?? 'list');
+    if (target === 'resource') {
+      useWorkspaceStore.getState().select(scope, { kind: 'resource', id: options?.tab ?? 'list' });
+      navigate(NAV_PATH.assistant);
+      return;
+    }
     setPanelDrawer(target);
   };
 
@@ -266,7 +270,12 @@ export default function AppRoot() {
               )}
             </div>
           } />
-          <Route path="/events" element={<Suspense><DisasterEventsPage /></Suspense>} />
+          <Route
+            path="/events"
+            element={SHOW_DISASTER_EVENTS_LIBRARY
+              ? <Suspense><DisasterEventsPage /></Suspense>
+              : <Navigate to={NAV_PATH.assistant} replace />}
+          />
           <Route path="/originalSystems/:system?" element={
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <Suspense><OriginalSystemWorkspace /></Suspense>
@@ -297,9 +306,6 @@ export default function AppRoot() {
         </Routes>
       </main>
 
-      <Drawer title="资源与态势（模拟）" size={760} open={panelDrawer === 'resource'} onClose={() => setPanelDrawer(null)} destroyOnHidden>
-        <Suspense>{panelDrawer === 'resource' && <ResourcePanel initialTab={resourceDrawerTab} />}</Suspense>
-      </Drawer>
       <Drawer title="建议与知识（模拟）" size={560} open={panelDrawer === 'knowledge'} onClose={() => setPanelDrawer(null)} destroyOnHidden>
         <Suspense>{panelDrawer === 'knowledge' && <KnowledgePanel />}</Suspense>
       </Drawer>

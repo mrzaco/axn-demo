@@ -142,9 +142,13 @@ export const VUE_WORKSPACE_EVENTS: VueWorkspaceEventMeta[] = [
     casualty: '人员伤亡情况待核实',
     resourcesNote: '人员装备投入记录已登记（演示），核定数量、到达时间和消耗凭证仍待核实。',
     timeline: [
-      { time: '10-07 14:00', title: '接报处置', detail: 'G5513边坡滑移任务接报并进入处置（演示）', tone: 'done' },
-      { time: '已登记', title: '撤收记录', detail: '接报、处置及撤收记录已登记（演示）', tone: 'done' },
+      { time: '10-07 14:00', title: '信息接报', detail: 'G5513边坡滑移任务接报并进入处置通道（演示）', tone: 'done' },
+      { time: '10-07 14:30', title: '态势研判', detail: '边坡稳定与落石风险初判完成，明确先遣评估与交通管控要点（演示）', tone: 'done' },
+      { time: '10-07 15:10', title: '力量投送', detail: '抢险力量与机具按预案投送到位，作业面与通行条件已核对（演示）', tone: 'done' },
+      { time: '10-07 16:40', title: '现场处置', detail: '边坡排险与临时加固作业实施，关键风险点已闭环处置（演示）', tone: 'done' },
+      { time: '10-08 09:00', title: '撤收登记', detail: '接报、处置及撤收记录已登记（演示）', tone: 'done' },
       { time: '当前', title: '待复盘', detail: '成果验收与消耗凭证尚不完整，进入待复盘', tone: 'active' },
+      { time: '待办', title: '复盘总结', detail: '补齐验收与消耗凭证后开展复盘总结、事件沉淀与知识入库（演示）', tone: 'pending' },
     ],
   },
   {

@@ -1,9 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
-  Alert, Button, Card, Checkbox, Input, InputNumber, Space, Table, Tag, Typography, Upload,
+  Button, Card, Checkbox, Input, InputNumber, Space, Table, Tag, Typography, Upload,
 } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';
+import {
+  buildPlanRevisionBasis,
+  formatPlanRevisionHints,
+} from '@/services/planRevisionBasis';
+import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
+import { useConversationStore } from '@/store/conversationStore';
+import { useSessionStore } from '@/store/sessionStore';
+import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 
 type RecordRow = {
   id: string;
@@ -64,6 +72,11 @@ function buildBody(
 
 /** 复盘评估 + E05 补证重算与评估版本（本地模拟字段）。 */
 export default function RescueEvaluation({ profile }: { profile: DisasterProfile }) {
+  const scope = useActiveScope();
+  const conversationId = useConversationStore((s) => s.activeConversationId);
+  const sessionId = useSessionStore((s) =>
+    s.sessionByConversation[conversationId ?? ''] ?? s.sessionByEvent[profile.eventId] ?? null,
+  );
   const [rows, setRows] = useState<RecordRow[]>(() => profile.resources.map((r, i) => ({
     id: `${profile.eventId}-${i}`,
     name: r.name,
@@ -85,6 +98,31 @@ export default function RescueEvaluation({ profile }: { profile: DisasterProfile
 
   const active = versions.find((v) => v.id === activeId) ?? null;
   const compare = versions.find((v) => v.id === compareId) ?? null;
+  const revisionItems = useMemo(
+    () => buildPlanRevisionBasis(profile.eventId, `${profile.objective} ${profile.completed}/${profile.target}${profile.unit}`),
+    [profile],
+  );
+
+  const openPlanRevision = () => {
+    const hints = formatPlanRevisionHints(revisionItems);
+    if (sessionId) useSessionStore.getState().setPlanRevisionHints(sessionId, hints);
+    useWorkspaceStore.getState().select(scope, { kind: 'flow', id: '方案修订对比' });
+  };
+
+  const publishKnowledgeCandidate = () => {
+    const body = active?.body
+      ?? buildBody(profile, evidence || '待填统计口径', rows, planLabel, supplements);
+    const note = knowledgeNote.trim()
+      || active?.knowledgeNote
+      || `候选待审变更：依据 ${planLabel}（模拟）`;
+    useKnowledgeCaseStore.getState().publishEventCase({
+      eventId: profile.eventId,
+      source: 'evaluation',
+      title: `${profile.name} · 评估知识候选`,
+      body: `${body}\n\n知识候选说明：${note}\n\n${formatPlanRevisionHints(revisionItems)}`,
+      tags: ['效果评估', '知识候选', '演练参考'],
+    });
+  };
 
   const edit = (
     id: string,
@@ -163,12 +201,6 @@ export default function RescueEvaluation({ profile }: { profile: DisasterProfile
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert
-        type="info"
-        showIcon
-        title="复盘评估分析 · 补证重算与评估版本"
-        description="核对审定计划与执行证据；支持补证、勾选影响范围、冻结前版并局部重算对照。缺值不计算偏差；正式审定走原系统。"
-      />
       <Space wrap>
         <Typography.Text>有效计划版本</Typography.Text>
         <Input
@@ -244,6 +276,20 @@ export default function RescueEvaluation({ profile }: { profile: DisasterProfile
           />
         )}
       </Card>
+      <Card size="small" title="预案编修依据（模拟）" data-testid="plan-revision-basis">
+        {revisionItems.map((item) => (
+          <div key={item.id} style={{ marginBottom: 8 }}>
+            <Tag color="blue">{item.dimension}</Tag>
+            <Typography.Paragraph style={{ marginBottom: 0, fontSize: 12, whiteSpace: 'pre-wrap' }}>
+              {item.revisionHint}
+              {'\n'}差距：{item.gap}
+            </Typography.Paragraph>
+          </div>
+        ))}
+        <Button type="primary" ghost onClick={openPlanRevision} data-testid="open-plan-revision-flow">
+          带入方案修订对比
+        </Button>
+      </Card>
       <Checkbox checked={verified} onChange={(e) => setVerified(e.target.checked)}>
         已人工核对填写值与过程资料（模拟）
       </Checkbox>
@@ -253,6 +299,13 @@ export default function RescueEvaluation({ profile }: { profile: DisasterProfile
         </Button>
         <Button disabled={!canSave || versions.length === 0} onClick={() => saveVersion(true)}>
           局部重算并生成新版本（模拟）
+        </Button>
+        <Button
+          disabled={!impact.includes('knowledge') && !active}
+          onClick={publishKnowledgeCandidate}
+          data-testid="publish-eval-knowledge"
+        >
+          写入知识候选（模拟）
         </Button>
       </Space>
       {versions.length > 0 && (
@@ -290,7 +343,6 @@ export default function RescueEvaluation({ profile }: { profile: DisasterProfile
       )}
       {active && (
         <>
-          <Alert type="success" title={`${active.label} 已生成（模拟）`} description="前版证据保持可查；未勾选范围不改写。" />
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{active.body}</Typography.Paragraph>
           <Typography.Text type="secondary">{active.knowledgeNote}</Typography.Text>
           <OriginalSystemLink

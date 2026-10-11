@@ -4,6 +4,7 @@ import { tenderName } from '@/seed/tenderNames';
  * 数据全部来自 sessionStore.tasks（zustand 订阅），本组件不复制任务状态。
  * 所有数值/文本均取自种子事实或任务产物，界面为模拟数据环境。
  */
+import type { ReactNode } from 'react';
 import { Alert, Button, Space, Tag, Tooltip, Typography } from 'antd';
 import {
   CircleCheck,
@@ -31,17 +32,15 @@ import type {
 import { cancelTask, retryTask } from '@/services/taskRunner';
 import { scenarioLabelForId } from '@/services/agentFlow';
 import { buildFollowUpNextStepActions } from '@/services/eventSwitchBriefing';
-import { factDisplay, resolveFact } from '@/services/factLookup';
+import { resolveFact } from '@/services/factLookup';
 import { useSessionStore } from '@/store/sessionStore';
 import { useDocumentStore } from '@/store/documentStore';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
 import { qaStatusLabel } from '@/services/qaKnowledge';
 import { factText, getFact, knowledgeById, teamById, warehouseById } from '@/seed/scenario';
-import { vueDemoResourceById } from '@/seed/vueDemoResources';
 import NextStepActionsBar from './NextStepActionsBar';
 import TaskSkillPanel from '@/components/skills/TaskSkillPanel';
-import { aggregationCounts } from '@/services/multiSourceAggregation';
 
 const { Text } = Typography;
 
@@ -101,31 +100,8 @@ function SummaryBlock({
   onOpenFlow?: (tab: string) => void;
 }) {
   const isPending = (id: string) => resolveFact(id, { kind: 'event', eventId: payload.eventId })?.verification !== 'confirmed';
-  const pendingKeys = payload.pendingKeys.filter(isPending);
-  const msCounts = payload.multiSource ? aggregationCounts(payload.multiSource.event.sources) : null;
   return (
     <div className="axn-artifact">
-      {payload.multiSource && msCounts && (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 8 }}
-          data-testid="multi-source-flow-hint"
-          title="多源数据汇聚明细已放入业务流程补充"
-          description={(
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-              <span>
-                覆盖 {msCounts.covered}/6 类 · 原始 {msCounts.raw} 条 · 归并后 {msCounts.merged} 条 · 待核 {msCounts.pending} 条。完整六类来源请在「智能勘察分析」中查看。
-              </span>
-              {onOpenFlow && (
-                <Button size="small" type="primary" ghost onClick={() => onOpenFlow('现场智能勘察')}>
-                  打开智能勘察分析
-                </Button>
-              )}
-            </Space>
-          )}
-        />
-      )}
       {payload.rows.map((row) => (
         <div key={row.label + row.factId} className="axn-artifact-row">
           <span className="axn-artifact-label">{row.label}</span>
@@ -144,82 +120,91 @@ function SummaryBlock({
           </span>
         </div>
       ))}
-      {pendingKeys.length > 0 && (
-        <Alert
-          type="warning"
-          showIcon
-          className="axn-tc-mt8"
-          title={`待确认字段：${pendingKeys.map(id => payload.rows.find(row => row.factId === id)?.label ?? '待补充信息').join('、')}`}
-          description="以上字段暂无可靠来源，需人工补录后才会进入正式产物（模拟）。"
-        />
-      )}
-      {payload.sourceUnavailable && (
-        <Alert type="info" showIcon className="axn-tc-mt8" title={payload.sourceUnavailable} />
-      )}
       <div className="axn-artifact-foot">数据时间：{payload.dataTime} · 模拟数据</div>
+      {onOpenFlow && (
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          className="axn-tc-mt8"
+          data-testid="open-situation-warning"
+          onClick={() => onOpenFlow('预警推送')}
+        >
+          打开预警推送
+        </Button>
+      )}
     </div>
   );
 }
 
-function ResourceBlock({ payload, onOpenDrawer }: { payload: ResourceResultArtifact; onOpenDrawer: TaskCardProps['onOpenDrawer'] }) {
+/** 产物单行条：类型 + 名称（省略）+ 右侧查看，避免多行卡片占位。 */
+function ResultLine({
+  label,
+  name,
+  actions,
+  testId,
+}: {
+  label: string;
+  name: string;
+  actions: ReactNode;
+  testId?: string;
+}) {
+  return (
+    <div className="axn-result-line" data-testid={testId}>
+      <span className="axn-result-line__label">{label}</span>
+      <Text strong className="axn-result-line__name" title={name}>{name}</Text>
+      <div className="axn-result-line__actions">{actions}</div>
+    </div>
+  );
+}
+
+function ResourceBlock({
+  payload,
+  onOpenDrawer,
+  onOpenFlow,
+}: {
+  payload: ResourceResultArtifact;
+  onOpenDrawer: TaskCardProps['onOpenDrawer'];
+  onOpenFlow?: TaskCardProps['onOpenFlow'];
+}) {
   const teamCount = payload.resourceIds.filter((id) => teamById.has(id)).length;
   const warehouseCount = payload.resourceIds.filter((id) => warehouseById.has(id)).length;
   const demoCount = payload.resourceIds.length - teamCount - warehouseCount;
+  const excludedCount = payload.excluded.length;
+  const summary =
+    teamCount > 0 || warehouseCount > 0
+      ? `${teamCount} 支队伍 · ${warehouseCount} 处仓库`
+      : `${demoCount} 处周边资源示意点`;
+  const name = excludedCount > 0 ? `${summary} · ${excludedCount} 项未列入` : summary;
   return (
-    <div className="axn-artifact">
-      <div className="axn-artifact-row">
-        <span className="axn-artifact-label">查询结果</span>
-        <span className="axn-artifact-value">
-          {teamCount > 0 || warehouseCount > 0
-            ? `${teamCount} 支队伍 · ${warehouseCount} 处仓库（模拟数据）`
-            : `${demoCount} 处周边资源示意点（建设场景 · 模拟）`}
-        </span>
-      </div>
-      <div className="axn-resource-results" data-testid="resource-result-details">
-        {payload.resourceIds.map(id => {
-          const team = teamById.get(id);
-          const warehouse = warehouseById.get(id);
-          const demo = vueDemoResourceById.get(id);
-          if (demo) {
-            return <div className="axn-resource-result" key={id}>
-              <Space wrap size={4}><Text strong>{demo.name}</Text><Tag>{demo.kind === 'team' ? '救援队伍' : demo.kind === 'hospital' ? '医院' : demo.kind === 'equipment' ? '装备' : '仓库'}</Tag></Space>
-              <Text type="secondary">{demo.capability} · {demo.amountLabel}</Text>
-              <Text type="secondary">{demo.location} · {demo.distanceLabel} · {demo.status}</Text>
-            </div>;
-          }
-          const refs = team?.factRefs ?? warehouse?.factRefs;
-          if (!refs) return null;
-          const value = (factId: string) => factDisplay(factId, { kind: 'event', eventId: payload.eventId });
-          return <div className="axn-resource-result" key={id}>
-            <Space wrap size={4}><Text strong>{value(refs.name)}</Text><Tag>{team ? '救援队伍' : '物资仓库'}</Tag></Space>
-            <Text type="secondary">{team
-              ? `人员 ${value(team.factRefs.peopleCount)} · 挖掘机 ${value(team.factRefs.excavatorCount)}`
-              : warehouse ? `${value(warehouse.factRefs.materialName)} · 库存 ${value(warehouse.factRefs.stockQuantity)}` : ''}</Text>
-            {team && <Text type="secondary">距离 {value(team.factRefs.distanceKm)} · 预计到达 {value(team.factRefs.etaMinutes)}</Text>}
-          </div>;
-        })}
-      </div>
-      {payload.excluded.map((ex) => {
-        const team = teamById.get(ex.resourceId);
-        const name = team ? factText(team.factRefs.name) || ex.resourceId : ex.resourceId;
-        return (
-          <div key={ex.resourceId} className="axn-artifact-row">
-            <span className="axn-artifact-label">未列入</span>
-            <span className="axn-artifact-value">
-              {name}：{ex.reason}
-            </span>
-          </div>
-        );
-      })}
-      {payload.note && <div className="axn-artifact-foot">{payload.note}</div>}
-      <Space wrap className="axn-tc-mt8">
-        <Button size="small" type="primary" ghost onClick={() => onOpenDrawer('resource', { tab: 'list' })}>
-          查看资源列表
+    <div>
+      <ResultLine
+        testId="resource-result-compact"
+        label="查询结果"
+        name={name}
+        actions={(
+          <>
+            <Button size="small" type="primary" ghost aria-label="查看资源列表" onClick={() => onOpenDrawer('resource', { tab: 'list' })}>
+              列表
+            </Button>
+            <Button size="small" type="primary" aria-label="查看态势地图" onClick={() => onOpenDrawer('resource', { tab: 'map' })}>
+              地图
+            </Button>
+          </>
+        )}
+      />
+      {onOpenFlow && (
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          className="axn-tc-mt8"
+          data-testid="open-resource-warning"
+          onClick={() => onOpenFlow('资源预警通知')}
+        >
+          打开资源预警通知
         </Button>
-        <Button size="small" type="primary" onClick={() => onOpenDrawer('resource', { tab: 'map' })}>
-          查看态势地图
-        </Button>
-      </Space>
+      )}
     </div>
   );
 }
@@ -309,83 +294,40 @@ function QaKnowledgeBlock({ payload }: { payload: QaKnowledgeArtifact }) {
 
 function ProposalBlock({ payload, onOpenDrawer }: { payload: ProposalArtifact; onOpenDrawer: TaskCardProps['onOpenDrawer'] }) {
   const proposal = useSessionStore(s => s.proposals[payload.proposalId]);
+  const name = proposal?.title ?? '险情处置工作建议';
   return (
-    <div className="axn-artifact axn-proposal">
-      <div className="axn-artifact-row">
-        <span className="axn-artifact-label">处置建议</span>
-        <span className="axn-artifact-value">
-          已生成（版本 {payload.version}，模拟 · 待人工审核）
-        </span>
-      </div>
-      <div className="axn-proposal-body">
-        {proposal?.sections.slice(0, 2).map(section => (
-          <div className="axn-resource-result" key={section.id}>
-            <Text strong>{section.title}</Text>
-            <Typography.Paragraph className="axn-tc-pre" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
-              {section.text}
-            </Typography.Paragraph>
-          </div>
-        ))}
-      </div>
-      <div className="axn-proposal-foot">
-        {(proposal?.sections.length ?? 0) > 2 && (
-          <Typography.Text type="secondary" className="axn-tc-fs12">
-            其余章节见右侧红头方案文书…
-          </Typography.Text>
-        )}
-        <Button size="small" type="primary" ghost onClick={() => onOpenDrawer('knowledge')}>
-          查看建议与知识
+    <ResultLine
+      testId="proposal-result"
+      label="处置建议"
+      name={name}
+      actions={(
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          aria-label="查看建议与知识"
+          onClick={() => onOpenDrawer('knowledge')}
+        >
+          查看
         </Button>
-      </div>
-    </div>
-  );
-}
-
-function ScenarioTable({
-  title,
-  headers,
-  rows,
-}: {
-  title?: string;
-  headers: string[];
-  rows: string[][];
-}) {
-  return (
-    <div className="axn-scenario-table-wrap">
-      {title && <div className="axn-scenario-table-title">{title}</div>}
-      <table className="axn-scenario-table">
-        <thead>
-          <tr>
-            {headers.map((h) => (
-              <th key={h}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i}>
-              {row.map((cell, j) => (
-                <td key={`${i}-${j}`}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      )}
+    />
   );
 }
 
 const RESOURCE_SCENARIO_CAPABILITIES = new Set(['search', 'resourceReport', 'update', 'group']);
 
-/** 建设场景分节结果：对话内摘要预览 +「查看文书」打开右侧红头工作区（对齐文书生成卡）。 */
+/** 四智能体建设材料：单行名称 +「查看」，正文在右侧红头工作区。 */
 function ScenarioSectionsBlock({
   payload,
   sessionId,
   onOpenDrawer,
+  onOpenFlow,
 }: {
   payload: ScenarioSectionsArtifact;
   sessionId: string;
   onOpenDrawer: TaskCardProps['onOpenDrawer'];
+  onOpenFlow?: TaskCardProps['onOpenFlow'];
 }) {
   const openDocument = useDocumentNavigation();
   const document = useMockDocumentStore((s) =>
@@ -398,77 +340,66 @@ function ScenarioSectionsBlock({
     openDocument(sessionId, { kind: 'mock', id: document.id });
   };
   const showResourceMap = RESOURCE_SCENARIO_CAPABILITIES.has(payload.capability);
-  // 已物化红头文书：对话里只留标题摘要 + 打开入口，正文/表格/监测图一律在右侧文书看。
-  if (document) {
-    return (
-      <div className="axn-artifact axn-scenario axn-scenario--compact" data-testid="scenario-sections">
-        <div className="axn-artifact-row">
-          <span className="axn-artifact-label">建设材料</span>
-          <span className="axn-artifact-value">
-            <Text strong>{payload.title}</Text>
-            <Tag className="axn-tc-ml6">模拟数据</Tag>
-          </span>
-        </div>
-        <Typography.Paragraph type="secondary" className="axn-tc-fs12" style={{ marginBottom: 8 }} ellipsis={{ rows: 2 }}>
-          {payload.summary}
-        </Typography.Paragraph>
-        <div className="axn-document-result" data-testid="agent-material-preview">
-          <Typography.Text strong><FileText /> {document.title}</Typography.Text>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            {document.date} · 红头格式 · 模拟文书 · 共 {document.sections.length} 节，请在右侧查看全文
-          </Typography.Paragraph>
-        </div>
-        <div className="axn-artifact-foot">
-          <Space wrap>
-            <Button aria-label="查看文书" size="small" type="primary" ghost icon={<FileText />} onClick={openInWorkspace}>
-              查看文书
-            </Button>
+  const materialName = document?.title ?? payload.title;
+  return (
+    <div>
+      <ResultLine
+        testId="scenario-sections"
+        label="建设材料"
+        name={materialName}
+        actions={(
+          <>
+            {document ? (
+              <Button
+                aria-label="查看文书"
+                size="small"
+                type="primary"
+                ghost
+                icon={<FileText />}
+                onClick={openInWorkspace}
+                data-testid="agent-material-preview"
+              >
+                查看
+              </Button>
+            ) : (
+              <Text type="secondary" className="axn-tc-fs12">暂未物化</Text>
+            )}
             {showResourceMap && (
               <>
-                <Button size="small" type="primary" ghost onClick={() => onOpenDrawer('resource', { tab: 'list' })}>
-                  查看资源列表
+                <Button
+                  size="small"
+                  type="primary"
+                  ghost
+                  aria-label="查看资源列表"
+                  onClick={() => onOpenDrawer('resource', { tab: 'list' })}
+                >
+                  列表
                 </Button>
-                <Button aria-label="查看态势地图" size="small" type="primary" onClick={() => onOpenDrawer('resource', { tab: 'map' })}>
-                  查看态势地图
+                <Button
+                  size="small"
+                  type="primary"
+                  aria-label="查看态势地图"
+                  onClick={() => onOpenDrawer('resource', { tab: 'map' })}
+                >
+                  地图
                 </Button>
               </>
             )}
-          </Space>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="axn-artifact axn-scenario" data-testid="scenario-sections">
-      <div className="axn-artifact-row">
-        <span className="axn-artifact-label">建设材料</span>
-        <span className="axn-artifact-value">
-          <Text strong>{payload.title}</Text>
-          <Tag className="axn-tc-ml6">模拟数据</Tag>
-        </span>
-      </div>
-      <div className="axn-scenario-summary">{payload.summary}</div>
-      {payload.table && (
-        <ScenarioTable title="队伍与人员状态时效" headers={payload.table.headers} rows={payload.table.rows.slice(0, 2)} />
+          </>
+        )}
+      />
+      {showResourceMap && onOpenFlow && (
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          className="axn-tc-mt8"
+          data-testid="open-resource-warning-material"
+          onClick={() => onOpenFlow('资源预警通知')}
+        >
+          打开资源预警通知
+        </Button>
       )}
-      <Typography.Text type="secondary" className="axn-tc-fs12">
-        完整章节请在右侧文书工作区查看。
-      </Typography.Text>
-      <div className="axn-artifact-foot">
-        <Space wrap>
-          <span>{payload.notice} · 数据时间 {payload.dataTime}</span>
-          {showResourceMap && (
-            <>
-              <Button size="small" type="primary" ghost onClick={() => onOpenDrawer('resource', { tab: 'list' })}>
-                查看资源列表
-              </Button>
-              <Button aria-label="查看态势地图" size="small" type="primary" onClick={() => onOpenDrawer('resource', { tab: 'map' })}>
-                查看态势地图
-              </Button>
-            </>
-          )}
-        </Space>
-      </div>
     </div>
   );
 }
@@ -523,7 +454,7 @@ function ArtifactBlock({
     case 'summary':
       return <SummaryBlock payload={payload} onOpenFlow={onOpenFlow} />;
     case 'resources':
-      return <ResourceBlock payload={payload} onOpenDrawer={onOpenDrawer} />;
+      return <ResourceBlock payload={payload} onOpenDrawer={onOpenDrawer} onOpenFlow={onOpenFlow} />;
     case 'knowledge':
       return <KnowledgeBlock payload={payload} onOpenDrawer={onOpenDrawer} />;
     case 'qa_knowledge':
@@ -531,7 +462,14 @@ function ArtifactBlock({
     case 'proposal':
       return <ProposalBlock payload={payload} onOpenDrawer={onOpenDrawer} />;
     case 'scenario_sections':
-      return <ScenarioSectionsBlock payload={payload} sessionId={sessionId} onOpenDrawer={onOpenDrawer} />;
+      return (
+        <ScenarioSectionsBlock
+          payload={payload}
+          sessionId={sessionId}
+          onOpenDrawer={onOpenDrawer}
+          onOpenFlow={onOpenFlow}
+        />
+      );
     case 'document':
       return <DocumentBlock payload={payload} sessionId={sessionId} />;
     case 'clarification':
@@ -624,18 +562,11 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
         </ul>
       )}
 
-      {/* 已物化建设文书时，正文与长摘要只在右侧；聊天区改由 scenario_sections 卡片给短提示 */}
-      {task.textAnswer && !task.artifacts.some(a => a.payload.kind === 'scenario_sections') && (
+      {/* 建设材料 / 处置建议已物化时，正文只在右侧或知识抽屉；聊天区不重复长摘要 */}
+      {task.textAnswer
+        && !task.artifacts.some(a => a.payload.kind === 'scenario_sections' || a.payload.kind === 'proposal') && (
         <div className="axn-task-answer">
-          <Typography.Paragraph
-            className="axn-tc-pre"
-            style={{ marginBottom: 0 }}
-            ellipsis={
-              task.artifacts.some(a => a.payload.kind === 'proposal')
-                ? { rows: 4, expandable: false }
-                : false
-            }
-          >
+          <Typography.Paragraph className="axn-tc-pre" style={{ marginBottom: 0 }}>
             {task.textAnswer}
           </Typography.Paragraph>
         </div>

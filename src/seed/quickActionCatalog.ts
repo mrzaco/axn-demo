@@ -59,8 +59,13 @@ export function chatCatalogActions(): CatalogAction[] {
   return CATALOG_ACTIONS.filter((action) => action.kind === 'chat');
 }
 
+/** chips / 更多动作：chat + flow（不含 loop）。 */
+export function chipCatalogActions(): CatalogAction[] {
+  return CATALOG_ACTIONS.filter((action) => action.kind === 'chat');
+}
+
 export function stageChipConfig(stage: string | null | undefined): StageChipConfig {
-  if (!stage) return { primary: [], loop: [] };
+  if (!stage) return QUICK_ACTION_CATALOG.stageChips['待研判'];
   return QUICK_ACTION_CATALOG.stageChips[stage] ?? { primary: [], loop: [] };
 }
 

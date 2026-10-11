@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { NAV_PATH } from '@/components/nav/navRoutes';
+import { SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 import './desktop-portal.css';
 
 type PortalModule = {
@@ -75,11 +76,10 @@ export default function DesktopPortalHost() {
   return (
     <div className="axn-portal-host" data-testid="desktop-portal-host">
       <div className="axn-portal-bg" aria-hidden />
-      <div className="axn-portal-veil" aria-hidden />
 
       <main className="axn-portal-main">
         <div className="axn-portal-grid" role="list">
-          {MODULES.map((mod) => (
+          {MODULES.filter((mod) => SHOW_DISASTER_EVENTS_LIBRARY || mod.path !== '/events').map((mod) => (
             <button
               key={mod.id}
               type="button"

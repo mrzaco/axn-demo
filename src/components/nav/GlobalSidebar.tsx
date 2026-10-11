@@ -54,10 +54,10 @@ import type { VueWorkspaceEventMeta } from '@/seed/vueWorkspaceEvents';
 import './sidebar.css';
 
 const SIDEBAR_AGENT_ICONS: Record<SidebarAgentId, ReactNode> = {
-  situation: <Flame size={14} />,
-  resource: <Wrench size={14} />,
-  plan: <Lightbulb size={14} />,
-  evaluation: <ClipboardCheck size={14} />,
+  situation: <Flame size={16} />,
+  resource: <Wrench size={16} />,
+  plan: <Lightbulb size={16} />,
+  evaluation: <ClipboardCheck size={16} />,
 };
 
 type NavKey = NavPage;
@@ -65,9 +65,8 @@ type NavKey = NavPage;
 const NAV: { key: NavKey; label: string; icon: ReactNode }[] = [
   { key: 'library', label: '文书库', icon: <FolderOpen /> },
   { key: 'assistant', label: '智能助理', icon: <Sparkles /> },
-  // 「应急项目」「定时任务」「知识库」三个入口按下线标注从侧栏隐藏：
-  // 页面（NavPages）与路由（/projects、/agents、/schedules、/knowledge）全部保留，深链直达仍可用；
-  // 取消下列注释并取回对应图标导入（LayoutGrid / Clock / FlaskConical）即可恢复侧栏入口。
+  // 「应急项目」「定时任务」「知识库」：侧栏隐藏；路由保留可深链。
+  // 取消注释并取回图标导入（LayoutGrid / Clock / FlaskConical）即可恢复。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
   { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
@@ -371,7 +370,7 @@ export default function GlobalSidebar() {
             </button>
           ) : null}
         </div>
-        <div className="axn-gs-agents-grid" role="listbox" aria-label="建设智能体筛选">
+        <div className="axn-gs-agents-list" role="listbox" aria-label="建设智能体筛选">
           {SIDEBAR_AGENTS.map((agent) => {
             const active = activeAgentId === agent.id;
             return (
@@ -380,7 +379,7 @@ export default function GlobalSidebar() {
                 type="button"
                 role="option"
                 aria-selected={active}
-                className={`axn-gs-agent-chip${active ? ' is-active' : ''}`}
+                className={`axn-gs-nav-item${active ? ' is-active' : ''}`}
                 title={`${agent.name} · ${agent.scene}`}
                 data-testid={`sidebar-agent-${agent.id}`}
                 onClick={() => {
@@ -390,13 +389,9 @@ export default function GlobalSidebar() {
                   }
                 }}
               >
-                <span className="axn-gs-agent-chip-icon" aria-hidden>
-                  {SIDEBAR_AGENT_ICONS[agent.id]}
-                </span>
-                <span className="axn-gs-agent-chip-text">
-                  <span className="axn-gs-agent-chip-name">{agent.shortName}</span>
-                  <span className="axn-gs-agent-chip-scene">{agent.scene}</span>
-                </span>
+                {SIDEBAR_AGENT_ICONS[agent.id]}
+                <span className="axn-gs-agent-name">{agent.shortName}</span>
+                <span className="axn-gs-agent-scene">{agent.scene}</span>
               </button>
             );
           })}
