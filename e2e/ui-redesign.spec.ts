@@ -1,4 +1,4 @@
-import { clickQuickTask } from './helpers/quickTasks';
+import { clickDocTask, clickQuickTask } from './helpers/quickTasks';
 /**
  * UI 改版 E2E：参考图外壳（260px 侧栏 + 宽敞主区）、首页知识库引导问题、
  * 文书库与文书工作区（打开/关闭/重开/独立库）、待补充工作总结刷新恢复、
@@ -100,7 +100,7 @@ test('文书库打开 → 工作区显示 → 关闭回宽对话 → 同份重�
 
 test('生成文书自动打开工作区；关闭后同一完成不再自动弹出；产物可显式打开', async ({ page }) => {
   await page.goto('/');
-  await clickQuickTask(page, '生成应急要情');
+  await clickDocTask(page, '应急要情');
   await expect(page.getByTestId('document-workspace')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('workspace-close-btn').click();
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
@@ -129,7 +129,7 @@ test('待补充的工作总结在刷新后恢复到文书工作区', async ({ pa
 
 test('迟到的 A 会话完成不会在 B 会话打开文书', async ({ page }) => {
   await page.goto('/');
-  await clickQuickTask(page, '生成应急要情');
+  await clickDocTask(page, '应急要情');
   await expect(page.getByTestId('document-workspace')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('workspace-close-btn').click();
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
@@ -210,7 +210,7 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.getByTestId('chat-link-incident').click();
-  await page.getByTitle('未关联事件（空白对话）', { exact: true }).click();
+  await page.getByTitle('未关联事件', { exact: true }).click();
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
@@ -228,8 +228,8 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
 
 test('从聊天预览切换文书时取消保留编辑、确认后切换（工作副本不丢弃）', async ({ page }) => {
   await page.goto('/');
-  for (const name of ['生成值班日报', '生成应急要情']) {
-    await clickQuickTask(page, name);
+  for (const name of ['值班日报', '应急要情']) {
+    await clickDocTask(page, name);
     await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
   }
   await page.getByRole('button', { name: '在线编辑', exact: true }).click();
@@ -260,24 +260,32 @@ test('精简分屏保留未发送输入，关闭后恢复首页', async ({ page 
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
 });
 
-test('七个快捷任务全部平铺在输入框上方，文书生成类相邻成组并遵守运行状态', async ({ page }) => {
+test('五个能力块平铺在输入框上方，文书生成点开向上弹出三类文书并遵守运行状态', async ({ page }) => {
   await page.goto('/');
   const chips = page.locator('.axn-chips');
-  const labels = ['生成灾情摘要', '查询周边救援资源', '生成救援方案', '生成应急要情', '生成值班日报', '生成工作总结', '评估救援效果'];
+  const labels = ['文书生成', '态势感知', '救援资源管理', '救援方案生成', '救援效果评估'];
   await expect(chips.getByRole('button')).toHaveCount(labels.length);
   for (const name of labels) {
     await expect(chips.getByRole('button', { name, exact: true })).toBeVisible();
   }
-  // 文书生成智能体的三项必须相邻（放在一起）
-  const docTasks = ['生成应急要情', '生成值班日报', '生成工作总结'];
-  const rendered = await chips.getByRole('button').allTextContents();
-  const firstDoc = rendered.indexOf(docTasks[0]);
-  expect(rendered.slice(firstDoc, firstDoc + docTasks.length)).toEqual(docTasks);
   await page.screenshot({ path: 'artifacts/ui-polish/quick-tasks.png' });
-  await clickQuickTask(page, '生成值班日报');
-  await expect(chips.getByRole('button', { name: '生成值班日报', exact: true })).toBeDisabled();
-  await expect(chips.getByRole('button', { name: '生成灾情摘要', exact: true })).toBeDisabled();
+  // 文书生成：点击才展开菜单，三项齐备，且菜单在 chip 上方（向上弹出，不遮挡下方输入区）
+  const docChip = chips.getByRole('button', { name: '文书生成', exact: true });
+  await clickQuickTask(page, '文书生成');
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  for (const name of ['应急要情', '值班日报', '工作总结']) {
+    await expect(menu.getByRole('menuitem', { name, exact: true })).toBeVisible();
+  }
+  const chipBox = await docChip.boundingBox();
+  const menuBox = await menu.boundingBox();
+  expect(chipBox).not.toBeNull();
+  expect(menuBox).not.toBeNull();
+  if (chipBox && menuBox) expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(chipBox.y + 1);
+  await menu.getByRole('menuitem', { name: '值班日报', exact: true }).click();
+  await expect(docChip).toBeDisabled();
+  await expect(chips.getByRole('button', { name: '态势感知', exact: true })).toBeDisabled();
   await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
   await expect(page.getByTestId('document-toolbar')).toContainText('防汛值守日报（新生成）');
-  await expect(chips.getByRole('button', { name: '生成值班日报', exact: true })).toBeEnabled();
+  await expect(docChip).toBeEnabled();
 });

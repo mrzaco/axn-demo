@@ -59,8 +59,9 @@ test('1. 新建对话 → 直接创建空白对话并激活（无弹窗，标注
   const after = await page.locator('.axn-gs-conversation').count();
   expect(after).toBe(before + 1);
   await expect(page.locator('.axn-gs-conversation.is-active').first()).toContainText('新的对话');
-  // 对话区出现关联灾情选择，当前为未关联；未开始对话（无消息）时头部不显示事件标题（标注 vibe_1791303121889）
-  await expect(page.getByTestId('chat-link-incident')).toContainText('未关联事件');
+  // 对话区出现关联灾情选择，未关联时触发器显示 placeholder（标注 vibe_1791787570681）；
+  // 未开始对话（无消息）时头部不显示事件标题（标注 vibe_1791303121889）
+  await expect(page.getByTestId('chat-link-incident')).toContainText('选择关联灾情事件');
   await expect(page.getByTestId('header-event')).toHaveCount(0);
 });
 
@@ -76,7 +77,7 @@ test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', a
   await page.getByTestId('chat-link-incident').click();
   await page.locator('.ant-select-item-option', { hasText: '未关联事件' }).click();
   await page.waitForTimeout(500);
-  await expect(page.getByTestId('chat-link-incident')).toContainText('未关联事件');
+  await expect(page.getByTestId('chat-link-incident')).toContainText('选择关联灾情事件');
 });
 
 test('3. 搜索"南堤"→过滤；清空→恢复', async ({ page }) => {

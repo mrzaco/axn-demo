@@ -2,7 +2,7 @@ import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/wo
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
  * + 圆角一体化输入区（快捷任务 chips 位于输入框上方）+ 补录表单。
- * 首页引导问题取自已接入知识库的 qa.json；输入区把全部快捷任务 chips 平铺展示，文书生成类三项相邻成组。
+ * 首页引导问题取自已接入知识库的 qa.json；输入区平铺 5 个能力块，文书生成块点击后在 chip 上方弹出三类文书。
  * 会话跟随演示事件切换（ensureSessionForConversation）；消息与任务状态全部订阅 sessionStore，不本地复制。
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
@@ -13,7 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
-import { Alert, App as AntdApp, Button, Input, Select, Space, Tag, Typography, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Dropdown, Input, Select, Space, Tag, Typography, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -40,7 +40,7 @@ export interface ChatPanelProps {
 
 const AVATAR = <div className="axn-chat-avatar">安</div>;
 
-// 快捷任务全部平铺在输入框上方（任务全集见 seed/agentQuickTasks）
+// 快捷任务：5 个能力块平铺在输入框上方（任务全集见 seed/agentQuickTasks）
 // 顺序沿用该目录（按智能体分组），「文书生成智能体」三项天然相邻成组：应急要情 / 值班日报 / 工作总结
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
@@ -159,7 +159,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       : activeConversation.eventId;
   const linkOptions = useMemo(
     () => [
-      { value: BLANK, label: '未关联事件（空白对话）' },
+      // 下拉里的「解除关联」项；未关联时触发器显示的是 placeholder（见下），不用这个文案
+      // （标注 vibe_1791787570681）
+      { value: BLANK, label: '未关联事件' },
       ...incidents.map((i) => ({ value: i.eventId, label: eventDisplayName(i.eventId) })),
     ],
     [],
@@ -188,8 +190,12 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       size="small"
       variant="borderless"
       className="axn-cp-select"
-      value={linkValue}
+      // 未关联时传 undefined 而非 BLANK：让触发器显示 placeholder「选择关联灾情事件」。
+      // BLANK 仍是合法选中值（handleLinkChange 里转成「解除关联」），只是不再当触发器文案用
+      // （标注 vibe_1791787570681）
+      value={linkValue === BLANK ? undefined : linkValue}
       onChange={handleLinkChange}
+      placeholder="选择关联灾情事件"
       options={linkOptions}
       aria-label="关联灾情"
       data-testid="chat-link-incident"
@@ -273,9 +279,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             onClick={toggleSidebar}
             aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
           />
-          {/* 对话未开始（无消息）时不显示事件标题：此时上下文由下方「关联灾情」选择器承载，
-              标题只是重复（标注 vibe_1791303121889）。首条消息出现后标题回归。 */}
-          {hasMessages && (
+          {/* 无消息、或对话未关联事件时不显示标题：两者都由下方「关联灾情」选择器承载，
+              标题只是重复（标注 vibe_1791303121889）；关联事件后标题回归。 */}
+          {hasMessages && !isBlankEvent && (
             <Text strong className="axn-cp-title" data-testid="header-event">
               {eventTitle}
             </Text>
@@ -380,21 +386,45 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         </div>
       )}
 
-      {/* 快捷任务 chips：全部平铺在输入框上方，文书生成类三项相邻成组 */}
+      {/* 快捷任务 chips：5 个能力块平铺在输入框上方；文书生成含三类并列文书，点块向上弹菜单 */}
       <div className="axn-cp-chips-wrap">
         <div className="axn-chips">
-          {AGENT_QUICK_TASKS.map(({ label, agentName, agentId }) => (
-            <Button
-              key={label}
-              size="small"
-              className="axn-chip"
-              title={agentName}
-              data-agent-id={agentId}
-              disabled={!session || busy}
-              onClick={() => { void handleQuickTask(label); }}
-            >
-              {label}
-            </Button>
+          {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => (
+            tasks.length === 1 ? (
+              <Button
+                key={label}
+                size="small"
+                className="axn-chip"
+                title={agentName}
+                data-agent-id={agentId}
+                disabled={!session || busy}
+                onClick={() => { void handleQuickTask(tasks[0].task); }}
+              >
+                {label}
+              </Button>
+            ) : (
+              // 多任务能力：菜单向上弹（topLeft），不遮挡下方输入区；busy 时整块与菜单一起禁用
+              <Dropdown
+                key={label}
+                trigger={['click']}
+                placement="topLeft"
+                disabled={!session || busy}
+                menu={{
+                  items: tasks.map(({ label: taskLabel, task }) => ({ key: task, label: taskLabel })),
+                  onClick: ({ key }) => { void handleQuickTask(key); },
+                }}
+              >
+                <Button
+                  size="small"
+                  className="axn-chip"
+                  title={agentName}
+                  data-agent-id={agentId}
+                  disabled={!session || busy}
+                >
+                  {label}
+                </Button>
+              </Dropdown>
+            )
           ))}
         </div>
       </div>

@@ -254,6 +254,8 @@
 .axn-cp-chips-wrap { display: flex; justify-content: center; padding: 0 var(--space-4); width: 100%; box-sizing: border-box; }
 /* 关联灾情：无边框 + 品牌蓝文字（标注：这边的文字改成品牌蓝色），与右侧主按钮同排 */
 .axn-cp-select.ant-select { min-width: 96px; max-width: 220px; font-size: var(--fs-meta); margin-inline-end: var(--space-1-5); }
-.axn-cp-select .ant-select-content, .axn-cp-select .ant-select-content-placeholder { color: var(--axn-primary); }
+/* 触发器文案：已选事件与 placeholder（未关联时的「选择关联灾情事件」）都走品牌色。
+   antd 6 的 placeholder 类是 .ant-select-placeholder（.ant-select-content-placeholder 是旧名，保留兼容） */
+.axn-cp-select .ant-select-content, .axn-cp-select .ant-select-content-placeholder, .axn-cp-select .ant-select-placeholder { color: var(--axn-primary); }
 .axn-cp-select .ant-select-suffix, .axn-cp-select .ant-select-suffix .anticon { color: var(--axn-primary); }
 .axn-cp-select.ant-select:hover .ant-select-content { color: color-mix(in srgb, var(--axn-primary) 78%, var(--axn-text)); }
