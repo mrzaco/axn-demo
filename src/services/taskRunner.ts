@@ -16,6 +16,8 @@ function sleepZero(): Promise<void> {
 export interface SendOptions {
   text: string;
   commandId?: string | null;
+  /** 随消息附带的文件（仅记录文件名/大小，演示环境不读取内容） */
+  attachments?: { name: string; size: number }[];
 }
 
 export async function sendMessage(sessionId: string, options: SendOptions): Promise<string> {
@@ -31,6 +33,7 @@ export async function sendMessage(sessionId: string, options: SendOptions): Prom
     role: 'user',
     kind: 'text',
     text: options.text,
+    attachments: options.attachments,
     taskId: null,
   });
   // 问答语料按需加载（不进首屏）；recognize 内部的 matchQa 要求语料已就绪。

@@ -85,8 +85,70 @@
 .axn-composer-shell .ant-sender { border: 0; background: transparent; box-shadow: none; }
 /* 输入区上方留白：外壳 6px + 这里 6px（原 8+12），收紧但保留呼吸感 */
 .axn-composer-shell .ant-sender-content { padding-top: var(--space-1-5); }
+/* 输入区与三个控件分两行（备注 m01342「输入区域和那三个组件不要是同一行」）：
+   输入框 flex-basis 100% 独占第一行、随内容向上生长；上传 / 关联灾情 / 语音靠 wrap
+   换到第二行（actions 用 margin-left: auto 推到第二行最右）。
+   既不是恒 3 行高的空盒子（原 minRows=3 → 76px），也不挤成一行。 */
+.axn-composer-shell .ant-sender-content { flex-wrap: wrap; }
+.axn-composer-shell .ant-sender-input { flex: 1 1 100%; order: 1; }
+.axn-composer-shell .ant-sender-prefix { order: 2; }
+.axn-composer-shell .ant-sender-actions-list { order: 3; margin-left: auto; }
 .axn-composer-shell .ant-sender:focus-within { box-shadow: none; }
 .axn-composer-footer { display: flex; align-items: flex-end; gap: var(--space-2); }
+
+/* 上传文件：输入框左下角的图标按钮（与右下角关联灾情 / 语音同排）。
+   标注 vibe_1791789692727_f6munp2fa：原本是 14px 灰色的细描边图标，在蓝色加粗的关联灾情
+   和蓝色实心麦克风旁边几乎看不见 —— 改为品牌蓝图标 + 10% 品牌蓝圆底。
+   图标尺寸由 antd 的 .ant-btn-icon { width/height: 1em } 决定（lucide 的 size 属性会被它覆盖），
+   所以靠 font-size 放大，TSX 里的 size 只为与之一致。 */
+.axn-composer-upload.ant-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  color: var(--axn-primary);
+  background: color-mix(in srgb, var(--axn-primary) 10%, transparent);
+  border-radius: 50%;
+}
+.axn-composer-upload.ant-btn:hover,
+.axn-composer-upload.ant-btn:focus-visible {
+  color: var(--axn-primary);
+  background: color-mix(in srgb, var(--axn-primary) 18%, transparent);
+}
+/* antd Upload 会在按钮外裹一层 .ant-upload，去掉它自带的行高以免撑高输入行 */
+.axn-composer-shell .ant-upload { line-height: 0; }
+
+/* 已选附件：输入框上方的可移除 chip */
+.axn-attach-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  list-style: none;
+  margin: 0;
+  padding: 0 calc(var(--space-1) + var(--space-1-5)) 0 var(--space-2);
+}
+.axn-attach-tag.ant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 260px;
+  margin: 0;
+  font-size: var(--fs-meta);
+}
+.axn-attach-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.axn-attach-size { color: var(--axn-muted); font-size: var(--fs-caption); }
+
+/* 用户气泡里的附件标记（气泡底是品牌蓝，所以用白色半透明底 + 继承字色） */
+.axn-msg-attach { display: flex; flex-wrap: wrap; gap: var(--space-1-5); margin-top: var(--space-2); }
+.axn-msg-attach-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-1-5);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, .18);
+  font-size: var(--fs-meta);
+}
 .axn-send-btn { flex-shrink: 0; }
 .axn-clarification { padding: var(--space-2) var(--space-4); border-top: 1px solid var(--axn-border); }
 .axn-clarification .ant-space-compact { margin-top: var(--space-3); }

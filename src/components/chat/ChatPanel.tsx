@@ -12,8 +12,9 @@ import {
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
+  Paperclip,
 } from 'lucide-react'
-import { Alert, App as AntdApp, Button, Dropdown, Input, Select, Space, Tag, Typography, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Dropdown, Input, Select, Space, Tag, Typography, Upload, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -40,6 +41,9 @@ export interface ChatPanelProps {
 
 const AVATAR = <div className="axn-chat-avatar">安</div>;
 
+const formatSize = (bytes: number) =>
+  bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
 // 快捷任务：5 个能力块平铺在输入框上方（任务全集见 seed/agentQuickTasks）
 // 顺序沿用该目录（按智能体分组），「文书生成智能体」三项天然相邻成组：应急要情 / 值班日报 / 工作总结
 
@@ -59,6 +63,16 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
 
   const [input, setInput] = useState('');
   const [clarifyValue, setClarifyValue] = useState('');
+  // 上传的文件：演示环境没有上传接口，不落盘也不读取内容，只把文件名与大小随消息记下来
+  const [attachments, setAttachments] = useState<{ uid: string; name: string; size: number }[]>([]);
+
+  const addAttachments = (files: File[]) => {
+    setAttachments((prev) => [
+      ...prev,
+      ...files.map((f, i) => ({ uid: `${f.name}-${f.size}-${Date.now()}-${i}`, name: f.name, size: f.size })),
+    ]);
+  };
+  const removeAttachment = (uid: string) => setAttachments((prev) => prev.filter((f) => f.uid !== uid));
 
   // 事件切换/重置后确保会话存在并跟随当前事件
   useEffect(() => {
@@ -83,6 +97,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     const text = raw.trim();
     if (!session || !text || busy) return;
     setInput('');
+    // 附件随本条消息送出后清空（只有默认问答路径消费附件；工作总结 / 文书生成路径不读）
+    const pendingAttachments = attachments;
+    setAttachments([]);
     const waitingSummary = session.messages.find(message => message.documentWorkflow?.stage === 'waiting_input');
     if (waitingSummary) {
       void submitWorkSummaryImprovement(session.sessionId, waitingSummary.messageId, text);
@@ -92,7 +109,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       void generateWorkSummary(session.sessionId, text);
       return;
     }
-    void sendMessage(session.sessionId, { text });
+    void sendMessage(session.sessionId, { text, attachments: pendingAttachments.length ? pendingAttachments : undefined });
   };
 
   const handleQuickTask = async (text: string) => {
@@ -251,7 +268,27 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         };
       }
       if (m.role === 'user') {
-        return { key: m.messageId, role: 'user', content: m.text ?? '' };
+        const files = m.attachments ?? [];
+        return {
+          key: m.messageId,
+          role: 'user',
+          content: m.text ?? '',
+          // 附件标记：发出去之后仍能看到随行的文件（否则选完文件一发送就没痕迹了）
+          contentRender: files.length
+            ? () => (
+                <div>
+                  <div>{m.text}</div>
+                  <div className="axn-msg-attach" data-testid="message-attachments">
+                    {files.map((f) => (
+                      <span key={`${f.name}-${f.size}`} className="axn-msg-attach-item">
+                        <Paperclip size={12} />{f.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            : undefined,
+        };
       }
       if (m.role === 'system') {
         return {
@@ -432,6 +469,27 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       {/* 圆角一体化输入区：关联灾情与发送/语音按钮同在输入框右下角 */}
       <div className="axn-composer">
         <div className="axn-composer-shell">
+          {/* 已选文件：输入框上方一行可移除的 chip（上传按钮在输入框左下角） */}
+          {attachments.length > 0 && (
+            <ul className="axn-attach-list" data-testid="composer-attachments">
+              {attachments.map((f) => (
+                <li key={f.uid}>
+                  <Tag
+                    closable
+                    className="axn-attach-tag"
+                    onClose={(e) => {
+                      e.preventDefault();
+                      removeAttachment(f.uid);
+                    }}
+                  >
+                    <Paperclip size={12} />
+                    <span className="axn-attach-name">{f.name}</span>
+                    <span className="axn-attach-size">{formatSize(f.size)}</span>
+                  </Tag>
+                </li>
+              ))}
+            </ul>
+          )}
           <Sender
             value={input}
             onChange={(v) => setInput(v)}
@@ -440,6 +498,27 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             onCancel={() => {
               if (runningTask) cancelTask(runningTask.taskId);
             }}
+            prefix={(
+              /* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上 */
+              <Upload
+                multiple
+                showUploadList={false}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,.png,.jpg,.jpeg"
+                beforeUpload={(file) => {
+                  addAttachments([file]);
+                  return false; // 没有上传接口：只拦下文件，不让 antd 发起请求
+                }}
+              >
+                <Button
+                  type="text"
+                  className="axn-composer-upload"
+                  icon={<Paperclip size={18} />}
+                  aria-label="上传文件"
+                  title="上传文件"
+                  data-testid="composer-upload"
+                />
+              </Upload>
+            )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
               <>
                 {incidentSelect}
@@ -448,7 +527,11 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                 {runningTask != null ? <LoadingButton /> : input.trim() ? <SendButton /> : <SpeechButton variant="solid" color="primary" shape="circle" />}
               </>
             )}
-            autoSize={{ minRows: 3, maxRows: 6 }}
+            /* 最小 2 行 = 54px（用户 m01370 要求输入框再高一些；1 行只有 32px 显得太扁）。
+               输入框独占第一行（见 chat.css 的 .ant-sender-input { flex: 1 1 100% }），
+               三个控件在第二行，所以留白在输入区内、不会把控件推到盒子底部。
+               原 minRows: 3 时输入框恒为 76px 且控件与文字同一行（备注 m01301、m01342）。 */
+            autoSize={{ minRows: 2, maxRows: 6 }}
             placeholder={
               session ? '向安小能发送指令，Enter 发送' : '会话初始化中…'
             }

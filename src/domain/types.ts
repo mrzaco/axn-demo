@@ -200,6 +200,8 @@ export interface ChatMessage {
     reportSections?: [string, string][];
     documentId?: string;
   };
+  /** 用户上传的附件（演示环境仅保留文件名与大小：不落盘、不读取内容、不参与意图识别） */
+  attachments?: { name: string; size: number }[];
   createdAt: string;
   performedAt: string;
 }
