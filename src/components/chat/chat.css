@@ -41,6 +41,56 @@
 .axn-chip.ant-btn { height: 27px; padding: 0 var(--space-2); border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface)); background: var(--axn-primary-bg); color: var(--axn-primary-text); border-radius: 7px; font-size: var(--fs-meta); box-shadow: none; transition: background .16s, border-color .16s, color .16s; }
 .axn-chip.ant-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface)); color: var(--axn-primary-text); border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface)); }
 .axn-chip:disabled { opacity: .5; }
+/* 文书生成向上弹出的菜单：三个条目与快捷按钮（.axn-chip）同款 —— 蓝底描边胶囊按钮，竖排一个个
+   （备注 vibe_1791791690567_uzj6y6tjy「子菜单往上弹出的样式也是这样一个个同样式的按钮」）。
+   弹层渲染在 body 的 portal 里，所以用 Dropdown 的 classNames.root 限定范围，
+   不影响文书页与侧栏的其它下拉。 */
+/* 文书生成向上弹出的菜单：三个条目与快捷按钮（.axn-chip）同款 —— 蓝底描边胶囊按钮，竖排一个个
+   （备注 vibe_1791791690567_uzj6y6tjy「子菜单往上弹出的样式也是这样一个个同样式的按钮」）。
+   弹层渲染在 body 的 portal 里，所以用 Dropdown 的 classNames.root 限定范围，
+   不影响文书页与侧栏的其它下拉。
+   用户 m01456：不要白色卡片，只剩三个悬浮按钮，且条目左边缘与父按钮对齐。
+   topLeft 对齐下弹层左边缘本就 = 父按钮左边缘（实测 538/538、16/16），
+   把菜单内边距归零后条目左边缘即与父按钮齐平。 */
+.axn-chip-menu.ant-dropdown,
+.axn-chip-menu.ant-dropdown .ant-dropdown-menu {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+}
+.axn-chip-menu.ant-dropdown .ant-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  /* 末尾 4px 内边距（不可见）：antd 内置 top 方向 placement 的偏移是 token.marginXXS = 4px，
+     弹层底边距父按钮只有 4px，比子项之间演 8px 窄。自下而上锚定下补 4px 底部内边距，
+     末条目上提 4px → 四个按钮（三子项 + 父按钮）间隙均为 8px（用户 m01469）。
+     不用 align.offset 覆盖：其正值方向与内置偏移相反（实测 [0,8] 反而压住父按钮 8px），
+     且 autoAdjustOverflow 翻转成向下弹出时会变成向父按钮方向偏移。 */
+  padding-bottom: var(--space-1);
+}
+/* 选择器写成 .axn-chip-menu.ant-dropdown + 两层 .ant-dropdown-menu*：
+   自定义类在弹层根上（不是条目本身），单类选择器会输给 antd 的 CSS-in-JS，
+   实测圆角 / 字号 / 底色 / 字色 / border 都被盖住（chat.css 不用 !important）。 */
+.axn-chip-menu.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item {
+  height: 27px;
+  min-height: 27px;
+  justify-content: center;
+  padding: 0 var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface));
+  border-radius: 7px;
+  background: var(--axn-primary-bg);
+  color: var(--axn-primary-text);
+  font-size: var(--fs-meta);
+}
+.axn-chip-menu.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item:hover,
+.axn-chip-menu.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item-active {
+  background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface));
+  border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface));
+  color: var(--axn-primary-text);
+}
 
 /* 触屏：首页的快捷 chips（27px）与推荐问题（33px）是主要入口，高度太难点中，
    统一抬到 ~40px；图标与字号不变。 */

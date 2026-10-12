@@ -44,8 +44,8 @@ const AVATAR = <div className="axn-chat-avatar">安</div>;
 const formatSize = (bytes: number) =>
   bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-// 快捷任务：5 个能力块平铺在输入框上方（任务全集见 seed/agentQuickTasks）
-// 顺序沿用该目录（按智能体分组），「文书生成智能体」三项天然相邻成组：应急要情 / 值班日报 / 工作总结
+// 快捷任务：5 个能力块平铺在输入框上方，点块向上弹菜单再选具体任务
+// （任务全集与 task→intent 契约见 seed/agentQuickTasks，顺序沿用该目录即按智能体分组）
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
   const { token } = theme.useToken();
@@ -424,45 +424,35 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         </div>
       )}
 
-      {/* 快捷任务 chips：5 个能力块平铺在输入框上方；文书生成含三类并列文书，点块向上弹菜单 */}
+      {/* 快捷任务 chips：5 个能力块平铺在输入框上方，点块向上弹菜单选具体任务 */}
       <div className="axn-cp-chips-wrap">
         <div className="axn-chips">
           {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => (
-            tasks.length === 1 ? (
+            // 菜单向上弹（topLeft），不遮挡下方输入区；busy 时整块与菜单一起禁用。
+            // classNames.root 把样式限于本弹层（弹层渲染在 body 的 portal 里），
+            // 条目改成与 .axn-chip 同款的胶囊按钮（备注 vibe_1791791690567_uzj6y6tjy）
+            // 单项能力也走菜单：chip 恒显能力名，任务名在菜单里可见。
+            <Dropdown
+              key={label}
+              trigger={['click']}
+              placement="topLeft"
+              classNames={{ root: 'axn-chip-menu' }}
+              disabled={!session || busy}
+              menu={{
+                items: tasks.map(({ label: taskLabel, task }) => ({ key: task, label: taskLabel })),
+                onClick: ({ key }) => { void handleQuickTask(key); },
+              }}
+            >
               <Button
-                key={label}
                 size="small"
                 className="axn-chip"
                 title={agentName}
                 data-agent-id={agentId}
                 disabled={!session || busy}
-                onClick={() => { void handleQuickTask(tasks[0].task); }}
               >
                 {label}
               </Button>
-            ) : (
-              // 多任务能力：菜单向上弹（topLeft），不遮挡下方输入区；busy 时整块与菜单一起禁用
-              <Dropdown
-                key={label}
-                trigger={['click']}
-                placement="topLeft"
-                disabled={!session || busy}
-                menu={{
-                  items: tasks.map(({ label: taskLabel, task }) => ({ key: task, label: taskLabel })),
-                  onClick: ({ key }) => { void handleQuickTask(key); },
-                }}
-              >
-                <Button
-                  size="small"
-                  className="axn-chip"
-                  title={agentName}
-                  data-agent-id={agentId}
-                  disabled={!session || busy}
-                >
-                  {label}
-                </Button>
-              </Dropdown>
-            )
+            </Dropdown>
           ))}
         </div>
       </div>

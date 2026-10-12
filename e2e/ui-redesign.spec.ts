@@ -1,4 +1,4 @@
-import { clickDocTask, clickQuickTask } from './helpers/quickTasks';
+import { clickDocTask, openQuickTaskMenu } from './helpers/quickTasks';
 /**
  * UI 改版 E2E：参考图外壳（260px 侧栏 + 宽敞主区）、首页知识库引导问题、
  * 文书库与文书工作区（打开/关闭/重开/独立库）、待补充工作总结刷新恢复、
@@ -271,7 +271,7 @@ test('五个能力块平铺在输入框上方，文书生成点开向上弹出�
   await page.screenshot({ path: 'artifacts/ui-polish/quick-tasks.png' });
   // 文书生成：点击才展开菜单，三项齐备，且菜单在 chip 上方（向上弹出，不遮挡下方输入区）
   const docChip = chips.getByRole('button', { name: '文书生成', exact: true });
-  await clickQuickTask(page, '文书生成');
+  await openQuickTaskMenu(page, '文书生成');
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
   for (const name of ['应急要情', '值班日报', '工作总结']) {
