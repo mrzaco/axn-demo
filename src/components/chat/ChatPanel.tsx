@@ -13,7 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
-import { Alert, App as AntdApp, Button, Input, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Select, Space, Tag, Typography, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -180,20 +180,20 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     });
   };
 
-  // 关联灾情选择器：与发送/语音按钮同排，位于其左侧
+  // 关联灾情选择器：与发送/语音按钮同排，位于其左侧。
+  // 原外层 Tooltip（「关联后使用该事件的业务资料，对话消息保持独立」）会随鼠标悬停
+  // 在输入区弹出遮挡，按要求移除；语义仍由 aria-label 提供。
   const incidentSelect = (
-    <Tooltip title="关联后使用该事件的业务资料，对话消息保持独立">
-      <Select
-        size="small"
-        variant="borderless"
-        className="axn-cp-select"
-        value={linkValue}
-        onChange={handleLinkChange}
-        options={linkOptions}
-        aria-label="关联灾情"
-        data-testid="chat-link-incident"
-      />
-    </Tooltip>
+    <Select
+      size="small"
+      variant="borderless"
+      className="axn-cp-select"
+      value={linkValue}
+      onChange={handleLinkChange}
+      options={linkOptions}
+      aria-label="关联灾情"
+      data-testid="chat-link-incident"
+    />
   );
 
   const items: BubbleItemType[] = useMemo(() => {
