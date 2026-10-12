@@ -329,11 +329,12 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         <div className="chat-scroll axn-home">
           <div className="axn-home-inner">
             <div className="axn-home-hero">
-              <Typography.Title level={1} className="axn-home-title">有什么我能帮你的吗？</Typography.Title>
-              <Text className="axn-home-greeting" type="secondary">您好，我是安小能（演示）</Text>
+              {/* 标注 vibe_1791788298951：原「有什么我能帮你的吗？」+ 下方 secondary 问候语合并成这一句 */}
+              <Typography.Title level={1} className="axn-home-title">您好，我是安小能，您的应急智能助手</Typography.Title>
             </div>
+            {/* 标注 vibe_1791788359448 */}
             <Typography.Paragraph className="axn-home-copy">
-              你可以问我问题，让我帮你写公文，执行任务
+              您可以问我问题，也可以让我帮您写公文，或者我也可以帮您执行应急相关的任务。
             </Typography.Paragraph>
 
             <div className="axn-home-block" data-testid="home-chat-recommend">

@@ -140,7 +140,8 @@ test('6. 会话列表切换 A→B：B 空上下文（无候选、无任务卡）
   await page.locator('.axn-gs-conversation', { hasText: '漳河镇' }).first().click();
   await expect(page.locator('.axn-task-card')).toHaveCount(0);
   // B 无查询任务卡：显示欢迎空态（候选区在资源抽屉内，无任务卡即无查询）
-  await expect(page.getByText('您好，我是安小能')).toBeVisible();
+  // 欢迎空态：首页标题（问候语已合并进标题，标注 vibe_1791788298951）
+  await expect(page.locator('.axn-home-title')).toContainText('您好，我是安小能');
 });
 
 test('7. 从 B 切回 A：候选恢复（1 支）', async ({ page }) => {

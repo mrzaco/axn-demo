@@ -26,7 +26,6 @@
 .axn-chat-empty-compact .ant-typography { margin: var(--space-2) 0 0; }
 .axn-home-inner { width: 100%; max-width: var(--measure-chat); padding: 0 var(--space-2-5); box-sizing: border-box; margin: 60px 0 0; }
 .axn-home-hero { text-align: center; margin: 0 0 34px; padding-top: clamp(26px, 7vh, 76px); }
-.axn-home-greeting { font-size: var(--fs-body); display: block; }
 .axn-home-title.ant-typography { font-size: var(--fs-hero); color: var(--axn-text); margin: 0 0 var(--space-3); letter-spacing: -.8px; }
 .axn-home-copy.ant-typography { margin: 0 0 18px; font-size: var(--fs-lead); line-height: var(--lh-relaxed); color: var(--axn-muted); }
 .axn-home-block { display: flex; flex-direction: column; gap: var(--space-1); }
@@ -253,7 +252,8 @@
 .axn-cp-compact { width: 100%; margin-top: var(--space-2); }
 .axn-cp-chips-wrap { display: flex; justify-content: center; padding: 0 var(--space-4); width: 100%; box-sizing: border-box; }
 /* 关联灾情：无边框 + 品牌蓝文字（标注：这边的文字改成品牌蓝色），与右侧主按钮同排 */
-.axn-cp-select.ant-select { min-width: 96px; max-width: 220px; font-size: var(--fs-meta); margin-inline-end: var(--space-1-5); }
+/* 标注 vibe_1791788426495：触发器字体由 --fs-meta(12px) 加大加粗一档（13px / 600） */
+.axn-cp-select.ant-select { min-width: 96px; max-width: 220px; font-size: var(--fs-body); font-weight: 600; margin-inline-end: var(--space-1-5); }
 /* 触发器文案：已选事件与 placeholder（未关联时的「选择关联灾情事件」）都走品牌色。
    antd 6 的 placeholder 类是 .ant-select-placeholder（.ant-select-content-placeholder 是旧名，保留兼容） */
 .axn-cp-select .ant-select-content, .axn-cp-select .ant-select-content-placeholder, .axn-cp-select .ant-select-placeholder { color: var(--axn-primary); }
