@@ -188,6 +188,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* 会话列表滚到底后不再把滚动链传给外层 */
+  overscroll-behavior: contain;
   padding: 0 var(--space-2) var(--space-3);
   scrollbar-width: thin;
   scrollbar-color: var(--axn-border) transparent;
@@ -209,6 +211,9 @@
 
 /* 会话项：无边框、无投影 */
 .axn-gs-conversation {
+  /* 行内操作按钮的边长。触屏下会调大（见下方 @media (hover: none)），
+     标题预留的右侧留白由同一变量推导 —— 两者不会各改各的而错位。 */
+  --axn-conv-action-size: 22px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -251,7 +256,7 @@
 }
 .axn-gs-conversation:hover .axn-gs-conv-title-text,
 .axn-gs-conversation:focus-within .axn-gs-conv-title-text {
-  padding-right: 46px;
+  padding-right: calc(2 * var(--axn-conv-action-size) + 2px);
 }
 
 /* 行内操作（置顶 / 删除）：仅悬停或键盘聚焦时出现，标题已预留 46px 右侧留白，无需底色遮挡 */
@@ -272,11 +277,27 @@
   opacity: 1;
   pointer-events: auto;
 }
+/* 触屏没有 hover：操作区必须常显，否则「置顶 / 删除」既看不见也点不到。
+   标题的 46px 右侧留白同理要常驻，不然文字会压到按钮下面。 */
+@media (hover: none) {
+  .axn-gs-conv-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .axn-gs-conv-title-text {
+    padding-right: calc(2 * var(--axn-conv-action-size) + 2px);
+  }
+  /* 触屏上按钮得能被手指点中：22×22 太小（iOS / Android 建议 44），放到 36×36。
+     图标字号不变，视觉上仍是小图标；标题留白随变量联动，不会压字。 */
+  .axn-gs-conversation {
+    --axn-conv-action-size: 36px;
+  }
+}
 .axn-gs-conv-action {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: var(--axn-conv-action-size);
+  height: var(--axn-conv-action-size);
   border: 0;
   background: transparent;
   color: var(--axn-muted);
@@ -390,8 +411,10 @@
 /* ── NavPages 工具类（间距/字号/宽度已按 token 收敛） ── */
 .axn-np-section { padding: var(--space-2) var(--space-4) var(--space-4); }
 .axn-np-col { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-3); max-width: var(--measure-form); }
-.axn-np-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--space-3); max-width: var(--measure-wide); }
-.axn-np-grid-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); max-width: var(--measure-wide); }
+/* min(330px, 100%)：auto-fill 不会把轨道压到 minmax 的下限以下，320px 屏幕上 330px 的硬下限
+   会让卡片横向溢出（实测 right=346 > vw=320）。套一层 min() 后容器不足 330px 时轨道跟随容器。 */
+.axn-np-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: var(--space-3); max-width: var(--measure-wide); }
+.axn-np-grid-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: var(--space-3); margin-top: var(--space-3); max-width: var(--measure-wide); }
 .axn-np-flex-row { display: flex; align-items: center; gap: var(--space-2); }
 .axn-np-flex-1 { flex: 1; min-width: 0; }
 .axn-np-header { display: flex; align-items: baseline; gap: var(--space-3); padding: var(--space-4) var(--space-4) var(--space-1); flex-wrap: wrap; }
@@ -410,6 +433,34 @@
 .axn-np-mla { margin-left: auto; }
 .axn-np-desc { font-size: var(--fs-body); color: var(--axn-muted); line-height: var(--lh-normal); }
 .axn-np-title-sm { margin: 0; font-size: var(--fs-h3); }
+
+/* 窄屏页头（NavPages 共用）：标题左侧有 52px 汉堡避让（见 global.css），在 320px 屏幕上
+   extra 只剩 ~236px，而「输入框 220 + 间隙 8 + Tag 64」= 292px 会把 Tag 挤出屏幕
+   （实测 right=360 > vw=320，被祖先裁掉）。沿整条链解除 flex 的自动最小尺寸，
+   并让输入框跟随收缩；Tag 保持原宽，于是留在屏幕内。extra 放得下时无任何变化。 */
+@media (max-width: 767px) {
+  .axn-np-mla,
+  .axn-np-mla > .ant-space,
+  .axn-np-mla .ant-space-item:has(.axn-np-search) {
+    min-width: 0;
+  }
+  .axn-np-search {
+    width: 100%;
+  }
+}
+
+/* 触屏触摸目标放大。注意：这里的基类规则写死了 width / height，同优先级下后者胜，
+   所以必须放在它们**之后**（早先放在上方曾静默失效，实测仍为 30×30）。 */
+@media (hover: none) {
+  .axn-gs-account-settings {
+    width: 40px;
+    height: 40px;
+  }
+  /* 知识库搜索框是 -sm 尺寸（实测 218×27），抬到 36px 更好点中。 */
+  .axn-np-search {
+    min-height: 36px;
+  }
+}
 .axn-np-icon-huge { font-size: var(--fs-h1); color: var(--axn-primary); flex-shrink: 0; }
 .axn-np-icon-med { font-size: var(--icon-lg); color: var(--axn-primary); }
 .axn-np-icon-med-mt { font-size: var(--icon-lg); color: var(--axn-primary); margin-top: var(--space-0-5); }
@@ -419,3 +470,58 @@
 /* --axn-warning (#B45309) = 5.02:1；旧值 #d48806 仅 2.87:1 */
 .axn-np-k-notice { font-size: var(--fs-body); color: var(--axn-warning); margin-top: var(--space-0-5); }
 .axn-np-full-span { grid-column: 1 / -1; }
+
+/* ── 窄屏（侧栏 = 覆盖式抽屉）：触摸密度 ───────────────────────────
+   侧栏在桌面是常驻 260px 列（鼠标密度：13px 字号 / 34px 行高），
+   ≤767px 变成覆盖式抽屉（断点见 global.css）。实测抽屉里 22/23 个可点目标
+   高度 < 40px，手指点不中；这里只放宽抽屉形态，桌面一律不动。
+   必须放在上方 @media (hover: none) 之后 —— 两者选择器权重相同，靠后者生效。 */
+@media (max-width: 767px) {
+  /* 品牌区：给关闭按钮让位。右侧内边距收到 6px、间距收到 8px，
+     刚好腾出 40×40 的关闭按钮 + 标题区 152px（标题自然宽 150px，不截断）。
+     整体 69 → 62px。 */
+  .axn-gs-brand {
+    gap: var(--space-2);
+    padding: 12px 6px 10px var(--space-3-5);
+  }
+  .axn-gs-brand-copy { flex: 1; }
+  .axn-gs-brand-close {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--axn-muted);
+    cursor: pointer;
+    font-size: 18px;
+    transition: background .12s var(--ease-out), color .12s var(--ease-out);
+  }
+  .axn-gs-brand-close:active {
+    background: color-mix(in srgb, var(--axn-text) 8%, transparent);
+    color: var(--axn-text);
+  }
+
+  /* 主要动作 / 导航项 / 搜索：34 / 34 / 32 → 44 / 44 / 40 */
+  .axn-gs-new { padding-bottom: var(--space-3); }
+  .axn-gs-new-btn.ant-btn { height: 44px; font-size: 15px; }
+  .axn-gs-new-btn.ant-btn svg.lucide { font-size: 16px; }
+  .axn-gs-nav { padding-bottom: var(--space-2); }
+  .axn-gs-nav-item { height: 44px; font-size: 15px; }
+  .axn-gs-nav-item svg.lucide { width: 20px; font-size: 18px; }
+  .axn-gs-search .ant-input-affix-wrapper { height: 40px; }
+
+  /* 分区标签收紧：3 个标签原来吃 105px（矮屏滚动区只有 271px） */
+  .axn-gs-group-label { padding: 10px var(--space-2-5) 2px; }
+
+  /* 会话行 36 → 48px、字号 13 → 15px；行内操作 36 → 40px，
+     终于留出 8px 纵向余量（此前 36px 按钮顶满 36px 行高，零容错）。 */
+  .axn-gs-conversation {
+    --axn-conv-action-size: 40px;
+    padding: 13px var(--space-2-5);
+  }
+  .axn-gs-conversation-title { font-size: 15px; }
+}

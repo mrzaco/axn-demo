@@ -167,7 +167,9 @@ export default function AppRoot() {
         style={sidebarStyle}
         tabIndex={-1}
       >
-        <GlobalSidebar />
+        {/* onClose 只在窄屏抽屉形态传入：桌面侧栏是常驻列，不该出现关闭按钮。
+            复用 closeNav，与点遮罩关闭同一套语义（含焦点交还汉堡按钮）。 */}
+        <GlobalSidebar onClose={isCompact ? closeNav : undefined} />
       </aside>
 
       {/* 窄屏汉堡按钮：打开导航抽屉 */}
@@ -185,7 +187,9 @@ export default function AppRoot() {
       )}
 
       {/* 主区：HashRouter 路由分发 */}
-      <main className="axn-shell-main">
+      {/* 抽屉打开时主区 inert：手写抽屉没有 antd 的焦点陷阱（见上方注释），
+          否则 Tab 会跑到遮罩后面看不见的内容上。窄屏才可能打开抽屉，用 isCompact 收口。 */}
+      <main className="axn-shell-main" inert={isCompact && navOpen}>
         {/* 常驻协调：即使文书库/工作区未挂载也观察真实草稿任务与模拟文书流程 */}
         <WorkspaceSync />
 

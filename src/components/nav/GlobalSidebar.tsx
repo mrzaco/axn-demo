@@ -23,6 +23,7 @@ import {
   Settings,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react'
 import { App as AntdApp, Avatar, Button, Divider, Drawer, Dropdown, Empty, Input, Popconfirm, Radio, Tooltip } from 'antd';
 import type { Conversation, ConversationSettings, NavPage } from '@/domain/types';
@@ -124,7 +125,7 @@ export function ConversationSettingsPanel({ onDone }: { onDone?: () => void } = 
   );
 }
 
-export default function GlobalSidebar() {
+export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
   const { message, modal } = AntdApp.useApp();
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
@@ -219,6 +220,19 @@ export default function GlobalSidebar() {
           <span className="axn-gs-brand-name">安小能 · 应急智能工作台</span>
           <span className="axn-gs-brand-sub">{globalBanner}</span>
         </span>
+        {/* 抽屉形态下的关闭出口：桌面侧栏是常驻列、不存在「关闭」，所以由父级决定是否传入。
+            在此之前只能点遮罩关闭，而窄屏上遮罩只剩 60px（320 - 260），手机上又没有 Esc。 */}
+        {onClose && (
+          <button
+            type="button"
+            className="axn-gs-brand-close"
+            onClick={onClose}
+            aria-label="关闭导航"
+            title="关闭导航"
+          >
+            <X />
+          </button>
+        )}
       </div>
 
       {/* 2. 新建：主要动作置顶，紧跟品牌 */}

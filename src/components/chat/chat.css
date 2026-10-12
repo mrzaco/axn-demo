@@ -2,6 +2,12 @@
 .axn-chat-page { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--axn-surface); color: var(--axn-text); }
 .axn-chat-head { display: flex; align-items: center; min-height: 48px; padding: 0 var(--space-2); border-bottom: 1px solid var(--axn-border); background: var(--axn-surface); }
 .axn-collapse-btn { margin-left: var(--space-1); color: var(--axn-muted); font-size: var(--icon-md); }
+/* 窄屏的侧栏是覆盖式抽屉，收起 / 展开由汉堡按钮 + 遮罩负责：
+   sidebarCollapsed 在 ≤767px 被刻意置空（见 App.tsx 的 sidebarStyle memo），实测点它侧栏 x/w 不变，
+   却和汉堡按钮并排出现一个无效果的图标，故直接隐藏。 */
+@media (max-width: 767px) {
+  .axn-collapse-btn { display: none; }
+}
 .axn-chat-head-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .axn-chat-head .ant-select-selector { border-radius: 6px; }
 .axn-chat-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--axn-primary-bg); color: var(--axn-primary); font-size: var(--fs-body); font-weight: 600; flex-shrink: 0; }
@@ -32,13 +38,49 @@
 .axn-question-item:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .axn-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0 var(--space-2); border: 0; background: transparent; flex: 0 0 auto; min-width: 0; max-width: var(--measure-chat); margin: 0 0 var(--space-2); width: 100%; box-sizing: border-box; }
 /* 快捷任务 chips 全部平铺，不再有「更多任务」收纳浮层（原手写浮层与 .axn-more-tasks 规则已删）。 */
-.axn-assistant--split .axn-composer { padding: var(--space-3) var(--space-3) var(--space-3); }
+.axn-assistant--split .axn-composer { padding: var(--space-3) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); }
 .axn-chip.ant-btn { height: 27px; padding: 0 var(--space-2); border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface)); background: var(--axn-primary-bg); color: var(--axn-primary-text); border-radius: 7px; font-size: var(--fs-meta); box-shadow: none; transition: background .16s, border-color .16s, color .16s; }
 .axn-chip.ant-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface)); color: var(--axn-primary-text); border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface)); }
 .axn-chip:disabled { opacity: .5; }
+
+/* 触屏：首页的快捷 chips（27px）与推荐问题（33px）是主要入口，高度太难点中，
+   统一抬到 ~40px；图标与字号不变。 */
+@media (hover: none) {
+  .axn-chip.ant-btn {
+    height: 40px;
+    padding: 0 var(--space-3);
+  }
+  .axn-question-item {
+    padding-top: var(--space-2-5);
+    padding-bottom: var(--space-2-5);
+  }
+}
+
+/* 窄屏：7 个快捷任务在 393px 下折成 3 行、常驻占掉 136px（约 16% 屏高，消息区只剩 513px），
+   视觉上像一坨标签。改成单行横向滑动条：只占一行 40px，容器右边缘自然露出小半个 chip
+   提示可滑动；滑动不触发浏览器后退手势，也不显示滚动条。 */
+@media (max-width: 767px) {
+  .axn-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-inline: 0 var(--space-2);
+    scrollbar-width: none;
+  }
+  .axn-chips::-webkit-scrollbar { display: none; }
+  /* 横向排列时 chip 必须不可压缩，否则会被 flex 挤成一堆窄条（也就不会溢出了） */
+  .axn-chip.ant-btn {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}
 /* 会话头：默认空白，收起侧边栏按钮居左。
    圆角一体化输入区：快捷 chips 在输入框下方，发送按钮在右下角，与 Sender 共享一层外框；宽屏下限制正文宽度保持留白。 */
-.axn-composer { padding: var(--space-3) var(--space-4) var(--space-4); display: flex; justify-content: center; }
+/* 底部让出 iPhone home indicator：输入区贴屏幕底，而发送按钮在右下角，
+   正好与上滑手势抢区域（实测 390×844 下 shell 底边只剩 16px 余量，落在 34px 手势区内）。
+   env() 在无安全区的设备上恒为 0，桌面 / 安卓无副作用。 */
+.axn-composer { padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; }
 .axn-composer-shell { width: 100%; max-width: var(--measure-chat); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-1-5) var(--space-2) var(--space-2); border: 1px solid var(--axn-border); border-radius: var(--radius-xl); background: var(--axn-surface); box-shadow: var(--shadow-md); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
 .axn-composer-shell:focus-within { border-color: color-mix(in srgb, var(--axn-primary) 45%, var(--axn-border)); }
 .axn-composer-shell .ant-sender { border: 0; background: transparent; box-shadow: none; }
