@@ -260,7 +260,7 @@ test('精简分屏保留未发送输入，关闭后恢复首页', async ({ page 
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
 });
 
-test('五个能力块平铺在输入框上方，文书生成点开向上弹出三类文书并遵守运行状态', async ({ page }) => {
+test('五个能力块平铺在输入框上方，文书生成点开向右展开一行三类文书并遵守运行状态', async ({ page }) => {
   await page.goto('/');
   const chips = page.locator('.axn-chips');
   const labels = ['文书生成', '态势感知', '救援资源管理', '救援方案生成', '救援效果评估'];
@@ -269,20 +269,26 @@ test('五个能力块平铺在输入框上方，文书生成点开向上弹出�
     await expect(chips.getByRole('button', { name, exact: true })).toBeVisible();
   }
   await page.screenshot({ path: 'artifacts/ui-polish/quick-tasks.png' });
-  // 文书生成：点击才展开菜单，三项齐备，且菜单在 chip 上方（向上弹出，不遮挡下方输入区）
+  // 文书生成：点击才就地展开子任务，三项齐备，且子按钮横排在父按钮右侧、同一水平线
+  // （不是浮层，后面的父按钮会被整体推到右边）
   const docChip = chips.getByRole('button', { name: '文书生成', exact: true });
+  const situationChip = chips.getByRole('button', { name: '态势感知', exact: true });
+  const situationXBefore = (await situationChip.boundingBox())?.x ?? 0;
   await openQuickTaskMenu(page, '文书生成');
-  const menu = page.getByRole('menu');
-  await expect(menu).toBeVisible();
   for (const name of ['应急要情', '值班日报', '工作总结']) {
-    await expect(menu.getByRole('menuitem', { name, exact: true })).toBeVisible();
+    await expect(chips.getByRole('button', { name, exact: true })).toBeVisible();
   }
   const chipBox = await docChip.boundingBox();
-  const menuBox = await menu.boundingBox();
+  const subBox = await chips.getByRole('button', { name: '应急要情', exact: true }).boundingBox();
+  const situationXAfter = (await situationChip.boundingBox())?.x ?? 0;
   expect(chipBox).not.toBeNull();
-  expect(menuBox).not.toBeNull();
-  if (chipBox && menuBox) expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(chipBox.y + 1);
-  await menu.getByRole('menuitem', { name: '值班日报', exact: true }).click();
+  expect(subBox).not.toBeNull();
+  if (chipBox && subBox) {
+    expect(subBox.x).toBeGreaterThanOrEqual(chipBox.x + chipBox.width);
+    expect(Math.abs(subBox.y - chipBox.y)).toBeLessThanOrEqual(1);
+  }
+  expect(situationXAfter).toBeGreaterThan(situationXBefore);
+  await chips.getByRole('button', { name: '值班日报', exact: true }).click();
   await expect(docChip).toBeDisabled();
   await expect(chips.getByRole('button', { name: '态势感知', exact: true })).toBeDisabled();
   await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });

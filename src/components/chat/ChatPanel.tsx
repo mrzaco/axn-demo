@@ -2,19 +2,20 @@ import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/wo
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
  * + 圆角一体化输入区（快捷任务 chips 位于输入框上方）+ 补录表单。
- * 首页引导问题取自已接入知识库的 qa.json；输入区平铺 5 个能力块，文书生成块点击后在 chip 上方弹出三类文书。
+ * 首页引导问题取自已接入知识库的 qa.json；输入区平铺 5 个能力块，点击后在它右侧就地横向展开一行子按钮。
  * 会话跟随演示事件切换（ensureSessionForConversation）；消息与任务状态全部订阅 sessionStore，不本地复制。
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
+  ChevronRight,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Paperclip,
 } from 'lucide-react'
-import { Alert, App as AntdApp, Button, Dropdown, Input, Select, Space, Tag, Typography, Upload, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Select, Space, Tag, Typography, Upload, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -44,7 +45,7 @@ const AVATAR = <div className="axn-chat-avatar">安</div>;
 const formatSize = (bytes: number) =>
   bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-// 快捷任务：5 个能力块平铺在输入框上方，点块向上弹菜单再选具体任务
+// 快捷任务：5 个能力块平铺在输入框上方，点块在它右侧就地横向展开一行子按钮（不再是浮层）
 // （任务全集与 task→intent 契约见 seed/agentQuickTasks，顺序沿用该目录即按智能体分组）
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
@@ -63,6 +64,53 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
 
   const [input, setInput] = useState('');
   const [clarifyValue, setClarifyValue] = useState('');
+  // 当前就地展开子任务的能力块（一次只展开一个；null = 都收着）
+  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+  const chipsRef = useRef<HTMLDivElement | null>(null);
+  // FLIP：展开/收起会瞬间重排，先用 transform 把父按钮「拉回」旧位置再动画归零，
+  // 让被推开的父按钮滑过去而不是跳位（用户 m01749「展开移动的时候要有动画效果」）。
+  // 用 offsetLeft 而非 getBoundingClientRect().x：前者是布局位置，不受容器横向滚动影响，
+  // 所以展开时的自动滚进可见区不会污染位移量。
+  const flipFrom = useRef<Map<string, number>>(new Map());
+  const recordChipPositions = () => {
+    const el = chipsRef.current;
+    if (!el) return;
+    flipFrom.current = new Map(
+      Array.from(el.querySelectorAll<HTMLElement>('[data-agent-id]')).map((n) => [n.dataset.agentId ?? '', n.offsetLeft]),
+    );
+  };
+  useLayoutEffect(() => {
+    const el = chipsRef.current;
+    const before = flipFrom.current;
+    flipFrom.current = new Map();
+    if (!el || before.size === 0) return;
+    // 尊重系统「减少动态效果」偏好（CSS 侧 token 已被同样地归零）
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (typeof el.animate !== 'function') return; // jsdom 等环境没有 WAAPI
+    el.querySelectorAll<HTMLElement>('[data-agent-id]').forEach((node) => {
+      const from = before.get(node.dataset.agentId ?? '');
+      const delta = from == null ? 0 : Math.round(from - node.offsetLeft);
+      if (!delta) return;
+      node.animate([{ transform: `translateX(${delta}px)` }, { transform: 'none' }], {
+        duration: 240,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)', // 同 --ease-out
+      });
+    });
+    // 子按钮晚 80ms 淡入：等父按钮让开位置再出现，避免与正在移动的父按钮重叠
+    el.querySelectorAll<HTMLElement>('[data-subtask]').forEach((node) => {
+      node.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 140,
+        delay: 80,
+        easing: 'ease-out',
+        fill: 'backwards',
+      });
+    });
+  }, [expandedAgent]);
+  // 展开的首个子项若落在横向滚动区右边界外（末尾几个能力块会这样），把它滚进可见区。
+  // inline/block 都用 nearest：只做最小滚动，不会带动页面纵向跳。
+  const revealSubTask = useCallback((el: HTMLButtonElement | null) => {
+    el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+  }, []);
   // 上传的文件：演示环境没有上传接口，不落盘也不读取内容，只把文件名与大小随消息记下来
   const [attachments, setAttachments] = useState<{ uid: string; name: string; size: number }[]>([]);
 
@@ -424,36 +472,47 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         </div>
       )}
 
-      {/* 快捷任务 chips：5 个能力块平铺在输入框上方，点块向上弹菜单选具体任务 */}
+      {/* 快捷任务 chips：5 个能力块平铺在输入框上方，点块就在它右侧就地展开子任务 */}
       <div className="axn-cp-chips-wrap">
-        <div className="axn-chips">
-          {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => (
-            // 菜单向上弹（topLeft），不遮挡下方输入区；busy 时整块与菜单一起禁用。
-            // classNames.root 把样式限于本弹层（弹层渲染在 body 的 portal 里），
-            // 条目改成与 .axn-chip 同款的胶囊按钮（备注 vibe_1791791690567_uzj6y6tjy）
-            // 单项能力也走菜单：chip 恒显能力名，任务名在菜单里可见。
-            <Dropdown
-              key={label}
-              trigger={['click']}
-              placement="topLeft"
-              classNames={{ root: 'axn-chip-menu' }}
-              disabled={!session || busy}
-              menu={{
-                items: tasks.map(({ label: taskLabel, task }) => ({ key: task, label: taskLabel })),
-                onClick: ({ key }) => { void handleQuickTask(key); },
-              }}
-            >
-              <Button
-                size="small"
-                className="axn-chip"
-                title={agentName}
-                data-agent-id={agentId}
-                disabled={!session || busy}
-              >
-                {label}
-              </Button>
-            </Dropdown>
-          ))}
+        <div className="axn-chips" ref={chipsRef}>
+          {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => {
+            const open = expandedAgent === agentId;
+            return (
+              <Fragment key={agentId}>
+                {/* 父按钮：右侧箭头提示「点开是向右展开一行」（用户 m01620）；busy 时整块禁用。 */}
+                <Button
+                  size="small"
+                  className="axn-chip"
+                  title={agentName}
+                  data-agent-id={agentId}
+                  disabled={!session || busy}
+                  aria-expanded={open}
+                  onClick={() => { recordChipPositions(); setExpandedAgent(open ? null : agentId); }}
+                >
+                  {label}
+                  <ChevronRight className="axn-chip-arrow" size={12} aria-hidden />
+                </Button>
+                {/* 子任务：内联插在父按钮右侧，与父按钮同一行 —— 后面的父按钮会被推到右边
+                    （用户 m01646「是横向的一行」/ m01661「父按钮要跟着往右移动」）。
+                    样式与父按钮同款胶囊按钮（备注 vibe_1791791690567_uzj6y6tjy）。 */}
+                {open &&
+                  tasks.map(({ label: taskLabel, task }, index) => (
+                    <Button
+                      key={task}
+                      // 首个条目挂上 ref：展开后保证它（以及跟它的父按钮）在可见区内
+                      ref={index === 0 ? revealSubTask : undefined}
+                      size="small"
+                      className="axn-chip"
+                      data-subtask={task}
+                      disabled={!session || busy}
+                      onClick={() => { recordChipPositions(); setExpandedAgent(null); void handleQuickTask(task); }}
+                    >
+                      {taskLabel}
+                    </Button>
+                  ))}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
       {/* 圆角一体化输入区：关联灾情与发送/语音按钮同在输入框右下角 */}
