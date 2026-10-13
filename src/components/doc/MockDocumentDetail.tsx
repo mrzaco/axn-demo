@@ -7,7 +7,10 @@ import {
 } from 'lucide-react'
 import { DOCUMENT_CATEGORIES, sameMockDocument, type MockDocument } from '@/seed/mockDocuments';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
+import { richTextToPlain } from '@/services/richText';
 import DocumentDetailToolbar from './DocumentDetailToolbar';
+import RichTextEditor, { RichTextView } from './RichText';
+import RichTextToolbar from './RichTextToolbar';
 
 /** 模拟文书右栏详情：在线编辑直接在右栏进行，保存只写回当前会话作用域的模拟文书库。 */
 export default function MockDocumentDetail({ scope, document, onClose, onOpenLibrary, onSave, onDirtyChange }: {
@@ -38,7 +41,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => () => { onDirtyChange?.(false); }, [onDirtyChange]);
   const save = () => {
-    if (!working.title.trim() || working.sections.some(([heading, body]) => !heading.trim() || !body.trim())) {
+    if (!working.title.trim() || working.sections.some(([heading, body]) => !heading.trim() || !richTextToPlain(body).trim())) {
       message.warning?.('请填写文书标题、章节标题和正文后保存'); return;
     }
     onSave(working); setEditing(false); onDirtyChange?.(false); message.success?.('修改已保存在当前会话');
@@ -48,9 +51,11 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
   return <div className="doc-detail-view">
     <DocumentDetailToolbar title={document.title} subtitle={`${categoryName} · ${document.date} · ${editing ? '编辑中 · 保存后生效' : '当前会话版本'}`} editing={editing} dirty={dirty} onBack={onClose} onOpenLibrary={onOpenLibrary}
       onEdit={() => setEditing(true)} onSave={save} onCancel={() => setEditing(false)} onDiscard={discard} />
+    {/* 富文本工具条：命令作用于正文编辑器里当前的选区，见 components/doc/RichTextToolbar.tsx */}
+    {editing && <RichTextToolbar />}
     {editing && dirty && <div className="doc-dirty-note" data-testid="mock-dirty-note">有未保存修改 · 「取消编辑」保留内容，「放弃修改」丢弃，保存后写入当前会话文书库</div>}
     <div className="doc-detail-scroll">
-      {editing && <div className="doc-edit-notice">编辑标题与正文，完成后点击“保存修改”。</div>}
+      {editing && <div className="doc-edit-notice">编辑标题与正文；正文里选中文字，可用上方工具条设置字号、加粗、颜色、对齐与列表，完成后点击“保存修改”。</div>}
       <article className={`axn-redhead-paper ${editing ? 'doc-paper-editing' : ''}`} data-testid="mock-redhead-document">
         {redhead?.platform && <div className="axn-redhead-platform">{redhead.platform}</div>}
         <div className="axn-redhead-org">{redhead?.org ?? '中国安能建设集团有限公司'}</div>
@@ -64,7 +69,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
         {editing && <Input className="doc-edit-title" aria-label="文书标题" value={working.title} onChange={event => applyWorking({ ...working, title: event.target.value })} />}
         {!editing && redhead?.showTitle !== false && <h2 className="doc-redhead-subject">{displayed.title}</h2>}
         <div className="axn-redhead-body">{displayed.sections.map(([heading, body], index) => heading === '文书要素（模拟收集）' ? null : <section key={index}>
-          {editing ? <><Input className="doc-edit-heading" aria-label={`第${index + 1}节标题`} value={heading} onChange={event => sectionChange(index, 0, event.target.value)} /><Input.TextArea aria-label={`第${index + 1}节正文`} autoSize={{ minRows: 3 }} value={body} onChange={event => sectionChange(index, 1, event.target.value)} /></> : <><h3>{heading}</h3><p>{body}</p></>}
+          {editing ? <><Input className="doc-edit-heading" aria-label={`第${index + 1}节标题`} value={heading} onChange={event => sectionChange(index, 0, event.target.value)} /><RichTextEditor ariaLabel={`第${index + 1}节正文`} autoFocus={index === 0} value={body} onChange={next => sectionChange(index, 1, next)} /></> : <><h3>{heading}</h3><RichTextView value={body} /></>}
         </section>)}</div>
         {redhead?.tail === 'duty' && <div className="axn-redhead-tail axn-redhead-tail-duty">
           <span>值班员：×××</span>
@@ -83,7 +88,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
         <div className="axn-redhead-pageno">— 1 —</div>
         <div className="axn-redhead-mock">模拟样稿 · 仅供评估</div>
       </article>
-      <div className="doc-reading-footer"><FileText /> {categoryName} · 红头格式<span>{displayed.sections.reduce((count, section) => count + section.join('').length, displayed.title.length)} 字</span></div>
+      <div className="doc-reading-footer"><FileText /> {categoryName} · 红头格式<span>{displayed.sections.reduce((count, [heading, body]) => count + heading.length + richTextToPlain(body).length, displayed.title.length)} 字</span></div>
     </div>
   </div>;
 }

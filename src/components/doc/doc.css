@@ -296,6 +296,29 @@
   text-indent: 2em;
 }
 
+/* 富文本正文（在线编辑存的是 HTML 片段）：execCommand 会产出 <div>/<ul>/<font size>，
+   这里把它们落回上面的公文排版；字号档位见 components/doc/RichTextToolbar.tsx 的 FONT_SIZES。 */
+.doc-rich div {
+  font-size: 21px;
+  line-height: 1.78;
+  margin: 0 0 2px;
+  text-align: justify;
+  text-indent: 2em;
+}
+
+.doc-rich ul, .doc-rich ol { margin: 0 0 2px; padding-left: 2.6em; }
+.doc-rich li { font-size: 21px; line-height: 1.78; }
+.doc-rich li p, .doc-rich li div { text-indent: 0; }
+
+/* 居中/居右的段落不收首行缩进（公文里居中的标题、落款都顶格） */
+.doc-rich p[style*="center"], .doc-rich div[style*="center"], .doc-rich p[style*="right"], .doc-rich div[style*="right"] { text-indent: 0; }
+
+.doc-rich font[size="1"] { font-size: 15px; }
+.doc-rich font[size="2"] { font-size: 17px; }
+.doc-rich font[size="3"] { font-size: 21px; }
+.doc-rich font[size="4"] { font-size: 24px; }
+.doc-rich font[size="5"] { font-size: 29px; }
+
 /* 落款/尾部：日报=值班员+电话；要情=报送/抄送/承办；报告类=单位署名+日期+联系人 */
 .axn-redhead-tail {
   font-size: var(--fs-lead);
@@ -521,12 +544,25 @@
 .doc-edit-notice { max-width: var(--measure-doc); margin: 0 auto var(--space-4); padding: var(--space-2-5) var(--space-3-5); box-sizing: border-box; background: var(--axn-primary-bg); color: var(--axn-primary-text); border-radius: 6px; font-size: var(--fs-body); }
 .doc-paper-editing .doc-edit-title { font-family: 'FZXiaoBiaoSong-B05S', '方正小标宋简体', 'Noto Serif CJK SC', serif; font-size: 23px; text-align: center; font-weight: 700; margin-bottom: var(--space-5); }
 .doc-paper-editing .doc-edit-heading { margin: var(--space-4) 0 var(--space-1); font-size: 21px; font-weight: 600; font-family: 'SimHei', 'Noto Sans CJK SC', sans-serif; }
-.doc-paper-editing textarea { font-family: inherit; font-size: 21px; line-height: 1.78; }
+/* 正文的富文本编辑器：外框向旁边两个 antd 输入框看齐，段落排版复用 .axn-redhead-body p / .doc-rich */
+.doc-paper-editing .doc-rich-editor { min-height: 112px; padding: 4px 11px; box-sizing: border-box; border: 1px solid var(--axn-border); border-radius: 6px; background: var(--axn-canvas); font-family: inherit; font-size: 21px; line-height: 1.78; }
+.doc-paper-editing .doc-rich-editor:focus { outline: 2px solid var(--axn-primary); outline-offset: 0; background: var(--axn-surface); }
+
+/* 富文本工具条：只出现在在线编辑态，横在文书上方（与 .doc-detail-toolbar--full 同一条工位） */
+.doc-rich-toolbar { flex-shrink: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; padding: var(--space-2) var(--space-6); background: var(--axn-surface); border-bottom: 1px solid var(--axn-border); }
+.doc-rich-tool { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.doc-rich-tool:hover { background: var(--axn-canvas); }
+.doc-rich-tool[aria-pressed="true"] { background: var(--axn-primary-bg); border-color: var(--axn-primary); color: var(--axn-primary-text); }
+.doc-rich-divider { width: 1px; height: 18px; margin: 0 var(--space-1); background: var(--axn-border); }
+.doc-rich-size { width: 92px; }
+.doc-rich-swatch { width: 12px; height: 12px; border-radius: 3px; }
+.doc-rich-swatch-red { background: #c62828; }
 .doc-export-preview { display: flex; gap: var(--space-3); align-items: center; padding: 18px; background: var(--axn-canvas); border-radius: var(--radius-md); margin: var(--space-4) 0; overflow-wrap: anywhere; }
 .doc-export-preview > svg.lucide { font-size: var(--icon-xl); color: var(--axn-primary); }
 @container (max-width: 580px) {
   .doc-detail-toolbar--full { padding: var(--space-2-5) var(--space-3); gap: var(--space-3); }
   .doc-detail-scroll { padding: var(--space-4); }
+  .doc-rich-toolbar { padding: var(--space-2) var(--space-3); }
 }
 
 .doc-detail-toolbar--full .ant-btn { border-radius: 7px; box-shadow: none; font-size: var(--fs-body); height: 32px; }

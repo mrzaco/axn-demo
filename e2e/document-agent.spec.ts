@@ -130,3 +130,53 @@ test('模拟文书详情支持在线编辑、取消保留与放弃修改、导�
   expect(downloads).toEqual([]);
   await page.screenshot({ path: 'artifacts/document-detail-refined.png' });
 });
+
+test('在线编辑支持 Word 风格富文本（字号/加粗/标黄/红字/居中/列表），保存后仍带格式', async ({ page }) => {
+  await page.goto('/');
+  await openLibrary(page);
+  await page.getByTestId('document-library').locator('.doc-sample-row').first().click();
+  const panel = page.locator('.doc-center');
+  await panel.getByRole('button', { name: '在线编辑', exact: true }).click();
+  const editor = panel.getByRole('textbox', { name: '第1节正文', exact: true });
+  const toolbar = panel.getByTestId('rich-text-toolbar');
+  await expect(toolbar).toBeVisible();
+
+  /** execCommand 走 styleWithCSS 时写的是行内样式，所以按计算样式断言「格式真的生效了」。 */
+  const computed = (property: 'fontWeight' | 'color' | 'backgroundColor') =>
+    editor.evaluate((el, prop) => Array.from(el.querySelectorAll('*')).map(node => getComputedStyle(node)[prop as 'fontWeight']), property);
+
+  await editor.selectText();
+  await panel.getByTestId('rich-text-size').click();
+  await page.locator('.ant-select-item-option', { hasText: '小二 24' }).click();
+  await expect(editor.locator('font[size="4"]')).not.toHaveCount(0);
+
+  await editor.selectText();
+  await toolbar.getByRole('button', { name: '加粗' }).click();
+  expect(await computed('fontWeight')).toContain('700');
+
+  await editor.selectText();
+  await toolbar.getByRole('button', { name: '标黄' }).click();
+  expect(await computed('backgroundColor')).toContain('rgb(255, 229, 143)');
+
+  await editor.selectText();
+  await toolbar.getByRole('button', { name: '红字' }).click();
+  expect(await computed('color')).toContain('rgb(198, 40, 40)');
+
+  await editor.click();
+  await toolbar.getByRole('button', { name: '居中' }).click();
+  await expect(editor.locator('p, div').first()).toHaveAttribute('style', /text-align: center/);
+
+  await editor.click();
+  await toolbar.getByRole('button', { name: '无序列表' }).click();
+  await expect(editor.locator('ul > li').first()).toBeVisible();
+  // 列表不能嵌成 p>ul（Chromium 默认会把菜单式内容包成段落）
+  await expect(editor.locator('p > ul')).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: '无序列表' })).toHaveAttribute('aria-pressed', 'true');
+  await page.screenshot({ path: 'artifacts/rich-text-toolbar.png' });
+
+  await panel.getByRole('button', { name: '保存修改', exact: true }).click();
+  const view = panel.getByTestId('rich-text-view').first();
+  await expect(view.locator('font[size="4"]')).not.toHaveCount(0);
+  await expect(view.locator('ul > li')).not.toHaveCount(0);
+  await expect(toolbar).toHaveCount(0);
+});
