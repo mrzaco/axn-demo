@@ -1,23 +1,10 @@
 /**
  * 正文的富文本渲染与编辑。
- * 只读态：纯文本仍按原来的 <p> 渲染（老数据零变化），HTML 片段按同一套正文样式渲染。
  * 编辑态：contentEditable，格式由 RichTextToolbar 通过 document.execCommand 施加。
- * 两侧都走 richText 的白名单互转（parseRichHtml / serializeRichDom），不使用 innerHTML。
+ * 进出编辑器都走 richText 的白名单互转（parseRichHtml / serializeRichDom），不使用 innerHTML。
  */
-import { useEffect, useMemo, useRef } from 'react';
-import { isRichHtml, parseRichHtml, serializeRichDom } from '@/services/richText';
-
-export function RichTextView({ value }: { value: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const rich = useMemo(() => isRichHtml(value), [value]);
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    element.replaceChildren(parseRichHtml(value));
-  }, [value]);
-  if (!rich) return <p>{value}</p>;
-  return <div className="doc-rich" data-testid="rich-text-view" ref={ref} />;
-}
+import { useEffect, useRef } from 'react';
+import { parseRichHtml, serializeRichDom } from '@/services/richText';
 
 export default function RichTextEditor({ value, onChange, ariaLabel, autoFocus }: {
   value: string; onChange: (value: string) => void; ariaLabel: string; autoFocus?: boolean;

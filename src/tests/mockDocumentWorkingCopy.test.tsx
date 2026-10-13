@@ -33,7 +33,6 @@ describe('模拟文书编辑缓冲', () => {
   it('输入即写入 store，并上报未保存状态', () => {
     const { onDirtyChange } = mount();
 
-    fireEvent.click(screen.getByRole('button', { name: '在线编辑' }));
     fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '改过的标题' } });
 
     expect(workingOf()?.title).toBe('改过的标题');
@@ -42,7 +41,6 @@ describe('模拟文书编辑缓冲', () => {
 
   it('离开详情页再回来，未保存的改动仍在，且直接回到编辑态', () => {
     const first = mount();
-    fireEvent.click(screen.getByRole('button', { name: '在线编辑' }));
     fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '离开前改的标题' } });
     first.view.unmount();
 
@@ -54,7 +52,6 @@ describe('模拟文书编辑缓冲', () => {
 
   it('「放弃修改」清除工作副本', () => {
     const { onDirtyChange } = mount();
-    fireEvent.click(screen.getByRole('button', { name: '在线编辑' }));
     fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '不要的标题' } });
 
     fireEvent.click(screen.getByRole('button', { name: '放弃修改' }));
@@ -65,7 +62,6 @@ describe('模拟文书编辑缓冲', () => {
 
   it('保存写回文书库并清掉工作副本', () => {
     const { onSave } = mount();
-    fireEvent.click(screen.getByRole('button', { name: '在线编辑' }));
     fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '保存的标题' } });
 
     fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
@@ -89,7 +85,6 @@ describe('模拟文书编辑缓冲', () => {
     } as typeof JSON.stringify;
     try {
       mount();
-      fireEvent.click(screen.getByRole('button', { name: '在线编辑' }));
       documentSerializations = 0;
       const field = screen.getByLabelText('文书标题') as HTMLInputElement;
       for (let i = 0; i < 30; i++) fireEvent.change(field, { target: { value: `标题第 ${i} 版` } });

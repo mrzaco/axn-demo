@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 // message 反馈走 AntdApp.useApp()：antd v5 静态方法不消费 ConfigProvider 主题，会退回默认 token。
 // useApp() 在 <App> 之外（如直接渲染本组件的单元测试）返回空实现，故调用点用可选链避免抛错。
 import { App as AntdApp, Input } from 'antd';
@@ -9,10 +9,10 @@ import { DOCUMENT_CATEGORIES, sameMockDocument, type MockDocument } from '@/seed
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { richTextToPlain } from '@/services/richText';
 import DocumentDetailToolbar from './DocumentDetailToolbar';
-import RichTextEditor, { RichTextView } from './RichText';
+import RichTextEditor from './RichText';
 import RichTextToolbar from './RichTextToolbar';
 
-/** 模拟文书右栏详情：在线编辑直接在右栏进行，保存只写回当前会话作用域的模拟文书库。 */
+/** 模拟文书右栏详情：打开即编辑（不再有阅读/编辑两态），保存只写回当前会话作用域的模拟文书库。 */
 export default function MockDocumentDetail({ scope, document, onClose, onOpenLibrary, onSave, onDirtyChange }: {
   scope: string; document: MockDocument; onClose: () => void; onSave: (document: MockDocument) => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -21,7 +21,6 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
   const { message } = AntdApp.useApp();
   // 未保存的工作副本存在 store 里（按会话作用域 + 文档 id），离开详情页不丢，保存或放弃才清除。
   const savedWorking = useMockDocumentStore((s) => s.libraries[scope]?.working[document.id]);
-  const [editing, setEditing] = useState(() => savedWorking !== undefined);
   const working = savedWorking ?? document;
   const applyWorking = (next: MockDocument) => {
     const store = useMockDocumentStore.getState();
@@ -29,7 +28,6 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
     if (sameMockDocument(next, document)) store.clearWorking(scope, document.id);
     else store.setWorking(scope, next);
   };
-  const displayed = editing ? working : document;
   const category = DOCUMENT_CATEGORIES.find(item => item.code === document.code);
   const categoryName = category?.name ?? '文书';
   const redhead = category?.redhead;
@@ -44,19 +42,19 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
     if (!working.title.trim() || working.sections.some(([heading, body]) => !heading.trim() || !richTextToPlain(body).trim())) {
       message.warning?.('请填写文书标题、章节标题和正文后保存'); return;
     }
-    onSave(working); setEditing(false); onDirtyChange?.(false); message.success?.('修改已保存在当前会话');
+    onSave(working); onDirtyChange?.(false); message.success?.('修改已保存在当前会话');
   };
-  // 取消编辑保留本次编辑内容（工作副本在 store 里，再次进入编辑可继续），放弃修改才真正丢弃。
-  const discard = () => { useMockDocumentStore.getState().clearWorking(scope, document.id); setEditing(false); onDirtyChange?.(false); message.info?.('已放弃未保存修改'); };
+  // 工作副本在 store 里，离开详情页不丢；只有「放弃修改」会真正丢弃。
+  const discard = () => { useMockDocumentStore.getState().clearWorking(scope, document.id); onDirtyChange?.(false); message.info?.('已放弃未保存修改'); };
   return <div className="doc-detail-view">
-    <DocumentDetailToolbar title={document.title} subtitle={`${categoryName} · ${document.date} · ${editing ? '编辑中 · 保存后生效' : '当前会话版本'}`} editing={editing} dirty={dirty} onBack={onClose} onOpenLibrary={onOpenLibrary}
-      onEdit={() => setEditing(true)} onSave={save} onCancel={() => setEditing(false)} onDiscard={discard} />
+    <DocumentDetailToolbar title={document.title} subtitle={`${categoryName} · ${document.date} · 编辑中 · 保存后生效`} editing dirty={dirty} onBack={onClose} onOpenLibrary={onOpenLibrary}
+      onSave={save} onDiscard={discard} />
     {/* 富文本工具条：命令作用于正文编辑器里当前的选区，见 components/doc/RichTextToolbar.tsx */}
-    {editing && <RichTextToolbar />}
-    {editing && dirty && <div className="doc-dirty-note" data-testid="mock-dirty-note">有未保存修改 · 「取消编辑」保留内容，「放弃修改」丢弃，保存后写入当前会话文书库</div>}
+    <RichTextToolbar />
+    {dirty && <div className="doc-dirty-note" data-testid="mock-dirty-note">有未保存修改 · 「放弃修改」丢弃，保存后写入当前会话文书库</div>}
     <div className="doc-detail-scroll">
-      {editing && <div className="doc-edit-notice">编辑标题与正文；正文里选中文字，可用上方工具条设置字号、加粗、颜色、对齐与列表，完成后点击“保存修改”。</div>}
-      <article className={`axn-redhead-paper ${editing ? 'doc-paper-editing' : ''}`} data-testid="mock-redhead-document">
+      <div className="doc-edit-notice">编辑标题与正文；正文里选中文字，可用上方工具条设置字号、加粗、颜色、对齐与列表，完成后点击“保存修改”。</div>
+      <article className="axn-redhead-paper doc-paper-editing" data-testid="mock-redhead-document">
         {redhead?.platform && <div className="axn-redhead-platform">{redhead.platform}</div>}
         <div className="axn-redhead-org">{redhead?.org ?? '中国安能建设集团有限公司'}</div>
         <div className="axn-redhead-type">{redhead?.type ?? categoryName}</div>
@@ -66,10 +64,9 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
           <span>{redhead?.tail === 'duty' ? '审　阅：×××' : '签　发：×××'}</span>
         </div>
         <div className="axn-redhead-rule" />
-        {editing && <Input className="doc-edit-title" aria-label="文书标题" value={working.title} onChange={event => applyWorking({ ...working, title: event.target.value })} />}
-        {!editing && redhead?.showTitle !== false && <h2 className="doc-redhead-subject">{displayed.title}</h2>}
-        <div className="axn-redhead-body">{displayed.sections.map(([heading, body], index) => heading === '文书要素（模拟收集）' ? null : <section key={index}>
-          {editing ? <><Input className="doc-edit-heading" aria-label={`第${index + 1}节标题`} value={heading} onChange={event => sectionChange(index, 0, event.target.value)} /><RichTextEditor ariaLabel={`第${index + 1}节正文`} autoFocus={index === 0} value={body} onChange={next => sectionChange(index, 1, next)} /></> : <><h3>{heading}</h3><RichTextView value={body} /></>}
+        <Input className="doc-edit-title" aria-label="文书标题" value={working.title} onChange={event => applyWorking({ ...working, title: event.target.value })} />
+        <div className="axn-redhead-body">{working.sections.map(([heading, body], index) => heading === '文书要素（模拟收集）' ? null : <section key={index}>
+          <Input className="doc-edit-heading" aria-label={`第${index + 1}节标题`} value={heading} onChange={event => sectionChange(index, 0, event.target.value)} /><RichTextEditor ariaLabel={`第${index + 1}节正文`} autoFocus={index === 0} value={body} onChange={next => sectionChange(index, 1, next)} />
         </section>)}</div>
         {redhead?.tail === 'duty' && <div className="axn-redhead-tail axn-redhead-tail-duty">
           <span>值班员：×××</span>
@@ -88,7 +85,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
         <div className="axn-redhead-pageno">— 1 —</div>
         <div className="axn-redhead-mock">模拟样稿 · 仅供评估</div>
       </article>
-      <div className="doc-reading-footer"><FileText /> {categoryName} · 红头格式<span>{displayed.sections.reduce((count, [heading, body]) => count + heading.length + richTextToPlain(body).length, displayed.title.length)} 字</span></div>
+      <div className="doc-reading-footer"><FileText /> {categoryName} · 红头格式<span>{working.sections.reduce((count, [heading, body]) => count + heading.length + richTextToPlain(body).length, working.title.length)} 字</span></div>
     </div>
   </div>;
 }

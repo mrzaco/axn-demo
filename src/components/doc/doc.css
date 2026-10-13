@@ -278,16 +278,8 @@
   margin-bottom: var(--space-3);
 }
 
-/* 正文：三号（21px）、首行缩进 2 字符、两端对齐；一级标题黑体 */
-.axn-redhead-body h3 {
-  font-family: 'SimHei', 'Heiti SC', 'Noto Sans CJK SC', sans-serif;
-  font-size: 21px;
-  font-weight: 400;
-  line-height: 1.75;
-  margin: var(--space-4) 0 var(--space-1);
-  text-indent: 2em;
-}
-
+/* 正文：三号（21px）、首行缩进 2 字符、两端对齐。节标题现在是 antd 输入框，
+   黑体字样式见 .doc-paper-editing .doc-edit-heading。 */
 .axn-redhead-body p {
   font-size: 21px;
   line-height: 1.78;
@@ -296,7 +288,7 @@
   text-indent: 2em;
 }
 
-/* 富文本正文（在线编辑存的是 HTML 片段）：execCommand 会产出 <div>/<ul>/<font size>，
+/* 富文本正文（正文在 store 里以 HTML 片段存放）：execCommand 会产出 <div>/<ul>/<font size>，
    这里把它们落回上面的公文排版；字号档位见 components/doc/RichTextToolbar.tsx 的 FONT_SIZES。 */
 .doc-rich div {
   font-size: 21px;
@@ -412,7 +404,6 @@
 .doc-sample-row:hover, .doc-sample-row:focus-visible { color: var(--axn-primary); background: var(--axn-primary-bg); }
 .doc-sample-row > span { display: flex; flex-direction: column; gap: var(--space-1); }
 .doc-sample-row small { color: var(--axn-muted); }
-.doc-redhead-subject { text-align: center; font-size: var(--fs-h1); margin: var(--space-6) 0; }
 .doc-center-list > .axn-redhead-paper { flex-shrink: 0; }
 
 /* ===== UI 改版：独立文书库页 + 右侧文书工作区 ===== */
@@ -509,7 +500,6 @@
 .doc-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .doc-detail-toolbar .ant-tag { margin: 0; }
 .doc-center .axn-redhead-paper { width: 100%; max-width: var(--measure-doc); margin: 0 auto; box-sizing: border-box; padding: 46px 44px var(--space-8); border-color: var(--axn-border); border-radius: 3px; box-shadow: var(--shadow-lg); }
-.doc-center .doc-redhead-subject { font-size: 23px; margin: var(--space-5) 0 var(--space-6); }
 .doc-center .axn-redhead-tail { margin-top: var(--space-7); }
 .doc-center .axn-redhead-tail-report { text-align: right; }
 .doc-generation { margin: var(--space-6); border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: var(--axn-surface); padding: var(--space-12) var(--space-8); }
@@ -521,7 +511,7 @@
   .doc-center .axn-redhead-org { font-size: 22px; letter-spacing: 6px; }
   .doc-center .axn-redhead-type { font-size: 28px; letter-spacing: 10px; }
   .doc-center .axn-redhead-platform { font-size: 15px; letter-spacing: 5px; }
-  .doc-center .axn-redhead-body p, .doc-center .axn-redhead-body h3 { font-size: 17px; }
+  .doc-center .axn-redhead-body p { font-size: 17px; }
   .doc-agent-heading h2 { font-size: var(--fs-h3); }
 }
 @media (prefers-reduced-motion: reduce) { .doc-sample-row, .doc-file-arrow { transition: none; } }
@@ -548,7 +538,7 @@
 .doc-paper-editing .doc-rich-editor { min-height: 112px; padding: 4px 11px; box-sizing: border-box; border: 1px solid var(--axn-border); border-radius: 6px; background: var(--axn-canvas); font-family: inherit; font-size: 21px; line-height: 1.78; }
 .doc-paper-editing .doc-rich-editor:focus { outline: 2px solid var(--axn-primary); outline-offset: 0; background: var(--axn-surface); }
 
-/* 富文本工具条：只出现在在线编辑态，横在文书上方（与 .doc-detail-toolbar--full 同一条工位） */
+/* 富文本工具条：随文书常驻（文书打开即可编辑），横在文书上方（与 .doc-detail-toolbar--full 同一条工位） */
 .doc-rich-toolbar { flex-shrink: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; padding: var(--space-2) var(--space-6); background: var(--axn-surface); border-bottom: 1px solid var(--axn-border); }
 .doc-rich-tool { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .doc-rich-tool:hover { background: var(--axn-canvas); }
