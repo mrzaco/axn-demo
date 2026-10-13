@@ -1,3 +1,5 @@
+import { useCustomerOperations } from '@/store/customerOperationsStore';
+import { RESCUE_STAGES } from '@/services/customerOperations';
 /**
  * 事件过程时间轴：建设场景用 Vue 元数据节点；主演示事件用水情观测序列。
  * 全部为模拟过程记录，不接真实监测推送。
@@ -48,7 +50,7 @@ export function formatTimelineForDocument(eventId: string): string {
     TIMELINE_TONE_LABEL[item.tone],
   ]);
   return [
-    '过程时间轴（模拟）',
+    view.notice.includes('用户登记') ? '救援过程时间轴' : '过程时间轴（模拟）',
     tableToText([...TIMELINE_TABLE_HEADERS], rows),
     view.notice,
   ].join('\n');
@@ -56,6 +58,11 @@ export function formatTimelineForDocument(eventId: string): string {
 
 /** 组装当前事件可展示的过程时间轴。 */
 export function buildEventTimeline(eventId: string): EventTimelineView {
+  const actual = useCustomerOperations.getState().timeline.filter(t => t.eventId === eventId);
+  if (actual.length) return { eventId, eventName: eventDisplayName(eventId), stageLabel: '过程记录', items: [
+    ...actual.map(t => ({ time: t.occurredAt, title: t.stage, detail: `${t.detail}；来源：${t.source}`, tone: 'done' as const })),
+    ...RESCUE_STAGES.filter(stage => !actual.some(t => t.stage === stage)).map(stage => ({ time: '待补', title: stage, detail: '缺少本次实际执行记录，不能判定完成', tone: 'pending' as const })),
+  ], notice: '时间轴使用用户登记或接口接收记录；来源与真实性须复核，缺失环节不补造。' };
   const vue = vueWorkspaceEventById.get(eventId);
   const incident = incidentById.get(eventId);
   const eventName = eventDisplayName(eventId);

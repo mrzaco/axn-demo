@@ -76,7 +76,8 @@ export default function WorkspaceSync() {
 
       const message = session.messages.filter((m) => m.documentWorkflow).at(-1);
       const workflow = message?.documentWorkflow;
-      if (message && workflow) {
+      const newerPlanReply = session.messages.some((item, index) => item.rescuePlans && index > session.messages.findIndex(item => item.messageId === message?.messageId));
+      if (message && workflow && !(workflow.stage === 'completed' && newerPlanReply)) {
         let documentId = workflow.documentId;
         if (workflow.stage === 'completed' && workflow.reportSections?.length) {
           const libDocs = useMockDocumentStore.getState().libraries[scope]?.documents ?? [];

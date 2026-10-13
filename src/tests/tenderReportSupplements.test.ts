@@ -8,11 +8,11 @@ import {
 import { splitPipeContent } from '@/services/pipeTable';
 
 const ctx = {
-  eventName: 'G5513边坡滑移处置',
-  disasterType: '边坡滑移',
-  location: 'G5513 边坡路段（演示）',
-  risks: '边坡稳定、落石与交通作业风险',
-  planTitle: '边坡滑移处置预案（模拟）',
+  eventName: '青岭村山体滑坡（模拟）',
+  disasterType: '山体滑坡',
+  location: '青岭村后山坡体（模拟地点）',
+  risks: '坡体持续变形、落石、二次滑塌',
+  planTitle: '山体滑坡处置预案（模拟）',
 };
 
 describe('tenderReportSupplements', () => {

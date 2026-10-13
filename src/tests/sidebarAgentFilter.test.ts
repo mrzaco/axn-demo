@@ -31,23 +31,26 @@ describe('sidebarAgentFilter', () => {
     const judgment = optionalEventsForAgent('situation');
     expect(judgment.length).toBeGreaterThan(0);
     expect(judgment.every((e) => e.stage === '待研判')).toBe(true);
-    expect(judgment.some((e) => e.eventId === 'evt-vue-yw01')).toBe(true);
+    expect(judgment.some((e) => e.eventId === 'evt-sim-landslide')).toBe(true);
 
     const force = optionalEventsForAgent('resource');
     expect(force.every((e) => e.stage === '力量投送中')).toBe(true);
-    expect(force.some((e) => e.eventId === 'evt-vue-nd01')).toBe(true);
+    expect(force.some((e) => e.eventId === 'evt-sim-breach')).toBe(true);
 
     const rescue = optionalEventsForAgent('plan');
     expect(rescue.every((e) => e.stage === '救援中')).toBe(true);
 
     const review = optionalEventsForAgent('evaluation');
     expect(review.every((e) => e.stage === '待复盘' || e.stage === '已归档')).toBe(true);
+    expect(review).toHaveLength(3);
+    expect(review.every((e) => e.eventId.endsWith('-review'))).toBe(true);
   });
 
   it('会话匹配：空白会话不计入智能体筛选', () => {
     expect(conversationMatchesAgent(conv({ id: 'c1', eventId: 'evt-blank-c1' }), 'situation')).toBe(false);
-    expect(conversationMatchesAgent(conv({ id: 'c2', eventId: 'evt-demo-001' }), 'plan')).toBe(true);
-    expect(conversationMatchesAgent(conv({ id: 'c3', eventId: 'evt-demo-001' }), 'situation')).toBe(false);
-    expect(conversationMatchesAgent(conv({ id: 'c4', eventId: 'evt-demo-002' }), 'evaluation')).toBe(true);
+    expect(conversationMatchesAgent(conv({ id: 'c2', eventId: 'evt-sim-debris' }), 'plan')).toBe(true);
+    expect(conversationMatchesAgent(conv({ id: 'c3', eventId: 'evt-sim-debris' }), 'situation')).toBe(false);
+    expect(conversationMatchesAgent(conv({ id: 'c4', eventId: 'evt-sim-debris' }), 'evaluation')).toBe(false);
+    expect(conversationMatchesAgent(conv({ id: 'c5', eventId: 'evt-sim-debris-review' }), 'evaluation')).toBe(true);
   });
 });

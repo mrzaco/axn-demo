@@ -11,6 +11,7 @@ import { exportMaterial } from '@/services/prototypeExports';
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';
 import { eventDisplayName } from '@/services/factLookup';
 import { buildEventSwitchBriefing } from '@/services/eventSwitchBriefing';
+import { scheduleAutoSituationReport } from '@/services/autoSituationReport';
 import { useConversationStore } from '@/store/conversationStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
@@ -57,6 +58,7 @@ export default function DisasterEventPanel({ profile, onTask }: { profile: Disas
         text: buildEventSwitchBriefing(profile.eventId),
         eventBriefingEventId: profile.eventId,
       });
+      scheduleAutoSituationReport(sessionId, profile.eventId, 'event_link', 0);
     }
     useWorkspaceStore.getState().select(sessionId, { kind: 'flow', id: '预警推送' });
     navigate('/assistant');
@@ -70,7 +72,7 @@ export default function DisasterEventPanel({ profile, onTask }: { profile: Disas
         <DisasterMonitoring profile={profile}/>
         <Card size="small" title="风险线索分布（模拟统计，非灾害边界）">{profile.riskDistribution.map(r => <div className="axn-disaster-bar-row" key={r.area}><span>{r.area}</span><div className="axn-disaster-bar"><span style={{width:`${r.count / Math.max(...profile.riskDistribution.map(d => d.count)) * 100}%`}}/></div><span>{r.count} 条线索</span></div>)}</Card>
         <Card size="small" style={{marginTop:14}} title={`${profile.objective} · 阶段目标（模拟）`}><Progress percent={Math.round(profile.completed/profile.target*100)} status="active"/><p>{profile.completed} / {profile.target} {profile.unit}；尚未完成全部目标，需核查现场回执。</p></Card>
-        <Space wrap style={{marginTop:14}}><Button type="primary" onClick={()=>onTask('生成态势报告')}>态势报告自动生成</Button><Button onClick={()=>onTask('生成灾情摘要')}>多源数据汇聚</Button></Space>
+        <Space wrap style={{marginTop:14}}><Button type="primary" onClick={()=>onTask('生成态势报告')}>生成态势报告</Button><Button onClick={()=>onTask('生成灾情摘要')}>多源数据汇聚</Button></Space>
       </> },
       { key: 'resources', label: '资源智能检索', children: <><Table scroll={{x:720}} size="small" pagination={false} rowKey="name" dataSource={profile.resources} columns={[{title:'资源',dataIndex:'name',width:230},{title:'数量',dataIndex:'amount',width:110},{title:'专业能力',dataIndex:'capability',width:230},{title:'状态',dataIndex:'status',width:160}]}/><Button style={{marginTop:14}} onClick={()=>onTask('查询周边救援资源')}>资源智能检索</Button></> },
       {key:'composition',label:'智能编组推荐',children:<ResourceComposition key={profile.eventId} profile={profile}/>},

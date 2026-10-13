@@ -1,3 +1,4 @@
+import type { ResourceLedgerRow } from '@/services/resourceAudit';
 import type { MultiSourceSnapshot } from './multiSource';
 /**
  * 安小能领域类型 —— 单一事实来源（主控维护，冻结契约）。
@@ -229,6 +230,9 @@ export interface ChatMessage {
   agentId?: string;
   agentName?: string;
   agentRole?: string;
+  /** 物资核验消息正文：保存本次台账快照和核验时点。 */
+  rescuePlans?: { documentId: string; title: string; sections: readonly (readonly [string, string])[]; date: string; number: string }[];
+  resourceAudit?: { rows: ResourceLedgerRow[]; checkedAt: string };
   /** 用户消息携带的附件摘要（展示用）。 */
   attachment?: ChatAttachment | null;
   /** 助手消息：附件用途确认 workflow。 */
@@ -245,6 +249,13 @@ export interface ChatMessage {
   };
   /** 关联灾情切换提示：携带事件 ID，用于「查看时间轴」等结构化动作。 */
   eventBriefingEventId?: string | null;
+  /** 态势报告自动推送：可打开文书与态势地图。 */
+  situationReportAuto?: {
+    eventId: string;
+    documentId?: string;
+    reason: 'event_link' | 'multi_source' | 'data_changed' | 'manual';
+    openMap?: boolean;
+  } | null;
   createdAt: string;
   performedAt: string;
 }

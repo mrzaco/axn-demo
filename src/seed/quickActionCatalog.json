@@ -271,33 +271,61 @@
       "agentId": "agent-doc",
       "agentName": "文书生成智能体",
       "kind": "chat"
+    },
+    {
+      "label": "资源数据与预警",
+      "clause": "4.5",
+      "scenarioId": "forceDelivery",
+      "agentId": "agent-resource",
+      "agentName": "救援资源管理智能体",
+      "kind": "chat",
+      "_note": "SHOW_RESOURCE_DATA_ALERT=false 时由 isHiddenPrototypeAction 隐藏入口"
+    },
+    {
+      "label": "救援复盘与知识",
+      "clause": "4.5",
+      "scenarioId": "rescueOps",
+      "agentId": "agent-evaluation",
+      "agentName": "救援效果评估智能体",
+      "kind": "chat"
+    },
+    {
+      "label": "资源建议",
+      "clause": "4.3",
+      "scenarioId": "forceDelivery",
+      "agentId": "agent-resource",
+      "agentName": "救援资源管理智能体",
+      "kind": "chat"
     }
   ],
   "stageChips": {
     "待研判": {
       "primary": [
-        "物资核验",
-        "查询周边救援资源",
-        "生成救援方案",
-        "生成态势报告"
+        "生成灾情摘要",
+        "态势研判预警",
+        "生成态势报告",
+        "核对道路天气",
+        "资源建议"
       ],
       "loop": []
     },
     "力量投送中": {
       "primary": [
-        "物资核验",
         "查询周边救援资源",
-        "生成救援方案",
-        "生成态势报告"
+        "核对资源状态",
+        "物资核验",
+        "生成周边资源报告",
+        "资源建议"
       ],
       "loop": []
     },
     "救援中": {
       "primary": [
-        "物资核验",
-        "查询周边救援资源",
         "生成救援方案",
-        "生成态势报告"
+        "生成态势报告",
+        "查询周边救援资源",
+        "物资核验",
+        "资源建议"
       ],
       "loop": []
     },
@@ -313,8 +341,8 @@
     },
     "已归档": {
       "primary": [
-        "复盘总结",
-        "事件沉淀"
+        "事件沉淀",
+        "救援复盘与知识"
       ],
       "loop": []
     }

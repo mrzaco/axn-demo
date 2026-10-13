@@ -126,7 +126,7 @@ function rehydrate(): SessionPersist {
 
 /** 会话→session 映射种子：消息按会话隔离（关联灾情不共享历史消息）；主种子会话继承模拟消息。 */
 const SEED_SESSION_BY_CONVERSATION: Record<string, string> = {
-  'conv-seed-nandi': DEFAULT_SESSION_ID,
+  'conv-seed-landslide': DEFAULT_SESSION_ID,
 };
 
 const sessionPersisted = rehydrate();

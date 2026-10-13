@@ -1,3 +1,4 @@
+import { startOperationsScheduler } from '@/store/customerOperationsStore';
 /**
  * 应用入口（UI 改版 · 参考图外壳）：
  * 左侧 260px 中性侧栏（品牌 / 功能导航含独立文书库 / 新建 / 搜索 / 历史 / 底部角色与设置），
@@ -79,6 +80,7 @@ function useMediaQuery(query: string): boolean {
 }
 
 export default function AppRoot() {
+  useEffect(() => startOperationsScheduler(), []);
   const storageWarning = useDemoStore((s) => s.storageWarning);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
   const conversations = useConversationStore((s) => s.conversations);

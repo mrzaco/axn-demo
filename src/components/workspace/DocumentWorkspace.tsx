@@ -1,3 +1,4 @@
+import CustomerOperationsPanel from '@/components/chat/CustomerOperationsPanel';
 /**
  * 右侧工作区：与对话分栏内嵌，承载——
  * 1) 公文（模拟文书 / 真实草稿）
@@ -7,12 +8,13 @@
  */
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { App as AntdApp } from 'antd';
+import { Alert, App as AntdApp, Button } from 'antd';
 import { NAV_PATH } from '@/components/nav/navRoutes';
 import OperationalFlows from '@/components/chat/OperationalFlows';
 import type { FlowTask } from '@/services/flowStageConfig';
 import { eventDisplayName } from '@/services/factLookup';
 import { resolveEventStage } from '@/services/eventSwitchBriefing';
+import { SHOW_RESOURCE_DATA_ALERT } from '@/seed/prototypeVisibility';
 import { useConversationStore } from '@/store/conversationStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
@@ -80,6 +82,31 @@ export default function DocumentWorkspace() {
     close(scope);
     window.dispatchEvent(new CustomEvent('axn:flow-task', { detail: { text } }));
   }, [close, scope]);
+
+  if (selection?.kind === 'operations') {
+    const isReview = selection.id === '救援复盘与知识';
+    // 「资源数据与预警」整块暂时下线；预警类改走 flow / WarningPushPanel。
+    if (!isReview && !SHOW_RESOURCE_DATA_ALERT) {
+      return (
+        <div className="doc-workspace" data-testid="operations-workspace-shell">
+          <div className="doc-workspace-body" style={{ padding: 16 }}>
+            <Alert
+              type="info"
+              showIcon
+              title="「资源数据与预警」暂未开放"
+              description="设备采集、出入库、定期监测与接口配置入口已暂时下线。预警推送请从业务流程中的「预警推送 / 资源预警通知」进入。"
+              action={<Button size="small" onClick={requestClose}>关闭</Button>}
+            />
+          </div>
+        </div>
+      );
+    }
+    return <div className="doc-workspace" data-testid="operations-workspace-shell"><div className="doc-workspace-body">
+      <CustomerOperationsPanel key={`${scope}:${eventId}:${selection.id}`} eventId={eventId} sessionId={scope}
+        review={isReview}
+        onClose={requestClose} />
+    </div></div>;
+  }
 
   if (selection?.kind === 'flow') {
     return (

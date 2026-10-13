@@ -11,31 +11,20 @@ import {
 } from '@/seed/vueDemoResources';
 
 describe('资源列表种子补全与抽屉回退', () => {
-  it('缺口建设事件与 demo-002 各 ≥3 条，且至少一条可选', () => {
-    for (const eventId of ['evt-vue-yw01', 'evt-vue-g5513', 'evt-vue-qh01', 'evt-demo-002']) {
+  it('三类实战事件与 demo-002 各 ≥3 条，且至少一条可选', () => {
+    for (const eventId of ['evt-sim-landslide', 'evt-sim-breach', 'evt-sim-debris', 'evt-demo-002']) {
       const resources = vueDemoResourcesForEvent(eventId);
       expect(resources.length).toBeGreaterThanOrEqual(3);
       expect(resources.every((item) => item.eventId === eventId)).toBe(true);
       expect(resources.some((item) => item.selectable)).toBe(true);
     }
-    expect(vueDemoResourcesForEvent('evt-vue-nd01').length).toBeGreaterThanOrEqual(3);
-    expect(vueDemoResourcesForEvent('evt-vue-nd01').some((item) => item.selectable)).toBe(true);
   });
 
-  it('十类灾种与 Vue 建设事件 seedResourceIds 非空（抽屉可预览）', () => {
+  it('三类实战事件 seedResourceIds 非空（抽屉可预览）', () => {
     for (const profile of DISASTER_PROFILES) {
       expect(seedResourceIdsForEvent(profile.eventId).length).toBeGreaterThanOrEqual(3);
     }
-    for (const eventId of [
-      'evt-vue-nl08',
-      'evt-vue-nd01',
-      'evt-vue-yw01',
-      'evt-vue-g5513',
-      'evt-vue-qh01',
-      'evt-demo-002',
-    ]) {
-      expect(seedResourceIdsForEvent(eventId).length).toBeGreaterThanOrEqual(2);
-    }
+    expect(seedResourceIdsForEvent('evt-demo-002').length).toBeGreaterThanOrEqual(2);
   });
 
   it('demo-001 回退授权台账 ID', () => {
@@ -43,7 +32,7 @@ describe('资源列表种子补全与抽屉回退', () => {
   });
 
   it('回退 ID 与本事件演示资源一致（非台账事件）', () => {
-    const eventId = 'evt-vue-g5513';
+    const eventId = 'evt-sim-landslide';
     expect(seedResourceIdsForEvent(eventId)).toEqual(
       vueDemoResourcesForEvent(eventId).map((item) => item.id),
     );

@@ -23,7 +23,7 @@ describe('招标交互与事件隔离',()=>{
     expect(buildMultiSourceSnapshot(p.eventId).gatheredAt).toBe(p.capturedAt);
   });
   it('情景依据修改后撤销已生成结果',()=>{
-    render(<SituationForecast profile={DISASTER_PROFILES[6]}/>);
+    render(<SituationForecast profile={DISASTER_PROFILES[0]}/>);
     expect((screen.getByRole('button',{name:'生成研判情景（模拟）'}) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('研判情景依据'),{target:{value:'模拟采样条件保持不变，需专家复核'}});
     fireEvent.click(screen.getByRole('button',{name:'生成研判情景（模拟）'}));
@@ -32,7 +32,7 @@ describe('招标交互与事件隔离',()=>{
     expect(screen.queryByText('灾害影响范围与次生风险')).toBeNull();
   });
   it('编组约束或改选方案必须重新确认',()=>{
-    render(<ResourceComposition profile={DISASTER_PROFILES[6]}/>);
+    render(<ResourceComposition profile={DISASTER_PROFILES[0]}/>);
     expect(screen.getAllByText('已选中').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button',{name:'确认模拟编组建议'}));
     expect(screen.getByText(/已核对 · 待正式调派/)).toBeTruthy();
@@ -44,7 +44,7 @@ describe('招标交互与事件隔离',()=>{
     expect(screen.queryByText(/已核对 · 待正式调派/)).toBeNull();
   });
   it('评估缺少计划、实际或证据不生成，修改数量撤销核验',()=>{
-    const p=DISASTER_PROFILES[6];render(<RescueEvaluation profile={p}/>);
+    const p=DISASTER_PROFILES[0];render(<RescueEvaluation profile={p}/>);
     const button=screen.getByRole('button',{name:'保存评估版本（模拟）'}) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText(p.resources[0].name+'计划数量'),{target:{value:'16'}});
@@ -71,5 +71,6 @@ describe('招标交互与事件隔离',()=>{
     expect(isHiddenPrototypeAction('MEETING_MINUTES')).toBe(false);
     expect(isDutyContent('应急要情')).toBe(false);
     expect(isHiddenPrototypeAction('应急要情')).toBe(false);
+    expect(isHiddenPrototypeAction('资源数据与预警')).toBe(true);
   });
 });

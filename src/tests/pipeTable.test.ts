@@ -46,7 +46,7 @@ describe('pipeTable', () => {
   });
 
   it('周边资源报告的监测章节可解析为表格', () => {
-    const result = buildConstructionResult('resourceReport', 'evt-sim-earthquake', '生成周边资源报告');
+    const result = buildConstructionResult('resourceReport', 'evt-sim-landslide', '生成周边资源报告');
     const sections = constructionToMockSections(result);
     const monitoring = sections.find(([heading]) => heading.includes('专业监测数据'));
     expect(monitoring).toBeTruthy();
@@ -56,7 +56,7 @@ describe('pipeTable', () => {
   });
 
   it('已含一期序号的章节标题不再套一层中文序号', () => {
-    const result = buildConstructionResult('resourceReport', 'evt-sim-earthquake', '生成周边资源报告');
+    const result = buildConstructionResult('resourceReport', 'evt-sim-landslide', '生成周边资源报告');
     const headings = constructionToMockSections(result).map(([heading]) => heading);
     expect(headings).toContain('一、抢险基本信息');
     expect(headings).toContain('二、安能队伍情况');

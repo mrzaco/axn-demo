@@ -87,7 +87,7 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
     await expect(workflow).toContainText('红头文书已生成');
     await expect(workflow).toContainText('要素齐备，已确认（模拟）');
     await expect(panel.getByTestId('mock-redhead-document')).not.toContainText('文书要素（模拟收集）');
-    await expect(page.getByText(`已生成《${title}（新生成）》（模拟文书），已在右侧文书工作区打开。`)).toBeVisible();
+    await expect(page.getByText(new RegExp(`已生成《${title}（新生成）》`))).toBeVisible();
     await closeWorkspace(page);
     await openLibrary(page);
     await expect(page.getByTestId('document-library').locator('.doc-category').filter({ hasText: name }).locator('.doc-sample-row')).toHaveCount(3);

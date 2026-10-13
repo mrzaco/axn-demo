@@ -76,17 +76,13 @@ test('空白对话提示关联灾情，关联后可正常生成摘要', async ({
   await page.getByTestId('new-conversation-btn').click();
   // 无消息时头部不显示事件标题，未关联状态由关联灾情选择器承载（标注 vibe_1791303121889）
   await expect(page.getByTestId('chat-link-incident')).toContainText('未关联事件');
-  // 建设场景入口（含「队伍人员状态时效」）在未关联时也只提示，不产出资源材料
-  await page.getByTestId('home-construction-scenarios').getByRole('button').first().click();
-  const situationCard = page.getByTestId('agent-summon-card').last();
-  await expect(situationCard).toContainText('当前对话尚未关联有效灾情', { timeout: 20000 });
-  await expect(situationCard).toContainText('待补充信息');
-  await expect(situationCard).not.toContainText('资源状态待核实');
-  await expect(situationCard).not.toContainText('INTERNAL');
+  // 未关联时快捷任务只提示关联灾情，不产出资源材料
   await clickQuickTask(page, '核对资源状态');
   const resourceCard = page.getByTestId('agent-summon-card').last();
   await expect(resourceCard).toContainText('当前对话尚未关联有效灾情', { timeout: 20000 });
   await expect(resourceCard).toContainText('待补充信息');
+  await expect(resourceCard).not.toContainText('资源状态待核实');
+  await expect(resourceCard).not.toContainText('INTERNAL');
   await expect(resourceCard.getByTestId('scenario-sections')).toHaveCount(0);
   await page.getByTestId('chat-link-incident').click();
   await page.locator('.ant-select-item-option', { hasText: '清河段堤防险情' }).click();

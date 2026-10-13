@@ -1,3 +1,4 @@
+import { eventEssentials } from './eventEssentials';
 import { disasterProfileById } from '@/seed/disasterScenarios';
 /**
  * 关联灾情切换后的安小能提示：确认切换 + 当前事件状态总结 + 可点击的下一步操作。
@@ -210,6 +211,9 @@ export function buildEventSwitchBriefing(eventId: string, session?: Session | nu
     '',
     '【当前状态】',
     ...statusLines,
+    '',
+    '【事件关键要素】',
+    eventEssentials(eventId),
     '',
     '【事件派发来源】',
     ...(dispatchLines.length

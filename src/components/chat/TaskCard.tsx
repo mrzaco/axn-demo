@@ -101,26 +101,14 @@ function SummaryBlock({
 }) {
   const isPending = (id: string) => resolveFact(id, { kind: 'event', eventId: payload.eventId })?.verification !== 'confirmed';
   return (
-    <div className="axn-artifact">
-      {payload.rows.map((row) => (
-        <div key={row.label + row.factId} className="axn-artifact-row">
-          <span className="axn-artifact-label">{row.label}</span>
-          <span className="axn-artifact-value">
-            {factValueText(row.factId, row.displayOverride)}
-            {row.emphasize === 'suggested' && (
-              <Tag color="blue" className="axn-tc-ml6">
-                建议值
-              </Tag>
-            )}
-            {row.emphasize === 'pending' && isPending(row.factId) && (
-              <Tag color="orange" className="axn-tc-ml6">
-                待确认
-              </Tag>
-            )}
-          </span>
-        </div>
-      ))}
-      <div className="axn-artifact-foot">数据时间：{payload.dataTime} · 模拟数据</div>
+    <div className="axn-text-result" data-testid="event-summary-text">
+      {payload.rows.map(row => {
+        const value = factValueText(row.factId, row.displayOverride).replace(/待核实[（(]待核实[）)]/g, '待核实');
+        const note = row.emphasize === 'suggested' ? '（建议值）'
+          : row.emphasize === 'pending' && isPending(row.factId) && !/待核|待确认/.test(value) ? '（待确认）' : '';
+        return <p key={row.label + row.factId}>{row.label}：{value}{note}</p>;
+      })}
+      <p className="axn-text-result-time">数据时间：{payload.dataTime} · 模拟数据</p>
       {onOpenFlow && (
         <Button
           size="small"
@@ -214,17 +202,12 @@ function KnowledgeBlock({ payload, onOpenDrawer }: { payload: KnowledgeArtifact;
     .map((id) => knowledgeById.get(id))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
   return (
-    <div className="axn-artifact">
+    <div className="axn-text-result">
       {chunks.length === 0 ? (
         <Text type="secondary">引用知识条目缺失（模拟数据）</Text>
       ) : (
         chunks.map((c) => (
-          <div key={c.chunkId} className="axn-artifact-row">
-            <span className="axn-artifact-label">{c.category}</span>
-            <span className="axn-artifact-value">
-              《{c.title}》· {c.sourceLabel}
-            </span>
-          </div>
+          <p key={c.chunkId}>{c.category}：《{c.title}》· {c.sourceLabel}</p>
         ))
       )}
       <Button size="small" type="primary" ghost onClick={() => onOpenDrawer('knowledge')} className="axn-tc-mt8">
@@ -237,7 +220,7 @@ function KnowledgeBlock({ payload, onOpenDrawer }: { payload: KnowledgeArtifact;
 /** 抢险救援知识问答卡：结构化答案 + 模拟文档溯源（qa.json，模拟数据）。 */
 function QaKnowledgeBlock({ payload }: { payload: QaKnowledgeArtifact }) {
   return (
-    <div className="axn-artifact axn-qa">
+    <div className="axn-text-result axn-qa">
       <div className="axn-artifact-row">
         <span className="axn-artifact-label">{payload.category}</span>
         <span className="axn-artifact-value">知识问答（模拟数据）</span>
@@ -538,7 +521,6 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
         </Space>
       </div>
 
-      <TaskSkillPanel task={task} />
 
       {(task.status === 'succeeded' || task.status === 'partial') && handoff ? (
         <Typography.Paragraph type="secondary" className="axn-tc-fs12" data-testid="task-handoff-hint" style={{ margin: '6px 0 0' }}>
@@ -547,6 +529,8 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
       ) : null}
 
       {task.steps.length > 0 && (
+        <details className="axn-task-details" open={isRunning ? true : undefined}>
+          <summary>查看执行详情（{task.steps.length}步）</summary>
         <ul className="axn-task-steps">
           {task.steps.map((step) => (
             <li key={step.stepId} className={`axn-task-step axn-step-${step.status}`}>
@@ -560,6 +544,8 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
             </li>
           ))}
         </ul>
+        <TaskSkillPanel task={task} />
+        </details>
       )}
 
       {/* 建设材料 / 处置建议已物化时，正文只在右侧或知识抽屉；聊天区不重复长摘要 */}

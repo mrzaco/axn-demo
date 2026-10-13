@@ -69,14 +69,10 @@ describe('documentTemplates 一期骨架顺序', () => {
     expect(buildDisasterSections(profile, 'WORK_SUMMARY_REFLECT').map(([t]) => t)).toEqual([...WORK_SUMMARY_REFLECT_TITLES]);
   });
 
-  it('十类灾种资源报告七段、处置方案含任务受领与主要措施，非水灾无管涌措辞', () => {
+  it('三类实战灾种资源报告七段、处置方案含任务受领与主要措施，非水灾无管涌措辞', () => {
     const nonWater = new Set([
-      'evt-sim-earthquake',
       'evt-sim-landslide',
       'evt-sim-debris',
-      'evt-sim-snow',
-      'evt-sim-mine',
-      'evt-sim-power',
     ]);
     for (const profile of DISASTER_PROFILES) {
       const resource = buildDisasterSections(profile, 'RESOURCE_REPORT');
@@ -112,15 +108,15 @@ describe('documentTemplates 一期骨架顺序', () => {
     }
   });
 
-  it('招标能力缺口补齐写入对应报告正文且一级标题不变', () => {
+  it('态势报告四章瘦身且含灾种监测侧重；其他报告仍写入招标补齐', () => {
     const profile = DISASTER_PROFILES[1];
     const situation = buildDisasterSections(profile, 'SITUATION_REPORT');
     expect(situation.map(([t]) => t)).toEqual([...SITUATION_REPORT_TITLES]);
     const situationBody = situation.map(([, b]) => b).join('\n');
-    expect(situationBody).toContain('建议响应等级');
-    expect(situationBody).toContain('预警推送');
-    expect(situationBody).toContain('内部系统资源叠加');
-    expect(situationBody).toContain('模拟·待接入');
+    expect(situationBody).toContain('灾种关键监测');
+    expect(situationBody).toContain('六源汇聚');
+    expect(situationBody).toContain('态势地图');
+    expect(situationBody).toMatch(/决口|水位|封堵|雨量|位移|裂缝/);
 
     const resource = buildDisasterSections(profile, 'RESOURCE_REPORT');
     expect(resource.map(([t]) => t)).toEqual([...RESOURCE_REPORT_TITLES]);

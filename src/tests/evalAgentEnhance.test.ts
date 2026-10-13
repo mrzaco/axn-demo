@@ -42,7 +42,7 @@ describe('抢险总结时间轴注入', () => {
   });
 
   it('documentTemplates 全面/反思总结首节含时间轴', () => {
-    const profile = disasterProfileById.get('evt-sim-earthquake');
+    const profile = disasterProfileById.get('evt-sim-landslide');
     expect(profile).toBeTruthy();
     const full = buildDisasterSections(profile!, 'WORK_SUMMARY');
     const reflect = buildDisasterSections(profile!, 'WORK_SUMMARY_REFLECT');

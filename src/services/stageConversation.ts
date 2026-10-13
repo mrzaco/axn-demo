@@ -150,7 +150,7 @@ export function stageChoices(stage: EventStage): StageChoiceGroup[] {
   const mismatchType: FileTypeKey =
     stage === '待复盘' || stage === '已归档' ? 'feedback' : 'summary';
   return [
-    { label: '当前阶段常见提问', options: list.filter(c => c.kind === 'question') },
+    { label: '当前阶段常见提问', options: [...list.filter(c => c.kind === 'question'), question('fuzzy-resource-search', '需要能破拆的装备，帮我查找物资、特殊装备和队伍', '需要能破拆的装备，请按破拆能力模糊查询当前事件相关的物资、特殊装备和队伍底数台账，列出匹配能力、数量、可用状态及待核实事项。', 'search')] },
     { label: '模拟发送 Word 文件', options: list.filter(c => c.kind === 'file') },
     {
       label: '异常与意图确认示例',

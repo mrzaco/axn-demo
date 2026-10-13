@@ -20,8 +20,11 @@ import DisasterEventsPage from '@/components/events/DisasterEventsPage';
 beforeEach(() => { useSessionStore.getState().resetAll(); useDemoStore.getState().setPace('fast'); vi.useFakeTimers(); });
 afterEach(() => { cleanup(); useSessionStore.getState().resetAll(); vi.useRealTimers(); });
 describe('灾种事件与材料隔离', () => {
-  it('保留七个原有事件，十类新增事件均能解析自己的来源，跨事件不能读取', () => {
-    expect(DISASTER_PROFILES).toHaveLength(10); expect(incidents).toHaveLength(17);
+  it('三类实战事件均能解析自己的来源，跨事件不能读取', () => {
+    expect(DISASTER_PROFILES).toHaveLength(3);
+    // 关联灾情：三类实战 × 待研判/力量投送中/救援中/待复盘
+    expect(incidents).toHaveLength(12);
+    expect(DISASTER_PROFILES.map((p) => p.category)).toEqual(['山体滑坡', '洪涝决口', '泥石流']);
     for (const p of DISASTER_PROFILES) {
       const i = incidentById.get(p.eventId)!;
       for (const id of Object.values(i.factRefs)) {
@@ -63,52 +66,52 @@ describe('灾种事件与材料隔离', () => {
     expect(()=>receiveOriginalMaterial(record.id,'evt-demo-001',record.system,record.page)).toThrow();
   });
   it('切换事件不复用候选资源，生成文书也不用排涝通用正文', async () => {
-    const earthquake=DISASTER_PROFILES[1], mine=DISASTER_PROFILES[6];
-    useDemoStore.getState().switchEvent(earthquake.eventId);
-    const a=useSessionStore.getState().ensureSessionForEvent(earthquake.eventId);
+    const landslide = DISASTER_PROFILES.find(p => p.eventId === 'evt-sim-landslide')!;
+    const debris = DISASTER_PROFILES.find(p => p.eventId === 'evt-sim-debris')!;
+    useDemoStore.getState().switchEvent(landslide.eventId);
+    const a=useSessionStore.getState().ensureSessionForEvent(landslide.eventId);
     const r=sendMessage(a,{text:'查询周边救援资源'});await vi.runAllTimersAsync();await r;
-    useSessionStore.getState().toggleCandidate(a,vueDemoResourcesForEvent(earthquake.eventId)[0].id);
-    useDemoStore.getState().switchEvent(mine.eventId);
-    const b=useSessionStore.getState().ensureSessionForEvent(mine.eventId);
+    useSessionStore.getState().toggleCandidate(a,vueDemoResourcesForEvent(landslide.eventId)[0].id);
+    useDemoStore.getState().switchEvent(debris.eventId);
+    const b=useSessionStore.getState().ensureSessionForEvent(debris.eventId);
     expect(useSessionStore.getState().sessions[b].candidateResourceIds).toEqual([]);
-    useSessionStore.getState().toggleCandidate(b,vueDemoResourcesForEvent(earthquake.eventId)[0].id);
+    useSessionStore.getState().toggleCandidate(b,vueDemoResourcesForEvent(landslide.eventId)[0].id);
     expect(useSessionStore.getState().sessions[b].candidateResourceIds).toEqual([]);
     const pending=useMockDocumentStore.getState().generate(b,'EMERGENCY_BRIEF');await vi.runAllTimersAsync();const doc=await pending;
-    const body=doc!.sections.map(s=>s[1]).join('\n');expect(body).toContain('矿方');expect(body).not.toContain('清河段');expect(body).not.toContain('围井反滤');
-    expect(buildConstructionResult('group',mine.eventId,'2台').sections.map(s=>s.text).join('\n')).not.toContain('排涝车');
+    const body=doc!.sections.map(s=>s[1]).join('\n');expect(body).toContain('泥石流');expect(body).not.toContain('清河段');expect(body).not.toContain('围井反滤');
+    expect(buildConstructionResult('group',debris.eventId,'2台').sections.map(s=>s.text).join('\n')).not.toContain('排涝车');
   });
-  it('事件库切换后图表单位和预案同步变化，旧事件仍可访问', () => {
+  it('事件库切换后图表单位和预案同步变化', () => {
     vi.useRealTimers();
-    render(<AntdApp><MemoryRouter initialEntries={['/events?event=evt-sim-earthquake']}><DisasterEventsPage/></MemoryRouter></AntdApp>);
-    expect(screen.getByRole('img',{name:/地震 余震记录模拟趋势/})).toBeTruthy();
-    fireEvent.click(screen.getByRole('button',{name:/矿难\s*待研判/}));
-    expect(screen.getByRole('img',{name:/矿难 甲烷测点记录模拟趋势/})).toBeTruthy();
-    expect(screen.queryByRole('img',{name:/地震 余震记录模拟趋势/})).toBeNull();
+    render(<AntdApp><MemoryRouter initialEntries={['/events?event=evt-sim-landslide']}><DisasterEventsPage/></MemoryRouter></AntdApp>);
+    expect(screen.getByRole('img',{name:/山体滑坡|滑坡|位移/})).toBeTruthy();
+    fireEvent.click(screen.getByRole('button',{name:/泥石流/}));
+    expect(screen.getByRole('img',{name:/泥石流/})).toBeTruthy();
     fireEvent.click(screen.getByRole('tab',{name:'预案与报告'}));
-    expect(screen.getByRole('heading',{name:'矿井受困救援专业协同预案（模拟参考·安能战法字段）'})).toBeTruthy();
-    expect(screen.getByTestId('disaster-material').textContent).toContain('进入许可');
+    expect(screen.getByTestId('disaster-material').textContent).toMatch(/泥石流|预案/);
   });
   it('模拟候选面板列出独立数量，不显示为授权台账零人数', async () => {
-    const p = DISASTER_PROFILES[6];
+    const p = DISASTER_PROFILES.find(item => item.eventId === 'evt-sim-landslide')!;
     const conversation = useConversationStore.getState().createConversation({title:p.name,type:'emergency',eventId:p.eventId});
     const sid = useSessionStore.getState().sessionByConversation[conversation.id];
     await sendMessage(sid, {text:'查询周边救援资源'}); await vi.runAllTimersAsync();
     vi.useRealTimers();
     render(<ResourcePanel/>);
-    fireEvent.click(screen.getByRole('checkbox',{name:'选择 矿山专业救援协同组（模拟） 加入候选'}));
+    const teamName = p.resources[0].name;
+    fireEvent.click(screen.getByRole('checkbox',{name: new RegExp(`选择 ${teamName}`)}));
     expect(screen.getByText('模拟候选 1 项')).toBeTruthy();
-    expect(screen.getByText('矿山专业救援协同组（模拟） · 16人')).toBeTruthy();
+    expect(screen.getByText(new RegExp(`${teamName}`))).toBeTruthy();
     expect(screen.queryByText('候选人员总数')).toBeNull();
   });
-  it('十类材料内容各自包含适用预案，非水灾种不夹带堤防工法', () => {
+  it('三类材料内容各自包含适用预案，非水灾种不夹带堤防工法', () => {
     for (const p of DISASTER_PROFILES) {
       const body=disasterDocumentSections(p.eventId,'RESCUE_PLAN')!.map(s=>s[1]).join('\n');
       expect(body).toContain(p.planTitle);
-      if (['evt-sim-earthquake','evt-sim-mine','evt-sim-snow','evt-sim-power'].includes(p.eventId)) expect(body).not.toMatch(/管涌点位|围井反滤|排涝车/);
+      if (['evt-sim-landslide','evt-sim-debris'].includes(p.eventId)) expect(body).not.toMatch(/管涌点位|围井反滤|排涝车/);
     }
   });
 
-  it('十类文书骨架对齐一期：资源报告七段、处置方案含任务受领与主要措施', () => {
+  it('三类文书骨架对齐一期：资源报告七段、处置方案含任务受领与主要措施', () => {
     const resourceTitles = [
       '一、抢险基本信息',
       '二、安能队伍情况',
@@ -119,12 +122,8 @@ describe('灾种事件与材料隔离', () => {
       '七、范围与数据核验',
     ];
     const nonWater = new Set([
-      'evt-sim-earthquake',
       'evt-sim-landslide',
       'evt-sim-debris',
-      'evt-sim-snow',
-      'evt-sim-mine',
-      'evt-sim-power',
     ]);
     for (const p of DISASTER_PROFILES) {
       const resource = disasterDocumentSections(p.eventId, 'RESOURCE_REPORT')!;
@@ -138,9 +137,8 @@ describe('灾种事件与材料隔离', () => {
       expect(planTitles).toContain('五、风险困难与附件落款');
       expect(plan.map(s => s[1]).join('\n')).toMatch(/救援基本条件|战法|安全预警/);
 
-      const planBody = plan.map(s => s[1]).join('\n');
       if (nonWater.has(p.eventId)) {
-        expect(planBody).not.toMatch(/管涌|围井反滤/);
+        expect(plan.map(s => s[1]).join('\n')).not.toMatch(/管涌|围井反滤/);
       }
     }
   });

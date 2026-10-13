@@ -1,5 +1,6 @@
 /**
- * 侧栏建设四智能体：展示入口与「关联可选事件」过滤（按事件阶段对齐场景）。
+ * 侧栏建设四智能体入口配置（点选后开对话并提示关联灾情）。
+ * optionalEventsForAgent / conversationMatchesAgent 仍保留供单测与其它筛选复用。
  */
 import { resolveSeedEventStage, type EventStage } from '@/services/agentFlow';
 import { VUE_WORKSPACE_EVENTS, type VueWorkspaceEventMeta } from '@/seed/vueWorkspaceEvents';

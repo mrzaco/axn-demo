@@ -1,3 +1,4 @@
+import { useCustomerOperations } from '@/store/customerOperationsStore';
 /**
  * 一级导航对应的业务页面（需求七）：应急项目 / 智能体与 Skill / 定时任务 / 知识库。
  * 轻量展示页：企业级浅色卡片，全部数据为模拟数据。
@@ -148,27 +149,15 @@ export { default as AgentsPage } from '@/components/skills/SkillPlanningPage';
 
 /* ================= 定时任务 ================= */
 
-interface ScheduleRow {
-  scheduleId: string;
-  name: string;
-  cron: string;
-  desc: string;
-  lastRun: string;
-  status: '运行中（模拟）' | '已暂停';
-}
-
-const SCHEDULES: ScheduleRow[] = [
-  { scheduleId: 'sched-daily', name: '每日值班日报', cron: '每天 08:00', desc: '生成当日值班日报草稿并推送待补录提醒（模拟）', lastRun: '2026-09-28 08:00', status: '运行中（模拟）' },
-  { scheduleId: 'sched-patrol', name: '防汛监测巡检', cron: '每 2 小时', desc: '巡检水位监测数据并标记异常（模拟）', lastRun: '2026-09-28 20:00', status: '运行中（模拟）' },
-  { scheduleId: 'sched-resource', name: '资源状态检查', cron: '每天 07:30', desc: '检查救援队伍与装备状态并更新可用性（模拟）', lastRun: '2026-09-28 07:30', status: '已暂停' },
-];
-
 export function SchedulesPage() {
+  const operations = useCustomerOperations();
+  const schedules = operations.rules.map(r => ({ scheduleId: r.id, name: r.name, cron: `每${r.intervalSeconds}秒`, desc: `${r.metric}${r.operator}${r.threshold} → ${r.target}`, lastRun: r.lastRunAt ?? '尚未运行', status: r.enabled ? '页面运行期间启用' : '已暂停' }));
   return (
     <div className="axn-np-section" data-testid="schedules-page">
-      <PageHeader title="定时任务" sub="模拟环境中的定时任务，不执行真实调度" extra={MOCK_TAG} />
+      <PageHeader title="定时任务" sub="浏览器打开期间执行规则；全天候运行需后台调度" />
       <div className="axn-np-col">
-        {SCHEDULES.filter(s => !/值班|值守/.test(s.name)).map((s) => (
+        {!schedules.length && <Empty description="暂无监测规则（「资源数据与预警」入口已暂时下线）" />}
+        {schedules.map((s) => (
           <Card key={s.scheduleId} size="small" styles={{ body: { display: 'flex', alignItems: 'center', gap: 14 } }}>
             <Clock className="axn-np-icon-med" />
             <div className="axn-np-flex-1">

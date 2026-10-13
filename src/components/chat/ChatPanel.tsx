@@ -1,3 +1,7 @@
+import { resourceRecommendationReply } from '@/services/resourceRecommendation';
+import { monitorNoticeReply } from '@/services/monitorNoticeReply';
+import { generateRescuePlanAlternatives, openRescuePlan } from '@/services/rescuePlanAlternatives';
+import { useCustomerOperations } from '@/store/customerOperationsStore';
 import CustomerRequestPanel, { CUSTOMER_ACTIONS, type CustomerAction } from './CustomerRequestPanel';
 import {
   catalogAction,
@@ -6,10 +10,11 @@ import {
   type CatalogScenarioId,
 } from '@/seed/quickActionCatalog';
 import { tenderName, tenderTaskPrompt } from '@/seed/tenderNames';
-import { isDutyContent, isMeetingMinutesContent, SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
+import { isDutyContent, isMeetingMinutesContent, isResourceDataAlertContent, SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 import { FLOW_TASKS } from './OperationalFlows';
 import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
-import { formatResourceAuditChatReply } from '@/services/resourceAudit';
+import ResourceAuditReply from './ResourceAuditReply';
+import { resourceAuditSample } from '@/services/resourceAudit';
 import { runEventPrecipitation } from '@/services/eventPrecipitation';
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
@@ -19,6 +24,21 @@ import { runEventPrecipitation } from '@/services/eventPrecipitation';
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
+/** 与 App / global.css 的 768px 桌面断点一致。 */
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => (typeof window !== 'undefined' ? window.matchMedia(query).matches : false),
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const onChange = () => setMatches(mql.matches);
+    onChange();
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, [query]);
+  return matches;
+}
 import { hostPageChipOverride } from '@/seed/hostPageChips';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
@@ -30,7 +50,6 @@ import {
   X,
 } from 'lucide-react'
 import { Alert, App as AntdApp, Button, Dropdown, Input, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
-import { resolveEventDispatchSource } from '@/seed/eventDispatchSource';
 import type { MenuProps } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
@@ -56,7 +75,6 @@ import {
   stageChoices,
   type StageChoice,
 } from '@/services/stageConversation';
-import { CONSTRUCTION_SCENARIO_PROMPTS } from '@/seed/constructionScenarios';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
 import { factText, incidentById, incidents } from '@/seed/scenario';
 import { vueWorkspaceEventById } from '@/seed/vueWorkspaceEvents';
@@ -66,7 +84,8 @@ import {
   buildEventUnlinkBriefing,
   resolveEventStage,
 } from '@/services/eventSwitchBriefing';
-import { documentGeneratedReply } from '@/services/documentGeneratedReply';
+import { documentGeneratedReply, glanceFromSections } from '@/services/documentGeneratedReply';
+import { scheduleAutoSituationReport } from '@/services/autoSituationReport';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
 import AgentSummonCard from './AgentSummonCard';
@@ -92,48 +111,6 @@ function incidentOptionLabel(eventId: string): string {
   return vue ? `${name}（${vue.stage}）` : name;
 }
 
-/** 关联灾情选项/已选值悬浮详情（补全截断文案 + 关键元数据）。 */
-function incidentOptionDetail(value: string) {
-  if (value === BLANK_LINK) {
-    return (
-      <div className="axn-cp-select-tip">
-        <div className="axn-cp-select-tip-title">未关联事件（空白对话）</div>
-        <div>不引用具体事件资料；对话消息保持独立，可随时重新关联继续演示。</div>
-      </div>
-    );
-  }
-  const incident = incidentById.get(value);
-  const vue = vueWorkspaceEventById.get(value);
-  const name = eventDisplayName(value);
-  const stage = vue?.stage ?? '原有事件';
-  const category = vue?.category || (incident ? factText(incident.factRefs.disasterType) : '');
-  const location = vue?.location || (incident ? factText(incident.factRefs.location) : '');
-  const risks = vue?.risks || '';
-  const overview = vue?.description || (incident ? factText(incident.factRefs.incidentDescription) : '');
-  const dispatch = resolveEventDispatchSource(value);
-  const clip = (text: string, max = 96) => {
-    const normalized = text.replace(/\s+/g, ' ').trim();
-    return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}…`;
-  };
-  return (
-    <div className="axn-cp-select-tip">
-      <div className="axn-cp-select-tip-title">{name}</div>
-      <div>阶段：{stage}{category ? ` · ${category}` : ''}</div>
-      {location ? <div>位置：{location}</div> : null}
-      {dispatch ? (
-        <>
-          <div>任务来源：{dispatch.taskSource}（{dispatch.channel}）</div>
-          <div>信息类型：{dispatch.infoType} · 调用单位：{dispatch.callUnit}</div>
-          <div>发送/填报：{dispatch.sendUnit} / {dispatch.reportUnit}</div>
-        </>
-      ) : null}
-      {risks ? <div>风险：{clip(risks, 72)}</div> : null}
-      {overview ? <div className="axn-cp-select-tip-desc">{clip(overview)}</div> : null}
-      <div className="axn-cp-select-tip-note">模拟资料 · 正式结论以岗位核对为准</div>
-    </div>
-  );
-}
-
 const noopOpenDrawer: NonNullable<ChatPanelProps['onOpenDrawer']> = () => {};
 
 export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: ChatPanelProps) {
@@ -155,6 +132,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const openFlowWorkspace = (tab: typeof FLOW_TASKS[number]) => {
     useWorkspaceStore.getState().select(scope, { kind: 'flow', id: tab });
   };
+  const monitorNotices = useCustomerOperations(s => s.notices);
+  const unreadMonitorCount = monitorNotices.filter(n => n.eventId === session?.eventId && n.status === '待处理').length;
   const [customerAction, setCustomerAction] = useState<CustomerAction | null>(null);
   const [input, setInput] = useState('');
   const [clarifyValue, setClarifyValue] = useState('');
@@ -203,26 +182,33 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     setChoicePicker('');
   };
 
+  const replyResourceRecommendation = () => {
+    if (!session || busy) return;
+    const store = useSessionStore.getState();
+    const sessionId = session.sessionId;
+    store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '资源建议', taskId: null });
+    store.appendMessage(sessionId, { sessionId, role: 'assistant', kind: 'text', text: resourceRecommendationReply(session.eventId), taskId: null });
+  };
+
+  const replyMonitorNoticesInChat = () => {
+    if (!session) return;
+    const store = useSessionStore.getState();
+    const sessionId = session.sessionId;
+    const text = monitorNoticeReply(session.eventId, useCustomerOperations.getState().notices);
+    store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '查看当前监测问题', taskId: null });
+    store.appendMessage(sessionId, { sessionId, role: 'assistant', kind: 'text', text, taskId: null });
+    openFlowWorkspace('资源预警通知');
+  };
+
   const replyResourceAuditInChat = (prompt = '资源数据校验对比') => {
     if (!session || busy) return;
     const sessionId = session.sessionId;
     const store = useSessionStore.getState();
     store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: prompt, taskId: null });
     store.appendMessage(sessionId, {
-      sessionId,
-      role: 'assistant',
-      kind: 'agent',
-      taskId: null,
-      text: '正在对照基地台账与集团汇总，校验资源管理数据问题（模拟）',
-      agentName: '救援资源管理智能体',
-      agentRole: '资源数据校验对比',
-    });
-    store.appendMessage(sessionId, {
-      sessionId,
-      role: 'assistant',
-      kind: 'text',
-      taskId: null,
-      text: formatResourceAuditChatReply('异常样例'),
+      sessionId, role: 'assistant', kind: 'text', taskId: null,
+      text: '物资核验结果（模拟台账）',
+      resourceAudit: { rows: resourceAuditSample('异常样例'), checkedAt: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) },
     });
   };
 
@@ -271,14 +257,20 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       notice.info('会议纪要入口暂时隐藏');
       return;
     }
-    if (text === '资源数据校验对比' || text.includes('资源数据校验对比')) {
-      replyResourceAuditInChat('资源数据校验对比');
+    if (isResourceDataAlertContent(text)) {
+      notice.info('「资源数据与预警」暂时下线');
+      return;
+    }
+    if (text === '物资核验' || text.includes('物资核验') || text === '资源数据校验对比' || text.includes('资源数据校验对比')) {
+      replyResourceAuditInChat(text.includes('物资核验') ? '物资核验' : '资源数据校验对比');
       return;
     }
     if (text === '事件沉淀' || text.includes('事件沉淀')) {
       replyEventPrecipitationInChat('事件沉淀');
       return;
     }
+    if (text.includes('生成救援方案') || tenderTaskPrompt(text) === '生成救援方案' || normalizeCompletedAction(text) === '生成救援方案') { generateRescuePlanAlternatives(session.sessionId, session.eventId); return; }
+    if (text.includes('资源建议')) { replyResourceRecommendation(); return; }
     const directAction = CUSTOMER_ACTIONS.find(action => text.includes(action) || tenderTaskPrompt(text) === action || normalizeCompletedAction(text) === action);
     if (directAction) { setCustomerAction(directAction); return; }
     const requestedFlow = FLOW_TASKS.find(name => text === name || text === tenderName(name));
@@ -479,7 +471,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
 
   const handleQuickTask = async (raw: string) => {
     const text = normalizeCompletedAction(resolveActionPrompt(raw)) || resolveActionPrompt(raw);
-    if (text === '资源数据校验对比' || tenderName(text) === '资源数据校验对比') {
+    if (text === '物资核验' || tenderName(text) === '物资核验' || text === '资源数据校验对比' || tenderName(text) === '资源数据校验对比') {
       replyResourceAuditInChat(text);
       return;
     }
@@ -487,6 +479,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       replyEventPrecipitationInChat(text);
       return;
     }
+    if (text === '生成救援方案' || tenderTaskPrompt(text) === '生成救援方案') { if (session && !busy) generateRescuePlanAlternatives(session.sessionId, session.eventId); return; }
+    if (text === '资源建议') { replyResourceRecommendation(); return; }
     if (CUSTOMER_ACTIONS.includes(text as CustomerAction)) { setCustomerAction(text as CustomerAction); return; }
     const flowLabel = FLOW_TASKS.find(
       (name) => text === name || text === tenderName(name) || tenderTaskPrompt(text) === name,
@@ -506,6 +500,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     }
     if (isDutyContent(text)) { notice.info('值班相关内容暂时隐藏'); return; }
     if (isMeetingMinutesContent(text)) { notice.info('会议纪要入口暂时隐藏'); return; }
+    if (isResourceDataAlertContent(text)) { notice.info('「资源数据与预警」暂时下线'); return; }
     const code = text === '生成会议纪要' ? 'MEETING_MINUTES' : text === '生成应急要情' ? 'EMERGENCY_BRIEF' : null;
     if (!code) { handleSend(text); return; }
     if (!session || busy) return;
@@ -535,7 +530,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       useSessionStore.getState().recordFlowProgress(sessionId, text);
       useSessionStore.getState().appendMessage(sessionId, {
         sessionId, role: 'assistant', kind: 'text', taskId: null,
-        text: documentGeneratedReply(document.title),
+        text: documentGeneratedReply(document.title, glanceFromSections(document.sections)),
       });
     }
   };
@@ -586,14 +581,14 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       })),
     };
   }, [eventStage, pageChipOverride]);
-  // 主区只平铺当前阶段操作；其余按招标场景分组进「更多动作」（PC/手机同一套）
+  // 主区推荐当前阶段操作；更多动作保留全部智能体入口（PC/手机同一套）
   const moreActionItems: MenuProps['items'] = useMemo(() => {
     if (pageChipOverride?.hideMoreActions) return [];
     const moreMenu = QUICK_ACTION_CATALOG.moreMenu;
     const order = moreMenu.scenarioOrder;
     const groups = new Map<CatalogScenarioId, typeof chipSplit.secondary>();
     for (const id of order) groups.set(id, []);
-    for (const item of chipSplit.secondary) {
+    for (const item of [...chipSplit.primary, ...chipSplit.secondary]) {
       const scenarioId = (item.scenarioId ?? 'assistant') as CatalogScenarioId;
       const bucket = groups.get(scenarioId) ?? [];
       bucket.push(item);
@@ -640,7 +635,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       );
     }
     return items;
-  }, [pageChipOverride?.hideMoreActions, chipSplit.secondary, chipSplit.loopLabels, session?.sessionId, busy]);
+  }, [pageChipOverride?.hideMoreActions, chipSplit.primary, chipSplit.secondary, chipSplit.loopLabels, session?.sessionId, busy]);
 
   const pending = session?.pendingClarification && tasks[session.pendingClarification.taskId]?.intent !== 'doc_daily' ? session.pendingClarification : null;
   const submitClarification = () => {
@@ -685,6 +680,10 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       taskId: null,
       eventBriefingEventId: value === BLANK_LINK ? null : value,
     });
+    // 关联有效实战事件后自动汇总态势报告（模拟）
+    if (value !== BLANK_LINK) {
+      scheduleAutoSituationReport(sessionId, value, 'event_link', 0);
+    }
   };
 
   const handleLinkChange = (value: string) => {
@@ -708,31 +707,30 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     });
   };
 
-  // 关联灾情：独立成行，避免挤进 Sender suffix 把窄屏输入框压成竖排字
+  // 电脑端：关联灾情放发送钮左侧（右下角）；手机端独立成行，避免 suffix 挤爆输入框
+  const isDesktopComposer = useMediaQuery('(min-width: 768px)');
   const incidentSelect = (
-    <Tooltip title={incidentOptionDetail(linkValue)} placement="top" mouseEnterDelay={0.25}>
-      <Select
-        size="small"
-        className={`axn-cp-select${compact ? ' axn-cp-select--compact' : ''}`}
-        classNames={{ popup: { root: compact ? 'axn-cp-select-popup axn-cp-select-popup--compact' : 'axn-cp-select-popup' } }}
-        value={linkValue}
-        onChange={handleLinkChange}
-        options={linkOptions}
-        popupMatchSelectWidth={compact ? true : false}
-        optionRender={(option) => (
-          <Tooltip
-            title={incidentOptionDetail(String(option.value ?? BLANK_LINK))}
-            placement="left"
-            mouseEnterDelay={0.25}
-            destroyOnHidden
-          >
-            <span className="axn-cp-select-option-label">{option.label}</span>
-          </Tooltip>
-        )}
-        aria-label="关联灾情"
-        data-testid="chat-link-incident"
-      />
-    </Tooltip>
+    <Select
+      size="small"
+      className={`axn-cp-select${compact || isDesktopComposer ? ' axn-cp-select--compact' : ''}${isDesktopComposer ? ' axn-cp-select--inline' : ''}`}
+      classNames={{ popup: { root: compact || isDesktopComposer ? 'axn-cp-select-popup axn-cp-select-popup--compact' : 'axn-cp-select-popup' } }}
+      value={linkValue}
+      onChange={handleLinkChange}
+      options={linkOptions}
+      popupMatchSelectWidth={compact || isDesktopComposer ? false : true}
+      labelRender={(props) => (
+        <span className="axn-cp-select-option-label">
+          {props.value === BLANK_LINK
+            ? '未关联事件（空白对话）'
+            : incidentOptionLabel(String(props.value ?? ''))}
+        </span>
+      )}
+      optionRender={(option) => (
+        <span className="axn-cp-select-option-label">{option.label}</span>
+      )}
+      aria-label="关联灾情"
+      data-testid="chat-link-incident"
+    />
   );
 
   const items: BubbleItemType[] = useMemo(() => {
@@ -834,6 +832,29 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           styles: { content: { fontSize: 'var(--fs-body)', color: 'var(--axn-muted)' } },
         };
       }
+      if (m.rescuePlans) {
+        return {
+          key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
+          contentRender: () => <div className="axn-rescue-plan-reply">
+            <Text type="secondary" className="axn-rescue-plan-agent">救援方案生成智能体 · 已完成</Text>
+            <Text>{m.text}</Text>
+            <div className="axn-rescue-plan-list">
+              {m.rescuePlans!.map(plan => <div key={plan.documentId} className="axn-rescue-plan-row">
+                <span className="axn-rescue-plan-check" aria-hidden="true">✓</span>
+                <Text strong className="axn-rescue-plan-title">{plan.title}</Text>
+                <Button className="axn-rescue-plan-view" size="small" icon={<FileText size={16} />} onClick={() => openRescuePlan(m.sessionId, plan)}>查看文书</Button>
+              </div>)}
+            </div>
+          </div>,
+        };
+      }
+      if (m.resourceAudit) {
+        return {
+          key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
+          styles: { root: { alignSelf: 'stretch', minWidth: 0, width: '100%', paddingInlineEnd: 0 }, body: { flex: '1 1 0%', width: '100%', maxWidth: '100%', minWidth: 0 }, content: { width: '100%', maxWidth: '100%', minWidth: 0 } },
+          contentRender: () => <ResourceAuditReply rows={m.resourceAudit!.rows} checkedAt={m.resourceAudit!.checkedAt} />,
+        };
+      }
       if (m.eventBriefingEventId) {
         return {
           key: m.messageId,
@@ -848,6 +869,50 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               onTask={(prompt) => { void handleQuickTask(prompt); }}
               onNavigate={(path) => { navigate(path); }}
             />
+          ),
+        };
+      }
+      if (m.situationReportAuto) {
+        const auto = m.situationReportAuto;
+        return {
+          key: m.messageId,
+          role: 'ai',
+          content: m.text ?? '',
+          avatar: AVATAR,
+          contentRender: () => (
+            <div className="axn-auto-situation-report" data-testid="auto-situation-report">
+              <Text>{m.text}</Text>
+              <Space wrap size={8} style={{ marginTop: 8 }}>
+                {auto.documentId && (
+                  <Button
+                    size="small"
+                    type="primary"
+                    ghost
+                    icon={<FileText size={14} />}
+                    onClick={() => {
+                      useWorkspaceStore.getState().autoOpen(
+                        m.sessionId,
+                        `auto-situation-open:${auto.documentId}`,
+                        { kind: 'mock', id: auto.documentId! },
+                      );
+                    }}
+                  >
+                    查看态势报告
+                  </Button>
+                )}
+                {auto.openMap && (
+                  <Button
+                    size="small"
+                    type="primary"
+                    aria-label="查看态势地图"
+                    onClick={() => onOpenDrawer('resource', { tab: 'map' })}
+                  >
+                    查看态势地图
+                  </Button>
+                )}
+                <Text type="secondary" className="axn-tc-fs12">模拟数据 · 正式研判须岗位审核</Text>
+              </Space>
+            </div>
           ),
         };
       }
@@ -938,37 +1003,16 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         <div className="chat-scroll axn-home">
           <div className="axn-home-inner">
             <div className="axn-home-hero">
-              <Typography.Title level={1} className="axn-home-title">有什么我能帮你的吗？</Typography.Title>
-              <Text className="axn-home-greeting" type="secondary">您好，我是安小能（演示）</Text>
-            </div>
-            <Typography.Paragraph className="axn-home-copy">
-              可直接查询资源、核验物资或生成文书，各功能独立使用；事件阶段作为资料背景。
-            </Typography.Paragraph>
-
-            <div className="axn-home-block" data-testid="home-construction-scenarios">
-              <Text type="secondary" className="axn-tc-fs13">建设场景 · 灾情研判 / 力量投送 / 实施救援</Text>
-              <div className="axn-scenario-grid">
-                {CONSTRUCTION_SCENARIO_PROMPTS.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="axn-scenario-card"
-                    data-agent-id={item.agentId}
-                    data-scenario={item.scenario}
-                    disabled={!session || busy}
-                    title={`${item.scenario} · ${tenderName(item.agentName)}`}
-                    onClick={() => { void handleQuickTask(item.prompt); }}
-                  >
-                    <span className="axn-scenario-card-title">{tenderName(item.label)}</span>
-                    <span className="axn-scenario-card-text">{item.prompt}</span>
-                    <span className="axn-scenario-card-tag">{item.tag} · {tenderName(item.agentName)}</span>
-                  </button>
-                ))}
-              </div>
+              <Typography.Title level={1} className="axn-home-title">
+                您好，我是安小能，您的应急智能助手
+              </Typography.Title>
+              <Typography.Paragraph className="axn-home-copy">
+                您可以问我问题，也可以让我帮您写公文，或者我也可以帮您执行应急相关的任务。
+              </Typography.Paragraph>
             </div>
 
             <div className="axn-home-block" data-testid="home-chat-recommend">
-              <Text type="secondary" className="axn-tc-fs13">知识问答推荐</Text>
+              <Text type="secondary" className="axn-tc-fs13">为你推荐</Text>
               <ul className="axn-question-list">
                 {WELCOME_QUESTIONS.map((q) => (
                   <li key={q}>
@@ -986,7 +1030,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
             </div>
 
             <Text type="secondary" className="axn-tc-fs12">
-              也可直接输入指令，或在下方输入区使用快捷任务调用对应智能体。
+              也可直接输入指令，或在下方输入区使用快捷任务。
             </Text>
           </div>
         </div>
@@ -1043,6 +1087,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               {tenderName(label)}
             </Button>
           ))}
+          <Button size="small" danger={unreadMonitorCount > 0} disabled={!session} onClick={replyMonitorNoticesInChat}>监测通知（{unreadMonitorCount}）</Button>
           {(moreActionItems?.length ?? 0) > 0 ? (
             <Dropdown menu={{ items: moreActionItems }} trigger={['click']} placement="topLeft">
               <Button
@@ -1057,8 +1102,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           ) : null}
         </div>
       </div>
-      {/* 圆角输入区：灾情选择独立成行，Sender 只保留附件与发送，避免窄屏挤爆 */}
-      <div className={`axn-composer${compact ? ' axn-composer--compact' : ''}`}>
+      {/* 圆角输入区：电脑端关联灾情在发送钮左侧；手机端独立成行避免挤爆 */}
+      <div className={`axn-composer${compact ? ' axn-composer--compact' : ''}${isDesktopComposer ? ' axn-composer--desktop' : ''}`}>
         <div className="axn-composer-shell">
           <div className="axn-composer-toolbar">
             <label className="axn-stage-prompt-picker">
@@ -1094,10 +1139,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                 : `资料${session?.materials?.length ? `（${session.materials.length}）` : ''}`}
             </Button>
           </div>
-          <div className="axn-composer-event-row">
-            <span className="axn-composer-event-label">关联灾情</span>
-            {incidentSelect}
-          </div>
+          {!isDesktopComposer ? (
+            <div className="axn-composer-event-row">
+              <span className="axn-composer-event-label">关联灾情</span>
+              {incidentSelect}
+            </div>
+          ) : null}
           {pendingAttachment && (
             <div className="axn-pending-file" data-testid="pending-attachment">
               <span>
@@ -1145,6 +1192,11 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
               <span className="axn-composer-suffix">
+                {isDesktopComposer ? (
+                  <span className="axn-composer-incident-inline" data-testid="composer-incident-inline" title="关联灾情">
+                    {incidentSelect}
+                  </span>
+                ) : null}
                 {/* 发送按钮始终可见；空内容时 SendButton 自带禁用。仅附件时用自定义发送（Sender 禁空提交）。 */}
                 {runningTask == null && !input.trim() && !pendingAttachment && (
                   <SpeechButton variant="text" color="default" shape="circle" />

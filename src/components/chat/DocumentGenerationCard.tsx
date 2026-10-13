@@ -73,8 +73,8 @@ export default function DocumentGenerationCard({
           {completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : '执行中'}
         </Tag>
       </Space>
-      <Typography.Paragraph type="secondary">{message.agentRole} · 模拟</Typography.Paragraph>
-      <Steps
+      {!completed && <Typography.Paragraph type="secondary">{message.agentRole} · 模拟</Typography.Paragraph>}
+      {!completed && <Steps
         orientation="vertical"
         size="small"
         current={current}
@@ -141,7 +141,7 @@ export default function DocumentGenerationCard({
             content: current >= 2 ? '整理正文 · 编排红头格式 · 同步右侧面板' : '等待智能体调用',
           },
         ]}
-      />
+      />}
       {waiting ? (
         <Typography.Text type="secondary">等待你确认改进计划，也可以在下方对话框直接回复。</Typography.Text>
       ) : interrupted ? (

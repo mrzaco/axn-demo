@@ -48,7 +48,7 @@
 .axn-chat-page .ant-alert-message, .axn-chat-page .ant-alert-title { font-size: var(--fs-body); font-weight: 500; }
 .axn-chat-page .ant-alert-description { font-size: var(--fs-body); color: var(--axn-muted); }
 
-/* 首页：宽敞居中欢迎 + 建设场景四智能体入口 + 知识库引导问题。 */
+/* 首页：宽敞居中欢迎 + 知识库引导问题。 */
 .axn-home { display: flex; flex-direction: column; align-items: center; }
 .axn-scenario-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: var(--space-3) 0 var(--space-4); }
 .axn-scenario-card { display: flex; flex-direction: column; gap: var(--space-2); text-align: left; min-height: 118px; padding: var(--space-3); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-soft); color: var(--axn-text); cursor: pointer; transition: border-color .15s, background .15s; }
@@ -82,9 +82,10 @@
 .axn-home-inner { width: 100%; max-width: var(--measure-chat); padding: 0 var(--space-2-5); box-sizing: border-box; margin: 60px 0 0; }
 .axn-home-hero { text-align: center; margin: 0 0 34px; padding-top: clamp(26px, 7vh, 76px); }
 .axn-home-greeting { font-size: var(--fs-body); display: block; }
-.axn-home-title.ant-typography { font-size: var(--fs-hero); color: var(--axn-text); margin: 0 0 var(--space-3); letter-spacing: -.8px; }
+.axn-home-title.ant-typography { font-size: var(--fs-hero); color: var(--axn-text); margin: 0 0 var(--space-3); letter-spacing: -.8px; line-height: var(--lh-tight); }
+.axn-home-hero .axn-home-copy.ant-typography { margin: 0 auto; max-width: 36em; font-size: var(--fs-lead); line-height: var(--lh-relaxed); color: var(--axn-muted); }
 .axn-home-copy.ant-typography { margin: 0 0 18px; font-size: var(--fs-lead); line-height: var(--lh-relaxed); color: var(--axn-muted); }
-.axn-home-block { display: flex; flex-direction: column; gap: var(--space-1); }
+.axn-home-block { display: flex; flex-direction: column; gap: var(--space-1); margin-top: 8px; }
 .axn-question-list { list-style: none; margin: var(--space-3) 0 var(--space-4); padding: 0; display: grid; justify-items: start; gap: var(--space-2); max-width: var(--measure-prose); }
 .axn-question-item { display: block; position: relative; max-width: 100%; text-align: left; border: 1px solid var(--axn-border); background: var(--axn-soft); color: var(--axn-text); border-radius: var(--radius-md); padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3); font: inherit; font-size: var(--fs-body); line-height: var(--lh-normal); cursor: pointer; transition: border-color .15s, background .15s; }
 .axn-question-item::after { content: '›'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--axn-muted); }
@@ -238,8 +239,31 @@
 .axn-composer-suffix {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
+  min-width: 0;
+}
+/* 电脑端：关联灾情回到发送区右侧（输入框右下角），与 main 悬浮输入一致 */
+.axn-composer-incident-inline {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: min(220px, 40vw);
+}
+.axn-cp-select--inline.ant-select {
+  min-width: 168px !important;
+  max-width: 260px !important;
+  width: auto !important;
+  margin-inline-end: 0 !important;
+}
+.axn-composer--compact .axn-composer-incident-inline,
+.axn-assistant--split .axn-composer-incident-inline {
+  max-width: min(220px, 58%);
+}
+.axn-composer--compact .axn-cp-select--inline.ant-select,
+.axn-assistant--split .axn-cp-select--inline.ant-select {
+  min-width: 140px !important;
+  max-width: 200px !important;
 }
 .axn-composer-shell .ant-sender-content > :not(.ant-sender-prefix):not(.ant-sender-actions-list):not(.ant-sender-suffix) {
   grid-row: 1;
@@ -683,10 +707,6 @@
 .axn-cp-select.ant-select:hover .ant-select-content,
 .axn-cp-select.ant-select:hover .ant-select-selection-item { color: color-mix(in srgb, var(--axn-primary) 78%, var(--axn-text)); }
 .axn-cp-select-option-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.axn-cp-select-tip { max-width: 320px; font-size: var(--fs-meta); line-height: 1.45; }
-.axn-cp-select-tip-title { font-weight: 600; margin-bottom: 4px; }
-.axn-cp-select-tip-desc { margin-top: 4px; opacity: 0.92; }
-.axn-cp-select-tip-note { margin-top: 6px; font-size: 11px; opacity: 0.72; }
 .axn-cp-select-popup.ant-select-dropdown { min-width: 320px !important; }
 .axn-cp-select-popup .ant-select-item-option-content { overflow: hidden; }
 
@@ -723,3 +743,25 @@
   overflow: auto;
   padding: var(--space-4);
 }
+
+/* 方案回复使用固定三列，避免长标题把图标和按钮拆成独立行。 */
+.axn-rescue-plan-reply { width: 100%; min-width: 0; white-space: normal; }
+.axn-rescue-plan-list { display: flex; flex-direction: column; margin-top: 12px; }
+.axn-rescue-plan-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 12px 0; }
+.axn-rescue-plan-row + .axn-rescue-plan-row { border-top: 1px solid var(--axn-border); }
+.axn-rescue-plan-row:last-child { padding-bottom: 0; }
+.axn-rescue-plan-check { color: #15925b; line-height: 1.6; }
+.axn-rescue-plan-title { min-width: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.axn-rescue-plan-view { align-self: center; white-space: nowrap; }
+
+.axn-rescue-plan-agent { display: block; margin-bottom: 8px; font-size: var(--fs-caption); }
+
+/* 对话结果按正文阅读，执行细节按需展开。 */
+.axn-text-result { white-space: normal; overflow-wrap: anywhere; line-height: var(--lh-relaxed); }
+.axn-text-result p { margin: 0 0 8px; }
+.axn-text-result p:last-child { margin-bottom: 0; }
+.axn-text-result-time { color: var(--axn-muted); font-size: var(--fs-caption); }
+.axn-task-details { min-width: 0; }
+.axn-task-details > summary { cursor: pointer; color: var(--axn-muted); font-size: var(--fs-caption); }
+.axn-text-result.axn-qa .axn-artifact-row { display: block; padding: 0; border: 0; }
+.axn-text-result.axn-qa .axn-artifact-label::after { content: '：'; }

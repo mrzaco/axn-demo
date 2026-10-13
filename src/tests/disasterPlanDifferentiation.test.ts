@@ -11,7 +11,7 @@ import { buildDisasterSections } from '@/seed/documentTemplates';
 import { buildConstructionResult } from '@/seed/constructionScenarios';
 
 describe('分灾种方案与监测差异', () => {
-  it('十类均有主战法章节与关键监测读数', () => {
+  it('三类均有主战法章节与关键监测读数', () => {
     for (const p of DISASTER_PROFILES) {
       const tactic = disasterTacticSection(p);
       expect(tactic?.[0]).toContain('主战法');
@@ -21,31 +21,29 @@ describe('分灾种方案与监测差异', () => {
     }
   });
 
-  it('洪涝、决口、堰塞湖方案正文战法与监测字段互不串用', () => {
-    const flood = DISASTER_PROFILES.find((p) => p.category.includes('洪涝'))!;
-    const breach = DISASTER_PROFILES.find((p) => p.category.includes('决口'))!;
-    const lake = DISASTER_PROFILES.find((p) => p.category.includes('堰塞湖'))!;
+  it('洪涝决口、山体滑坡、泥石流方案正文战法与监测字段互不串用', () => {
+    const breach = DISASTER_PROFILES.find((p) => p.category.includes('洪涝决口'))!;
+    const landslide = DISASTER_PROFILES.find((p) => p.category.includes('山体滑坡'))!;
+    const debris = DISASTER_PROFILES.find((p) => p.category.includes('泥石流'))!;
 
-    const floodPlan = buildDisasterSections(flood, 'RESCUE_PLAN').map((s) => s[1]).join('\n');
     const breachPlan = buildDisasterSections(breach, 'RESCUE_PLAN').map((s) => s[1]).join('\n');
-    const lakePlan = buildDisasterSections(lake, 'RESCUE_PLAN').map((s) => s[1]).join('\n');
+    const landslidePlan = buildDisasterSections(landslide, 'RESCUE_PLAN').map((s) => s[1]).join('\n');
+    const debrisPlan = buildDisasterSections(debris, 'RESCUE_PLAN').map((s) => s[1]).join('\n');
 
-    expect(floodPlan).toMatch(/排水|内涝|抽排/);
-    expect(floodPlan).toContain('积水深度');
-    expect(breachPlan).toMatch(/立堵|合龙|裹头/);
+    expect(breachPlan).toMatch(/立堵|合龙|裹头|决口/);
     expect(breachPlan).toContain('决口宽度');
-    expect(lakePlan).toMatch(/泄流|导流|堰塞/);
-    expect(lakePlan).toContain('湖水位');
+    expect(landslidePlan).toMatch(/滑坡|清坡|支护|监测/);
+    expect(landslidePlan).toContain('坡体累计位移');
+    expect(debrisPlan).toMatch(/泥石流|清障|沟道/);
 
-    expect(floodPlan).not.toContain('决口宽度');
-    expect(breachPlan).not.toContain('积水深度');
-    expect(lakePlan).not.toContain('决口宽度');
+    expect(breachPlan).not.toContain('坡体累计位移');
+    expect(landslidePlan).not.toContain('决口宽度');
   });
 
   it('生成救援方案任务摘要带出本灾种主战法', () => {
-    const lake = DISASTER_PROFILES.find((p) => p.category.includes('堰塞湖'))!;
-    const result = buildConstructionResult('plan', lake.eventId);
-    expect(result.summary).toMatch(/主战法|泄流|导流|堰塞/);
-    expect(result.sections.some((s) => s.text.includes('泄流') || s.text.includes('导流'))).toBe(true);
+    const debris = DISASTER_PROFILES.find((p) => p.category.includes('泥石流'))!;
+    const result = buildConstructionResult('plan', debris.eventId);
+    expect(result.summary).toMatch(/主战法|泥石流|清障|沟道/);
+    expect(result.sections.some((s) => /泥石流|清障|沟道/.test(s.text))).toBe(true);
   });
 });

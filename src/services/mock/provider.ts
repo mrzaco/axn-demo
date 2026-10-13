@@ -1,3 +1,4 @@
+import { roadWeatherReply } from '../roadWeather';
 import { tenderTaskPrompt } from '@/seed/tenderNames';
 import { vueDemoResourceById } from '@/seed/vueDemoResources';
 import { disasterProfileById } from '@/seed/disasterScenarios';
@@ -23,6 +24,7 @@ import {
 import { RESCUE_EVALUATION_MOCK } from '@/seed/rescueEvaluation';
 import {
   buildChatMaterialSummary,
+  buildConstructionGlanceSummary,
   buildConstructionResult,
   hasAuthorizedResourceLedger,
   resolveConstructionCapability,
@@ -49,6 +51,10 @@ import {
 import { ensureQaLoaded, getQaItem, matchQa, qaStatusLabel } from '../qaKnowledge.js';
 import { publishConstructionMaterial } from '../agentMaterialDocument.js';
 import { documentGeneratedReply } from '../documentGeneratedReply.js';
+import {
+  rememberSituationReportFingerprint,
+  scheduleAutoSituationReport,
+} from '../autoSituationReport.js';
 import { vueDemoResourceIdsForEvent } from '@/seed/vueDemoResources';
 import type { ScenarioSectionsArtifact } from '@/domain/types';
 import { buildMultiSourceSnapshot, aggregationCounts, multiSourceMaterial } from '../multiSourceAggregation';
@@ -113,6 +119,9 @@ function teamByName(text: string, ids: string[]): string | null {
 
 export function recognize(rawText: string, ctx: { lastResourceResultIds: string[]; candidateResourceIds: string[] }): RecognizedIntent {
   const text = tenderTaskPrompt(rawText).trim();
+  if (/(需要|找|查询|查找).*(装备|物资|队伍)/.test(text) && /破拆|特殊装备|底数台账|模糊查询/.test(text)) {
+    return { intent: 'resource_query', params: { capability: 'search' }, displayTitle: '资源能力模糊查询' };
+  }
 
   // 与应急业务无关的闲聊/无关问题 → 明确兑底，不硬套灾情摘要（产品红线：未知问题不伪装成摘要）
   if (/^(今天|现在)?(天气|气温|股票|新闻|笑话|周杰伦)/.test(text) || /天气(怎么样|如何)/.test(text)) {
@@ -174,7 +183,7 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
     return { intent: 'summary', params: { capability: 'situationReport' }, displayTitle: '生成态势报告' };
   }
   if (/核对道路天气|道路与天气|道路通行.*天气|天气.*投送/.test(text)) {
-    return { intent: 'summary', params: { capability: 'situation' }, displayTitle: '核对道路天气' };
+    return { intent: 'summary', params: { capability: 'roadWeather' }, displayTitle: '核对道路天气' };
   }
   // 抢险救援知识问答（qa.json，126 条，模拟文档溯源）：归一化精确/双向包含命中，优先于含“要情/最快”等词的业务正则
   if (/查看本事件预案依据|当前事件.*预案|本事件.*预案/.test(text)) return { intent: 'knowledge', params: { currentEventPlan: true }, displayTitle: '查看本事件预案依据' };
@@ -330,7 +339,7 @@ function* publishScenarioMaterial(
       role: 'assistant',
       kind: 'text',
       taskId: null,
-      text: documentGeneratedReply(document.title),
+      text: documentGeneratedReply(document.title, buildConstructionGlanceSummary(result)),
     });
   }
 }
@@ -358,7 +367,7 @@ function hasBoundEvent(eventId: string): boolean {
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
   const demo = useDemoStore.getState();
   const paceMs = demo.pace === 'fast' ? 130 : 620;
-  const summon = summonFor(req.intent);
+  const summon = req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
   if (EVENT_BOUND_INTENTS.has(req.intent) && !hasBoundEvent(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };
@@ -478,6 +487,15 @@ async function* runEvaluation(req: Ctx, signal: AbortSignal, paceMs: number): As
 }
 
 async function* runSummary(req: Ctx, signal: AbortSignal, paceMs: number): AsyncIterable<TaskEvent> {
+  if (req.params.capability === 'roadWeather') {
+    yield { type: 'step_started', stepId: 'rw1', name: '核对当前事件的道路与天气资料' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    yield { type: 'step_completed', stepId: 'rw1', outputSummary: '缺少实时路况、交通管制和天气记录，已列明待核事项' };
+    yield { type: 'text_delta', text: roadWeatherReply(req.eventId) };
+    yield { type: 'completed', summary: '道路天气待核事项已整理' };
+    return;
+  }
   const incidentIn = incidentById.get(req.eventId);
   if (!incidentIn) throw new Error(`event ${req.eventId} not found`);
   const incident = incidentIn;
@@ -596,6 +614,13 @@ async function* runSummary(req: Ctx, signal: AbortSignal, paceMs: number): Async
     ),
   };
   yield* publishScenarioMaterial(req, construction);
+  if (capability === 'situationReport') {
+    // 手动生成后记住指纹，避免紧接着再自动推同一稿
+    rememberSituationReportFingerprint(req.sessionId, req.eventId);
+  } else {
+    // 灾情摘要完成后，按最新资料自动汇总态势报告
+    scheduleAutoSituationReport(req.sessionId, req.eventId, 'multi_source');
+  }
   yield { type: 'completed', summary: capability === 'situationReport' ? '态势报告已生成' : '灾情摘要已生成' };
 }
 
@@ -1128,7 +1153,10 @@ async function* runDocBrief(req: Ctx, signal: AbortSignal, paceMs: number): Asyn
       role: 'assistant',
       kind: 'text',
       taskId: null,
-      text: documentGeneratedReply(briefTitle),
+      text: documentGeneratedReply(
+        briefTitle,
+        '已写好要情：基本情况、先期处置、下一步干什么。没核实的先标着，核对后再报。',
+      ),
     });
     yield { type: 'completed', summary: '草稿已生成' };
   } else {
@@ -1211,7 +1239,10 @@ async function* runDocDaily(req: Ctx, signal: AbortSignal, paceMs: number): Asyn
       role: 'assistant',
       kind: 'text',
       taskId: null,
-      text: documentGeneratedReply(dailyTitle),
+      text: documentGeneratedReply(
+        dailyTitle,
+        '已写好值班日报：期间干了啥、进展如何、交接要注意什么。缺的到右侧补。',
+      ),
     });
     yield { type: 'completed', summary: '日报草稿已生成' };
   } else {

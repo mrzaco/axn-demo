@@ -1,3 +1,4 @@
+import { useCustomerOperations } from './customerOperationsStore';
 /**
  * 演示数据重置（收口）：把各 store 一起恢复到种子状态。
  *
@@ -14,6 +15,7 @@ import { useSessionStore } from './sessionStore';
 import { useWorkspaceStore } from './workspaceStore';
 
 export function resetDemoData(): void {
+  useCustomerOperations.getState().reset();
   window.localStorage.removeItem('anneng-demo:v1:original-materials');
   useSessionStore.getState().resetAll();
   useConversationStore.getState().resetAll();

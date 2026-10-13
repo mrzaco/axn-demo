@@ -5,7 +5,7 @@ import { disasterProfileById } from '@/seed/disasterScenarios';
 
 describe('聊天材料摘要与阶段提问意图', () => {
   it('协调类提问产出短摘要，含类别与演示资源名，提示看右侧文书', () => {
-    const eventId = 'evt-sim-earthquake';
+    const eventId = 'evt-sim-landslide';
     const profile = disasterProfileById.get(eventId)!;
     const prompt =
       '请结合本事件记录整理处置建议，列出现场技术、安全和保障协调事项，供业务岗位核对。';

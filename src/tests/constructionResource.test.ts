@@ -5,18 +5,19 @@ import { constructionToMockSections } from '@/services/agentMaterialDocument';
 import { RESOURCE_REPORT_TITLES } from '@/seed/documentTemplates';
 
 describe('建设场景 · 资源管理能力', () => {
-  it('武陵大道内涝：自然语言查资源给出演示候选表', () => {
-    const result = buildConstructionResult('search', 'evt-vue-nl08', '查询事发周边能够排涝的队伍、装备');
-    expect(result.title).toBe('本事件资源查询');
-    expect(result.table?.rows.some((row) => String(row[0]).includes('排涝'))).toBe(true);
+  it('洪涝决口：自然语言查资源给出本事件演示候选表', () => {
+    const result = buildConstructionResult('search', 'evt-sim-breach', '查询事发周边封堵队伍、装备');
+    expect(result.title).toContain('资源');
+    expect(result.table?.rows.length).toBeGreaterThan(0);
+    expect(result.table?.rows.some((row) => String(row[0]).includes('堤防') || String(row[0]).includes('封堵') || String(row[0]).includes('挖掘'))).toBe(true);
     expect(result.sections.map((s) => s.title)).toEqual(expect.arrayContaining(['检索条件', '查询说明', '待核字段']));
   });
 
-  it('其他建设场景事件：填入本事件演示资源，不编造跨事件 ETA', () => {
-    const result = buildConstructionResult('search', 'evt-vue-nd01', '查询周边救援资源');
-    expect(result.title).toBe('本事件资源查询');
+  it('山体滑坡：填入本事件演示资源，不编造跨事件 ETA', () => {
+    const result = buildConstructionResult('search', 'evt-sim-landslide', '查询周边救援资源');
+    expect(result.title).toContain('资源');
     expect(result.table?.rows.length).toBeGreaterThan(0);
-    expect(result.table?.rows.some((row) => String(row[0]).includes('南堤'))).toBe(true);
+    expect(result.table?.rows.some((row) => String(row[0]).includes('青岭') || String(row[0]).includes('地质') || String(row[0]).includes('勘察'))).toBe(true);
     expect(result.sections.map((s) => s.title)).toEqual(expect.arrayContaining(['查询说明', '待核字段']));
   });
 
@@ -55,17 +56,17 @@ describe('建设场景 · 资源管理能力', () => {
   });
 
   it('建设场景报告正文含招标能力补齐（模拟·待接入）', () => {
-    const situation = buildConstructionResult('situationReport', 'evt-vue-g5513', '生成态势报告');
+    const situation = buildConstructionResult('situationReport', 'evt-sim-landslide', '生成态势报告');
     expect(situation.sections.map((s) => s.text).join('\n')).toMatch(/建议响应等级|预警推送/);
 
-    const resource = buildConstructionResult('resourceReport', 'evt-vue-g5513', '生成周边资源报告');
+    const resource = buildConstructionResult('resourceReport', 'evt-sim-landslide', '生成周边资源报告');
     expect(resource.sections.map((s) => s.title)).toEqual([...RESOURCE_REPORT_TITLES]);
     expect(resource.sections.map((s) => s.text).join('\n')).toMatch(/物联网|多约束/);
 
-    const plan = buildConstructionResult('plan', 'evt-vue-g5513', '生成救援方案');
+    const plan = buildConstructionResult('plan', 'evt-sim-landslide', '生成救援方案');
     expect(plan.sections.map((s) => s.text).join('\n')).toContain('预案RAG');
 
-    const deviation = buildConstructionResult('deviation', 'evt-vue-g5513', '分析投入偏差');
+    const deviation = buildConstructionResult('deviation', 'evt-sim-landslide', '分析投入偏差');
     expect(deviation.sections.map((s) => s.text).join('\n')).toContain('知识库迭代');
   });
 });

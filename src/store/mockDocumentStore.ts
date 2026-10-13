@@ -85,7 +85,7 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
     if (!category) return null;
     const now = new Date();
     const document: MockDocument = {
-      id: `agent-${input.code}-${now.getTime()}`,
+      id: `agent-${input.code}-${crypto.randomUUID()}`,
       code: input.code,
       title: input.title,
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),

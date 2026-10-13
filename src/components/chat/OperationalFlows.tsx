@@ -266,7 +266,7 @@ export default function OperationalFlows({
                           <Alert
                             type="info"
                             title="请先关联已配置专业监测的灾种事件"
-                            description="十类模拟事件已配置独立监测指标；当前事件尚未配置专业趋势序列，不套用其他事件数据。可在侧栏关联灾情中选择。"
+                            description="三类实战事件已配置独立监测指标；当前事件尚未配置专业趋势序列，不套用其他事件数据。可在关联灾情中选择。"
                           />
                         )
                     )}
@@ -277,7 +277,7 @@ export default function OperationalFlows({
                           : (
                             <Alert
                               title="当前事件未配置专业投入基线"
-                              description="请从已生成的评估任务查看既有材料，或选择十类灾种事件填写计划与实际。"
+                              description="请从已生成的评估任务查看既有材料，或选择洪涝决口 / 山体滑坡 / 泥石流事件填写计划与实际。"
                             />
                           )}
                       </>
@@ -288,7 +288,7 @@ export default function OperationalFlows({
                         : (
                           <Alert
                             title="当前事件未配置回撤归建样例"
-                            description="请选择十类灾种事件后登记分波次回撤、损耗待修与移交签收。"
+                            description="请选择洪涝决口 / 山体滑坡 / 泥石流事件后登记分波次回撤、损耗待修与移交签收。"
                           />
                         )
                     )}

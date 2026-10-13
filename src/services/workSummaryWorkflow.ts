@@ -3,19 +3,23 @@ import type { ChatMessage } from '@/domain/types';
 import { RESCUE_EVALUATION_MOCK } from '@/seed/rescueEvaluation';
 import { DOCUMENT_CATEGORIES, type MockDocument } from '@/seed/mockDocuments';
 import { resolveDocumentTitle } from '@/seed/resolveDocumentSections';
-import { documentGeneratedReply } from '@/services/documentGeneratedReply';
+import { documentGeneratedReply, glanceFromSections } from '@/services/documentGeneratedReply';
 import { formatTimelineForDocument } from '@/services/eventTimeline';
 import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 
-function appendGeneratedReply(sessionId: string, title: string) {
+function appendGeneratedReply(
+  sessionId: string,
+  title: string,
+  sections?: Array<readonly [string, string] | { title: string; text?: string; body?: string }>,
+) {
   useSessionStore.getState().appendMessage(sessionId, {
     sessionId,
     role: 'assistant',
     kind: 'text',
     taskId: null,
-    text: documentGeneratedReply(title),
+    text: documentGeneratedReply(title, sections?.length ? glanceFromSections(sections) : undefined),
   });
 }
 
@@ -183,7 +187,7 @@ export async function generateWorkSummary(sessionId: string, text = '生成工�
   });
   update({ stage: document ? 'completed' : 'interrupted', documentId: document?.id });
   if (document) {
-    appendGeneratedReply(sessionId, document.title);
+    appendGeneratedReply(sessionId, document.title, sections);
     useKnowledgeCaseStore.getState().publishEventCase({
       eventId: session.eventId,
       source: 'summary',
@@ -213,7 +217,7 @@ export async function submitWorkSummaryImprovement(sessionId: string, messageId:
   });
   update(document ? 'completed' : 'interrupted', document?.id);
   if (document) {
-    appendGeneratedReply(sessionId, document.title);
+    appendGeneratedReply(sessionId, document.title, sections);
     const session = useSessionStore.getState().sessions[sessionId];
     if (session) {
       useKnowledgeCaseStore.getState().publishEventCase({

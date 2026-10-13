@@ -20,9 +20,9 @@ describe('quickActionCatalog', () => {
   });
 
   it('研判/投送/救援中主推核心功能；待复盘主推复盘动作', () => {
-    const expected = ['物资核验', '查询周边救援资源', '生成救援方案', '生成态势报告'];
-    expect(stageChipConfig('待研判').primary).toEqual(expected);
-    expect(primaryLabelsForStage('力量投送中')).toEqual(expected);
+    expect(stageChipConfig('待研判').primary).toEqual(['生成灾情摘要', '态势研判预警', '生成态势报告', '核对道路天气', '资源建议']);
+    expect(primaryLabelsForStage('力量投送中')).toEqual(['查询周边救援资源', '核对资源状态', '物资核验', '生成周边资源报告', '资源建议']);
+    expect(primaryLabelsForStage('救援中')[0]).toBe('生成救援方案');
     expect(loopLabelsForStage('救援中')).toEqual([]);
     expect(primaryLabelsForStage('待复盘')).toEqual(['复盘总结', '事件沉淀']);
     expect(loopLabelsForStage('待复盘')).toEqual(['补充态势研判', '返回力量投送']);

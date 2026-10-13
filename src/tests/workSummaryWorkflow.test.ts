@@ -35,7 +35,7 @@ describe('workSummaryWorkflow 文书落地', () => {
   });
 
   it('自动收集后直接生成文书，不停留在逐步问答', async () => {
-    const sessionId = useSessionStore.getState().ensureSessionForEvent('evt-vue-g5513');
+    const sessionId = useSessionStore.getState().ensureSessionForEvent('evt-sim-landslide');
     const run = generateWorkSummary(sessionId, '生成工作总结');
     await vi.advanceTimersByTimeAsync(5000);
     await run;
@@ -43,7 +43,7 @@ describe('workSummaryWorkflow 文书落地', () => {
       .find((m) => m.documentWorkflow)?.documentWorkflow;
     expect(workflow?.stage).toBe('completed');
     expect(workflow?.collectedCount).toBe(6);
-    expect(workflow?.collection?.[5]?.answer).toBe(defaultWorkSummaryImprovement('evt-vue-g5513'));
+    expect(workflow?.collection?.[5]?.answer).toBe(defaultWorkSummaryImprovement('evt-sim-landslide'));
     expect(workflow?.documentId).toBeTruthy();
     const doc = useMockDocumentStore.getState().libraries[sessionId]?.documents
       .find((d) => d.id === workflow?.documentId);
@@ -52,7 +52,7 @@ describe('workSummaryWorkflow 文书落地', () => {
   });
 
   it('历史 waiting_input 仍可提交改进后生成', async () => {
-    const sessionId = useSessionStore.getState().ensureSessionForEvent('evt-vue-g5513');
+    const sessionId = useSessionStore.getState().ensureSessionForEvent('evt-sim-landslide');
     const message = useSessionStore.getState().appendMessage(sessionId, {
       sessionId,
       role: 'assistant',
@@ -95,7 +95,7 @@ describe('workSummaryWorkflow 文书落地', () => {
   });
 
   it('完成后清空文书库仍可按 reportSections 重建并打开', async () => {
-    const sessionId = useSessionStore.getState().ensureSessionForEvent('evt-vue-g5513');
+    const sessionId = useSessionStore.getState().ensureSessionForEvent('evt-sim-landslide');
     const run = generateWorkSummary(sessionId, '生成工作总结');
     await vi.advanceTimersByTimeAsync(5000);
     await run;

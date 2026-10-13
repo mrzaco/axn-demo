@@ -1,3 +1,4 @@
+import { DISASTER_PROFILES } from '@/seed/disasterScenarios';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildMultiSourceSnapshot, aggregationCounts, multiSourceMaterial } from '@/services/multiSourceAggregation';
 import { useDemoStore } from '@/store/demoStore';
@@ -16,10 +17,13 @@ describe('六源汇聚', () => {
     expect(publicRecords.every(r => r.verification === '待核实')).toBe(true);
     expect(snapshot.event.sources.flatMap(s => s.records).every(r => r.refs.length > 0)).toBe(true);
   });
-  it('其他事件不复用首个事件的舆情、气象、地质或影像样例', () => {
+  it('其他事件使用独立的六源模拟记录，不复用首个事件的样例', () => {
     const snapshot = buildMultiSourceSnapshot('evt-demo-002');
     for (const kind of ['舆情', '气象', '地质', '现场影像']) {
-      expect(snapshot.event.sources.find(s => s.kind === kind)?.records).toEqual([]);
+      const records = snapshot.event.sources.find(s => s.kind === kind)!.records;
+      expect(records.length).toBeGreaterThan(0);
+      expect(records.every(record => record.id.startsWith('evt-demo-002'))).toBe(true);
+      expect(records.every(record => record.source.includes('模拟'))).toBe(true);
     }
     expect(JSON.stringify(snapshot.event)).not.toContain('evt-demo-001');
   });
@@ -38,4 +42,14 @@ describe('六源汇聚', () => {
     expect(material.section.text).toContain('未接入视觉模型');
     expect(material.section.text).toContain('待核实');
   });
+});
+
+it('三类实战灾种态势报告均覆盖六类来源，保留事件独立引用和模拟标识', () => {
+  for (const profile of DISASTER_PROFILES) {
+    const snapshot = buildMultiSourceSnapshot(profile.eventId);
+    expect(aggregationCounts(snapshot.event.sources).covered).toBe(6);
+    expect(snapshot.event.sources.every(group => group.records.length > 0)).toBe(true);
+    expect(multiSourceMaterial(snapshot).table.rows.every(row => row[2] !== '0/0')).toBe(true);
+    expect(snapshot.event.sources.flatMap(group => group.records).every(record => record.refs.length > 0)).toBe(true);
+  }
 });

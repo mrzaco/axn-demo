@@ -27,8 +27,8 @@ function bodyOf(eventId: string, code: string): string {
 
 describe('resolveDocumentSections 消除纯架子占位', () => {
   it.each([
-    ['evt-vue-nl08', '武陵'],
-    ['evt-sim-earthquake', '岚川'],
+    ['evt-sim-breach', '南湾|决口|洪涝'],
+    ['evt-sim-landslide', '青岭|滑坡'],
     ['evt-demo-001', '清河'],
   ] as const)('%s 要情/方案正文含事件线索且不含占位万能句', (eventId, tip) => {
     for (const code of ['EMERGENCY_BRIEF', 'RESCUE_PLAN', 'RESOURCE_REPORT'] as const) {
@@ -39,7 +39,7 @@ describe('resolveDocumentSections 消除纯架子占位', () => {
   });
 
   it('各文种标题齐套且段落均有场景化正文', () => {
-    for (const eventId of ['evt-vue-nl08', 'evt-sim-earthquake', 'evt-demo-001']) {
+    for (const eventId of ['evt-sim-breach', 'evt-sim-landslide', 'evt-demo-001']) {
       for (const code of CODES) {
         const sections = resolveDocumentSections(eventId, code);
         expect(sections.length).toBeGreaterThan(0);
@@ -50,8 +50,8 @@ describe('resolveDocumentSections 消除纯架子占位', () => {
   });
 
   it('文书标题优先用事件名而非通用 topics', () => {
-    expect(resolveDocumentTitle('evt-vue-nl08', '应急抢险要情', '险情处置要情')).toContain('武陵大道');
-    expect(resolveDocumentTitle('evt-sim-earthquake', '应急抢险要情')).toContain('岚川');
+    expect(resolveDocumentTitle('evt-sim-breach', '应急抢险要情', '险情处置要情')).toContain('南湾');
+    expect(resolveDocumentTitle('evt-sim-landslide', '应急抢险要情')).toContain('青岭');
     expect(resolveDocumentTitle('evt-demo-001', '应急抢险要情')).toMatch(/清河|堤防/);
   });
 
@@ -67,16 +67,16 @@ describe('resolveDocumentSections 消除纯架子占位', () => {
     }
   });
 
-  it('mockDocumentStore.generate 对 Vue 事件写入填充正文', async () => {
+  it('mockDocumentStore.generate 对实战事件写入填充正文', async () => {
     useSessionStore.getState().resetAll();
-    const sid = useSessionStore.getState().ensureSessionForEvent('evt-vue-nl08');
+    const sid = useSessionStore.getState().ensureSessionForEvent('evt-sim-breach');
     useMockDocumentStore.setState({ libraries: { [sid]: { ...EMPTY_LIBRARY, documents: [], selected: null, generatingCode: null, working: {} } } });
     const doc = await useMockDocumentStore.getState().generate(sid, 'EMERGENCY_BRIEF');
     expect(doc).toBeTruthy();
-    expect(doc!.title).toContain('武陵大道');
+    expect(doc!.title).toContain('南湾');
     const body = doc!.sections.map((s) => s[1]).join('\n');
     expect(body).not.toContain(DOCUMENT_SKELETON_FORBIDDEN);
-    expect(body).toMatch(/武陵|内涝/);
+    expect(body).toMatch(/南湾|决口|洪涝/);
     useSessionStore.getState().resetAll();
   });
 });

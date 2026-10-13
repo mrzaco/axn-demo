@@ -177,8 +177,8 @@ export function splitQuickTasksByStage(stage: EventStage | null): {
   const visibleTasks = AGENT_QUICK_TASKS.filter((t) => !isHiddenPrototypeAction(t.label));
   if (!stage) {
     return {
-      primary: ['物资核验', '查询周边救援资源', '生成救援方案', '生成态势报告'].flatMap(label => visibleTasks.filter(t => t.label === label)),
-      secondary: visibleTasks.filter(t => !['物资核验', '查询周边救援资源', '生成救援方案', '生成态势报告'].includes(t.label)),
+      primary: primaryLabelsForStage('待研判').flatMap(label => visibleTasks.filter(t => t.label === label)),
+      secondary: visibleTasks.filter(t => !primaryLabelsForStage('待研判').includes(t.label)),
       loopLabels: [],
       scenarioLabel: null,
       agentLabel: null,
@@ -313,7 +313,8 @@ export function filterFollowUpLabels(
 ): string[] {
   const key = normalizeCompletedAction(completedActionRaw);
   const chained = ACTION_FOLLOW_UP_LABELS[key] ?? [];
-  const intersected = chained.filter(label => !isHiddenPrototypeAction(label));
+  const allowed = new Set([...primaryLabelsForStage(stage), ...loopLabelsForStage(stage), ARCHIVE_NAV_LABEL, '专家知识问答']);
+  const intersected = chained.filter(label => allowed.has(label) && !isHiddenPrototypeAction(label));
   if (intersected.length > 0) {
     return unique(intersected.filter((label) => normalizeCompletedAction(label) !== key));
   }

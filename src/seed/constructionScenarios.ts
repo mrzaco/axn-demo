@@ -1,3 +1,4 @@
+import { eventEssentials } from '@/services/eventEssentials';
 /**
  * 建设场景 · 四智能体演示内容
  * 文案与能力口径对齐 Vue 原型 doc-emergency-anneng（conversationCapabilities / AnnengEntry），
@@ -33,8 +34,8 @@ export type ConstructionCapability =
   | 'deviation'
   | 'summary';
 
-/** Vue 默认演示事件（武陵大道内涝），对齐 eventWorkspace.defaultEventId。 */
-export const VUE_DEFAULT_RESOURCE_EVENT_ID = 'evt-vue-nl08';
+/** 资源演示默认事件（三类实战场景中的洪涝决口）。 */
+export const VUE_DEFAULT_RESOURCE_EVENT_ID = 'evt-sim-breach';
 
 export interface ConstructionSection {
   title: string;
@@ -195,6 +196,8 @@ function searchResultFromResources(
   table: ConstructionTable,
 ): ConstructionResult {
   const query = userInput || '查询事发周边队伍、保障单元、装备、物资、专家，以及学校、医院、宾馆、加油站等影响目标';
+  const demolitionSearch = /破拆|破碎|拆除|切割/.test(query);
+  if (demolitionSearch) table = { ...table, rows: table.rows.filter(row => /破拆|破碎|拆除|切割/.test(row.join(' '))) };
   const vue = vueWorkspaceEventById.get(eventId);
   const ctx = eventContext(eventId);
   const nl = resourceCapabilitySupplement({
@@ -207,7 +210,7 @@ function searchResultFromResources(
     capability: 'search',
     agentId: 'agent-resource',
     title: '本事件资源查询',
-    summary: '已按本事件演示资料整理候选资源；数量与可出动状态待岗位核对，未取得数量不按零处理。支持联动查看列表 / 态势地图分布示意。',
+    summary: demolitionSearch && !table.rows.length ? '本事件演示台账暂无明确具备破拆能力的匹配记录，请补充专业装备和队伍台账；不将其他资源当作破拆资源。' : '已按本事件演示资料整理候选资源；数量与可出动状态待岗位核对，未取得数量不按零处理。支持联动查看列表 / 态势地图分布示意。',
     table,
     sections: [
       { title: '检索条件', text: query },
@@ -380,7 +383,7 @@ export function resolveConstructionCapability(
   return null;
 }
 
-export function buildConstructionResult(
+function buildConstructionResultInternal(
   capability: ConstructionCapability,
   eventId: string,
   userInput = '',
@@ -551,31 +554,50 @@ export function buildConstructionResult(
     case 'situationReport': {
       const support = situationSupportResources(eventId, ctx.location, ctx.isFlood);
       const realtime = teamPersonnelRealtime(eventId);
+      const profile = disasterProfileById.get(eventId);
+      // 三类实战：与 documentTemplates 四章瘦身骨架对齐；附表保留供指挥核对。
+      if (profile) {
+        const templated = disasterDocumentSections(eventId, 'SITUATION_REPORT') ?? [];
+        return {
+          capability,
+          agentId: 'agent-situation',
+          title: '灾情态势报告初稿',
+          summary: '标准化四章研判报告（模拟）：概况、安全态势与灾种监测侧重、力量时效、安全场所与医疗核查。先专家组评估再展开救援。',
+          table: realtime.table,
+          tables: [
+            { title: '安全区域（约100公里演示圈层）', ...support.safeZones },
+            { title: '可出动救援队伍', ...support.deployableTeams },
+            { title: '医院等医疗资源', ...support.hospitals },
+          ],
+          sections: templated.map(([title, text]) => ({ title, text })),
+          notice: NOTICE,
+          dataTime: profile.capturedAt,
+        };
+      }
       return {
         capability,
         agentId: 'agent-situation',
         title: '灾情态势报告初稿',
-        summary: '报告包含灾情概况、安全态势与次生预警关注、队伍人员状态时效、约 100 公里圈层内安全区域/学校、可出动救援队伍、医院及宾馆加油站等影响目标（模拟 · 待人工核对）。先专家组评估，再展开救援。',
+        summary: '报告包含灾情概况、安全态势、队伍人员状态时效与医疗资源核查（模拟 · 待人工核对）。',
         table: realtime.table,
         tables: [
           { title: '安全区域（约100公里演示圈层）', ...support.safeZones },
           { title: '可出动救援队伍', ...support.deployableTeams },
           { title: '医院等医疗资源', ...support.hospitals },
-          { title: '影响分析目标（宾馆/加油站/保障/专家）', ...support.impactTargets },
         ],
         sections: [
-          { title: '灾情概况', text: `${timeline}\n研判口径：先成立专家组完成风险隐患评估，再展开救援。` },
+          { title: '一、灾情概况', text: `${timeline}\n研判口径：先成立专家组完成风险隐患评估，再展开救援。` },
           {
-            title: '安全态势与发展关注',
-            text: `主要风险：${ctx.risks}。能监测·会预警：次生灾害监测指标与预警触发待核；需补连续监测和现场勘察。演示检索圈层约 100 公里，不代表灾害边界。\n道路与天气：${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}\n\n${sitSup.multiSourceAndLevel}\n\n${sitSup.warningPush}`,
+            title: '二、安全态势与发展关注',
+            text: `主要风险：${ctx.risks}。道路与天气：${roadWeatherDemo(ctx.disasterType, ctx.isFlood)}。六源与监测缺项保持待核。`,
           },
           {
-            title: '队伍与人员状态时效',
-            text: `${realtime.text} 态势报告优先列出状态更新时间与可出动核对事项，避免把历史名册当作实时力量。\n\n${sitSup.resourceOverlay}`,
+            title: '三、队伍与人员状态时效',
+            text: `${realtime.text} 过期快照不直接当作可出动。\n救援力量背景：${resources}`,
           },
           {
-            title: '资源信息核对提示',
-            text: `${support.note}\n检索范围覆盖队伍、装备、物资、专家、保障单元，以及学校、医院、宾馆、加油站等影响目标。\n救援力量背景：${resources}`,
+            title: '四、安全场所与医疗资源核查',
+            text: `${support.note}\n可打开「态势地图」查看分布示意（模拟·非测距）。`,
           },
         ],
         notice: NOTICE,
@@ -885,6 +907,142 @@ function clipPlain(text: string, max: number): string {
   return `${normalized.slice(0, max - 1)}…`;
 }
 
+/** 去掉时间戳、台账/快照等技术话，只留一线能听懂的业务字。 */
+function plainBizText(text: string, max = 48): string {
+  const cleaned = text
+    .replace(/\d{4}-\d{2}-\d{2}T[\d:.+-]+/g, '')
+    .replace(/\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?/g, '')
+    .replace(/资料时间[：:\s]*[^。；]*/g, '')
+    .replace(/台账[^。；]*/g, '')
+    .replace(/快照[^。；]*/g, '')
+    .replace(/IoT[^。；]*/gi, '')
+    .replace(/ETA[^。；]*/gi, '')
+    .replace(/授权[^。；]*/g, '')
+    .replace(/（模拟[^）]*）/g, '')
+    .replace(/·待核/g, '')
+    .replace(/演示[·・]?/g, '')
+    .replace(/未接真实定位（示意）/g, '')
+    .replace(/[/／]\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[；;]{2,}/g, '；')
+    .replace(/^[；;。.\s]+|[；;。.\s]+$/g, '')
+    .trim();
+  return clipPlain(cleaned, max);
+}
+
+function simplifyLoc(raw: string): string {
+  const part = raw.split(/[/／]/)[0]?.trim() ?? raw;
+  return plainBizText(part, 16);
+}
+
+function simplifyStatus(raw: string): string {
+  const head = raw.split(/[·・]/)[0]?.trim() ?? raw;
+  const bit = plainBizText(head, 12);
+  if (/可出动|可调用|可用/.test(bit)) return '可出动';
+  if (/待核|待确认|缺失/.test(bit)) return '待确认';
+  if (/占用|不可|忙碌/.test(bit)) return '暂不可用';
+  return bit || '待确认';
+}
+
+/** 从建设结果表格汇总周边资源分布，供对话「速览」扫读。 */
+function resourceDistributionGlance(result: ConstructionResult): string {
+  const table = result.table
+    ?? result.tables?.find((t) => /资源|候选|队伍|装备|人装/.test(t.title))
+    ?? result.tables?.[0];
+  if (!table?.rows.length) {
+    return '暂未查到可用力量，请到右侧补核后再查。';
+  }
+  const typeIdx = table.headers.findIndex((h) => /类型|类别/.test(h));
+  const locIdx = table.headers.findIndex((h) => /位置|距离/.test(h));
+  const statusIdx = table.headers.findIndex((h) => /状态/.test(h));
+  const counts = new Map<string, number>();
+  for (const row of table.rows) {
+    const kind = typeIdx >= 0 ? String(row[typeIdx] ?? '').trim() || '其他' : '力量';
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  const byType = [...counts.entries()].map(([k, v]) => `${k}${v}`).join('、');
+  const samples = table.rows.slice(0, 3).map((row) => {
+    const name = plainBizText(String(row[0] ?? ''), 18);
+    if (!name) return '';
+    const loc = locIdx >= 0 ? simplifyLoc(String(row[locIdx] ?? '')) : '';
+    const status = statusIdx >= 0 ? simplifyStatus(String(row[statusIdx] ?? '')) : '';
+    if (loc && status) return `${name}（${loc}，${status}）`;
+    if (loc) return `${name}（${loc}）`;
+    if (status) return `${name}（${status}）`;
+    return name;
+  }).filter(Boolean);
+  return `共找到 ${table.rows.length} 处（${byType}）。主要有：${samples.join('；')}。详情看右侧，需要可点地图看位置。`;
+}
+
+/**
+ * 文书生成后对话气泡用的一眼速览：短句、口语、只谈业务；不拼内部 summary（常含时间戳/台账说明）。
+ */
+export function buildConstructionGlanceSummary(result: ConstructionResult): string {
+  const { capability } = result;
+  if (capability === 'search' || capability === 'resourceReport') {
+    return resourceDistributionGlance(result);
+  }
+  if (capability === 'update') {
+    const rows = result.table?.rows ?? [];
+    const n = rows.length;
+    if (!n) return '暂无待核力量，请到右侧补充后再核对。';
+    const names = rows.slice(0, 3).map((row) => plainBizText(String(row[0] ?? ''), 14)).filter(Boolean);
+    const nameBit = names.length ? `包括：${names.join('、')}。` : '';
+    return `有 ${n} 项要核对。${nameBit}人数和能不能出动分开看，旧数不要当还能用。详情看右侧。`;
+  }
+  if (capability === 'group') {
+    const names = (result.table?.rows ?? [])
+      .slice(0, 3)
+      .map((row) => plainBizText(String(row[0] ?? ''), 14))
+      .filter(Boolean);
+    if (names.length) return `编组建议已出。涉及：${names.join('、')}。人数由现场负责人敲定，详情看右侧。`;
+    const hint = result.sections.find((s) => /编组|人装|依据/.test(s.title));
+    const bit = hint ? plainBizText(hint.text, 40) : '';
+    return bit ? `编组建议已出。${bit}。人数由现场负责人敲定。` : '编组建议已出，人数由现场负责人敲定。详情看右侧。';
+  }
+  if (capability === 'situation' || capability === 'situationReport') {
+    const overview = result.sections.find((s) => /灾情概况|当前依据/.test(s.title));
+    const risk = result.sections.find((s) => /安全态势|风险|监测/.test(s.title));
+    const where = overview ? plainBizText(overview.text, 36) : '';
+    const danger = risk ? plainBizText(risk.text, 36) : '';
+    if (where && danger) return `灾情：${where}。风险：${danger}。详情看右侧。`;
+    if (where) return `灾情：${where}。详情看右侧。`;
+    if (danger) return `风险：${danger}。详情看右侧。`;
+    return '态势报告已整理，先看清情况再行动。详情看右侧。';
+  }
+  if (capability === 'plan') {
+    const measure = result.sections.find((s) => /主要措施|任务|基本情况/.test(s.title));
+    const bit = measure ? plainBizText(measure.text, 44) : '';
+    return bit
+      ? `处置方案已出。要点：${bit}。先评估再行动，详情看右侧。`
+      : '处置方案已出。先评估再行动，步骤看右侧。';
+  }
+  if (capability === 'revise') {
+    const feedback = result.sections.find((s) => /反馈|修订/.test(s.title));
+    const bit = feedback ? plainBizText(feedback.text, 40) : '';
+    return bit ? `方案需调整。${bit}。改哪些章节看右侧。` : '方案需按现场情况调整，改哪些章节看右侧。';
+  }
+  if (capability === 'deviation') {
+    const rows = result.table?.rows ?? [];
+    if (!rows.length) return '计划与实际对照已整理，偏差原因还要现场确认。详情看右侧。';
+    const gaps = rows
+      .filter((row) => {
+        const d = String(row[2] ?? '');
+        return d && !/^0/.test(d.trim()) && !/达到|无偏差/.test(d);
+      })
+      .slice(0, 2)
+      .map((row) => `${plainBizText(String(row[0] ?? ''), 10)}${plainBizText(String(row[2] ?? ''), 12)}`);
+    const gapBit = gaps.length ? `主要差：${gaps.join('；')}。` : '整体接近计划。';
+    return `对照 ${rows.length} 项。${gapBit}原因待现场确认，详情看右侧。`;
+  }
+  if (capability === 'summary') {
+    const gaps = result.sections.find((s) => /不足|改进/.test(s.title));
+    const bit = gaps ? plainBizText(gaps.text, 40) : '';
+    return bit ? `复盘要点：${bit}。下一步谁负责看右侧。` : '复盘材料已整理，不足和改进看右侧。';
+  }
+  return '材料已整理，关键内容看右侧。';
+}
+
 /**
  * 聊天区材料类回复：1～2 段摘要，对应提问意图；完整章节进右侧文书，避免与文稿重复堆叠。
  * 摘要中保留事件类别与演示资源名，便于事件隔离断言。
@@ -933,4 +1091,13 @@ export function buildChatMaterialSummary(
   return [askBit + '已完成整理（模拟）。', [focus, resourceHint, extraTail].filter(Boolean).join(' '), closer]
     .filter(Boolean)
     .join('\n\n');
+}
+
+/** 总结与态势文稿统一列明六项事件要素，候选资源不冒充实际部署。 */
+export function buildConstructionResult(...args: Parameters<typeof buildConstructionResultInternal>): ConstructionResult {
+  const result = buildConstructionResultInternal(...args);
+  if (args[0] === 'situation' || args[0] === 'situationReport') {
+    return { ...result, sections: [{ title: '事件关键要素', text: eventEssentials(args[1]) }, ...result.sections] };
+  }
+  return result;
 }

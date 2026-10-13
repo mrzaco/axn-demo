@@ -1,5 +1,5 @@
 /**
- * 一期过程公文 / 处置方案材料对齐的文书章节骨架与十类灾种填充。
+ * 一期过程公文 / 处置方案材料对齐的文书章节骨架与三类实战灾种填充。
  * 章节名固定；正文随 DisasterProfile 变化。不写入历史案例人数/联系人。
  * 仅 type-only 引用 profile，避免与 disasterScenarios / eventTimeline 循环依赖。
  */
@@ -198,27 +198,33 @@ function overviewLine(p: DisasterProfile): string {
   ].join('\n');
 }
 
+/**
+ * 态势报告四章瘦身填空：灾种监测侧重放在第二节；缺项写待核/缺测，不编造。
+ * 页脚声明由物化「说明」与自动推送文案补充。
+ */
 function buildSituationReport(p: DisasterProfile): DocumentSection[] {
-  const teams = formatList(teamResources(p), '本事件尚无队伍候选记录，可出动状态与更新时间待核。');
-  const hospitals = formatList(hospitalResources(p), '医院接诊容量、路线及属地联系人待卫健岗位确认。');
-  const secondary = p.riskDistribution.map((r) => `${r.area}：${r.count}条模拟风险线索`).join('\n');
-  const sit = situationCapabilitySupplement(tenderCtx(p));
+  const teams = formatList(teamResources(p), '本事件尚无队伍候选记录，状态与更新时间待核。');
+  const hospitals = formatList(hospitalResources(p), '医院接诊容量、路线及属地联系人待核。');
+  const focus = keyMonitoringLine(p, 5) || '缺测';
+  const riskHint = p.riskDistribution.length
+    ? p.riskDistribution.slice(0, 3).map((r) => `${r.area}（${r.count}）`).join('；')
+    : '待核';
   return [
     [
       '一、灾情概况',
-      `${overviewLine(p)}\n研判口径：到达现场不盲目施救，先成立专家组完成风险隐患评估，再展开救援（演示）。`,
+      `${overviewLine(p)}\n（模拟资料）研判口径：先成立专家组完成风险隐患评估，再展开救援。`,
     ],
     [
       '二、安全态势与发展关注',
-      `主要风险：${p.risks}\n次生灾害关注：\n${secondary || '次生风险线索待补'}\n能监测·会预警：监测指标见下；预警触发阈值与推送责任人待核。\n监测（模拟）：\n${disasterMonitoringText(p)}\n安全范围由专业勘察确认；演示检索圈层约 100 公里，不等于灾害边界。\n\n${sit.multiSourceAndLevel}\n\n${sit.warningPush}`,
+      `主要风险：${p.risks}\n灾种关键监测（最新·模拟）：\n${focus}\n风险线索摘要：${riskHint}\n六源汇聚：按本事件模拟资料汇总，缺源保持待核，不套用其他灾种数值。\n缺口：${p.gaps}`,
     ],
     [
       '三、队伍与人员状态时效',
-      `${teams}\n配套装备与物资候选（模拟）：\n${formatList(equipmentResources(p), '装备与物资明细待核。')}\n台账常见维护周期最长约半年；可出动状态必须以状态更新时间为准，过期快照不直接出动。冲突值保留来源并人工确认。候选资源未形成正式调派。\n\n${sit.resourceOverlay}`,
+      `${teams}\n装备/物资候选（模拟）：\n${formatList(equipmentResources(p), '装备与物资明细待核。')}\n可出动状态以更新时间为准；过期快照不直接出动。候选≠已调派（模拟）。`,
     ],
     [
       '四、安全场所与医疗资源核查',
-      `演示检索圈层：事发地周边约 100 公里内空旷场所、学校等（演示口径，非本事件已确认安全边界）。\n空旷集结 / 学校：${p.location}外围约 100 公里内场所名称、开放状态与容量待核；学校不自动认定为安全安置场所。\n宾馆、加油站等影响分析目标：名称、距离、可用性待核。\n医疗：${hospitals}`,
+      `演示检索圈层约 100 公里（≠灾害边界）。\n空旷集结/学校：${p.location}外围场所开放状态与容量待核；学校不自动认定为安置场所。\n医疗：${hospitals}\n宾馆/加油站等影响目标可用性待核。\n可在对话打开「态势地图」查看分布示意（模拟·非测距）。`,
     ],
   ];
 }
@@ -458,7 +464,7 @@ function buildKnowledge(p: DisasterProfile): DocumentSection[] {
   ];
 }
 
-/** 按一期对齐骨架填充十类灾种文书章节。 */
+/** 按一期对齐骨架填充三类实战灾种文书章节。 */
 export function buildDisasterSections(profile: DisasterProfile, code: string): DocumentSection[] {
   switch (code as DisasterDocCode | string) {
     case 'MEETING_MINUTES':

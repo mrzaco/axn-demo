@@ -46,6 +46,23 @@ function sourceEvent(eventId: string): DisasterSourceEvent {
       { id: `${eventId}-gov-fax`, title: '属地政府传真资料（演示）', content: `${profile.location}政府传真件目录登记。非正式台账，待结构化入库。`, source: '属地政府·传真（本地模拟）', capturedAt: profile.capturedAt, version: 'V1-demo', refs: [`demo-source:${eventId}:gov-fax`], verification: '待核实' },
     ]);
   }
+  // 每个有效事件补齐独立的模拟监测来源，已有记录优先保留。
+  const capturedAt = profile?.capturedAt ?? receipt?.capturedAt ?? DEMO_CLOCK;
+  const category = factDisplay(incident.factRefs.disasterType, scope);
+  const demoContent: Record<DisasterSourceKind, string> = {
+    舆情: `${title}相关信息样例：属地渠道收到道路受影响与救援进展咨询2条；地点为${location}，线索需复核，不据此认定伤亡。`,
+    气象: `${location}模拟气象站：近1小时降雨量2.6毫米，气温22℃，风速3.2米/秒，能见度5公里；仅演示监测快照，不代表实况或预报。`,
+    水文: `${location}周边模拟水文点：水位1.25米（相对演示基准），流量0.8立方米/秒；仅演示区域水情背景，不作为${category}处置依据。`,
+    地质: `${location}模拟地质监测点：位移0.6毫米、裂缝宽度1.2毫米；示例测点与数值不代表现场勘察或稳定性结论。`,
+    现场影像: `${location}现场影像目录样例：全景、道路与作业面各1份；仅演示资料登记，未进行视觉识别。`,
+    接报记录: `${title}模拟接报：已登记事件位置、险情类型及处置状态，待值班岗位核对。`,
+  };
+  for (const kind of DISASTER_SOURCE_KINDS) {
+    if (sources.find(group => group.kind === kind)!.records.length) continue;
+    put(kind, [{ id: `${eventId}-demo-${kind}`, title: `${kind}监测记录（模拟）`, content: demoContent[kind],
+      source: `${kind}监测适配器（本地模拟）`, capturedAt, version: 'V1-demo',
+      refs: [`demo-source:${eventId}:${kind}`], verification: '待核实' }]);
+  }
   return { eventId, title, location, sources };
 }
 export function buildMultiSourceSnapshot(eventId: string): MultiSourceSnapshot {
@@ -63,6 +80,6 @@ export function multiSourceMaterial(snapshot: MultiSourceSnapshot) {
   const counts = aggregationCounts(snapshot.event.sources);
   return {
     section: { title: '多源数据汇聚', text: `当前事件覆盖${counts.covered}/6类来源，原始${counts.raw}条，归并后${counts.merged}条，${counts.pending}条待核线索。\n${snapshot.event.sources.map(s => `${s.kind}：${s.records.filter(r => !r.duplicateOf).map(r => `${r.content}（${r.source}；${r.capturedAt}；${r.verification}）`).join('；') || s.missing}`).join('\n')}\n全域演示范围为${snapshot.scopeLabel}，共${snapshot.domainEvents.length}个事件；各事件分别汇总，不混入本事件业务事实。真实全域接口待接入。` },
-    table: { title: '多源汇聚覆盖与来源', headers: ['来源类别', '状态', '原始/归并记录', '来源与数据时间'], rows: snapshot.event.sources.map(s => [s.kind, s.state, `${s.records.length}/${s.records.filter(r => !r.duplicateOf).length}`, s.records.map(r => `${r.source} · ${r.capturedAt}`).join('；') || s.missing]) },
+    table: { title: '多源汇聚覆盖与来源', headers: ['来源类别', '状态', '原始/归并记录', '监测数据、来源与时间'], rows: snapshot.event.sources.map(s => [s.kind, s.state, `${s.records.length}/${s.records.filter(r => !r.duplicateOf).length}`, s.records.filter(r => !r.duplicateOf).map(r => `${r.content}（${r.source} · ${r.capturedAt}）`).join('；') || s.missing]) },
   };
 }

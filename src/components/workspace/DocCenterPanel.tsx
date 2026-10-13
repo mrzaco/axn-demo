@@ -21,7 +21,7 @@ import { EMPTY_LIBRARY, useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { refreshDraftSnapshot } from '@/services/documentFactory';
-import { documentGeneratedReply } from '@/services/documentGeneratedReply';
+import { documentGeneratedReply, glanceFromSections } from '@/services/documentGeneratedReply';
 import { generateWorkSummary } from '@/services/workSummaryWorkflow';
 import { shiftEventIds, formatFactValue } from '@/services/factLookup';
 import { templateByCode } from '@/seed/scenario';
@@ -152,7 +152,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
           role: 'assistant',
           kind: 'text',
           taskId: null,
-          text: documentGeneratedReply(document.title),
+          text: documentGeneratedReply(document.title, glanceFromSections(document.sections)),
         });
       });
     },

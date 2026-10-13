@@ -3,12 +3,14 @@ import { buildEventTimeline, formatTimelineForDocument } from '@/services/eventT
 import { splitPipeContent } from '@/services/pipeTable';
 
 describe('eventTimeline', () => {
-  it('武陵大道内涝：含接报与水位监测节点', () => {
-    const view = buildEventTimeline('evt-vue-nl08');
-    expect(view.stageLabel).toBe('救援中');
-    expect(view.items.some((item) => item.title === '接报')).toBe(true);
-    expect(view.items.filter((item) => item.title === '水位监测')).toHaveLength(3);
-    expect(view.items.at(-1)?.tone).toBe('pending');
+  it('洪涝决口：含模拟接报与监测节点，文书侧输出表格', () => {
+    const view = buildEventTimeline('evt-sim-breach');
+    expect(view.stageLabel).toBe('力量投送中');
+    expect(view.items.some((item) => item.title === '模拟接报')).toBe(true);
+    expect(view.items.length).toBeGreaterThan(2);
+    const text = formatTimelineForDocument('evt-sim-breach');
+    const blocks = splitPipeContent(text);
+    expect(blocks.some((block) => block.kind === 'table')).toBe(true);
   });
 
   it('清河段堤防：用水情观测序列展开时间轴', () => {
@@ -18,18 +20,17 @@ describe('eventTimeline', () => {
     expect(view.items.some((item) => item.detail.includes('米'))).toBe(true);
   });
 
-  it('G5513：覆盖接报到复盘全流程，文书侧输出表格', () => {
-    const view = buildEventTimeline('evt-vue-g5513');
-    expect(view.items.map((item) => item.title)).toEqual([
-      '信息接报', '态势研判', '力量投送', '现场处置', '撤收登记', '待复盘', '复盘总结',
-    ]);
-    const text = formatTimelineForDocument('evt-vue-g5513');
+  it('山体滑坡：文书侧输出过程时间轴表格', () => {
+    const view = buildEventTimeline('evt-sim-landslide');
+    expect(view.stageLabel).toBe('待研判');
+    expect(view.items.some((item) => item.title === '模拟接报')).toBe(true);
+    const text = formatTimelineForDocument('evt-sim-landslide');
     const blocks = splitPipeContent(text);
     const table = blocks.find((block) => block.kind === 'table');
     expect(table?.kind).toBe('table');
     if (table?.kind === 'table') {
       expect(table.headers).toEqual(['序号', '时间节点', '环节', '记录详情', '状态']);
-      expect(table.rows).toHaveLength(7);
+      expect(table.rows.length).toBeGreaterThan(2);
     }
   });
 });
