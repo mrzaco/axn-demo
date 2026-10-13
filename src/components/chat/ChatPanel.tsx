@@ -373,17 +373,17 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               agentRole={m.agentRole ?? ''}
               action={m.text ?? ''}
               status={m.choices ? 'queued' : m.taskId ? tasks[m.taskId]?.status : undefined}
-            >
-              {/* 自我介绍式召唤（文书生成）：气泡里直接给三个文书类型 +
-                  一句「也可以直接提要求 / 传文件」的提示（用户 m00263） */}
-              {m.choices && (
+              // 自我介绍式召唤（文书生成）：三个文书类型 + 一句「也可以直接提要求 / 传文件」的提示，
+              // 放在正文列末尾（bodyExtra）——与姓名下的文字左对齐（标注 vibe_1791874890135）
+              bodyExtra={m.choices ? (
                 <DocAgentChoices
                   options={m.choices}
                   hint={m.hint ?? ''}
                   disabled={!session || busy}
                   onPick={(task) => { void handleQuickTask(task); }}
                 />
-              )}
+              ) : null}
+            >
               {m.taskId && tasks[m.taskId] && <TaskCard task={tasks[m.taskId]} onOpenDrawer={onOpenDrawer} />}
             </AgentSummonCard>
           ),

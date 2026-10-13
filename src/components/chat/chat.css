@@ -77,7 +77,6 @@
   /* 文书类型选项（气泡内）与上面的能力块一样抬到 40px，触屏才点得中 */
   .axn-doc-choices .axn-doc-choice.ant-btn {
     height: 40px;
-    padding: 0 var(--space-3);
   }
 }
 
@@ -256,8 +255,9 @@
 .axn-agent-summon-action .ant-typography { font-size: var(--fs-body); line-height: var(--lh-normal); color: var(--axn-muted); overflow-wrap: anywhere; }
 .axn-agent-execution > .axn-task-card { border: 0; border-top: 1px solid var(--axn-border); border-radius: 0; margin: 0; }
 /* 文书生成智能体气泡里的选项（用户 m00263）：三个文书类型 + 一句提示。
-   胶囊配色与聊天框上方子任务胶囊的反色规则一致（浅底蓝字），宽度不够时自动折行。 */
-.axn-doc-choices { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); }
+   放在正文列里（AgentSummonCard 的 bodyExtra）——左边缘与姓名下的文字对齐；
+   原来挂在卡片左边缘、比文字左凸 60px，看着散（标注 vibe_1791874890135）；宽度不够时自动折行。 */
+.axn-doc-choices { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-1); }
 .axn-doc-choice-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .axn-doc-choices .axn-doc-choice.ant-btn { height: 27px; padding: 0 var(--space-3); border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface)); background: var(--axn-primary-bg); color: var(--axn-primary-text); border-radius: 7px; font-size: var(--fs-meta); box-shadow: none; }
 .axn-doc-choices .axn-doc-choice.ant-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface)); border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface)); color: var(--axn-primary-text); }
