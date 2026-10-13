@@ -192,6 +192,10 @@ export interface ChatMessage {
   agentId?: string;
   agentName?: string;
   agentRole?: string;
+  /** kind='agent' 专用：自我介绍式召唤（文书生成）给出的候选任务，点击即发起对应 task；
+      hint 是选项下面补的一句提示（怎么直接提要求 / 传文件）。 */
+  choices?: { label: string; task: string }[];
+  hint?: string;
   documentWorkflow?: {
     stage: 'collecting' | 'waiting_input' | 'calling' | 'generating' | 'completed' | 'interrupted';
     elements: { label: string; value: string }[];

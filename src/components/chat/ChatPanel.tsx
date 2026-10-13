@@ -2,7 +2,8 @@ import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/wo
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
  * + 圆角一体化输入区（快捷任务 chips 位于输入框上方）+ 补录表单。
- * 首页引导问题取自已接入知识库的 qa.json；输入区平铺 5 个能力块，点击后在它右侧就地横向展开一行子按钮。
+ * 首页引导问题取自已接入知识库的 qa.json；输入区平铺 5 个能力块，点击后在它右侧就地横向展开一行子按钮
+ * （文书生成例外：点它在对话里给选项，见 DOC_AGENT）。
  * 会话跟随演示事件切换（ensureSessionForConversation）；消息与任务状态全部订阅 sessionStore，不本地复制。
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
@@ -51,7 +52,8 @@ const AVATAR = <div className="axn-chat-avatar">安</div>;
 const formatSize = (bytes: number) =>
   bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-// 快捷任务：5 个能力块平铺在输入框上方，点块在它右侧就地横向展开一行子按钮（不再是浮层）
+// 快捷任务：5 个能力块平铺在输入框上方，点块在它右侧就地横向展开一行子按钮（不再是浮层）；
+// 例外是文书生成：点它改成在对话里召唤智能体 + 给三个文书类型选项（用户 m00263）
 // （任务全集与 task→intent 契约见 seed/agentQuickTasks，顺序沿用该目录即按智能体分组）
 
 // 能力块图标（标注 vibe_1791862025042：每个块各配一个图标）。
@@ -63,6 +65,40 @@ const AGENT_CHIP_ICONS: Record<string, LucideIcon> = {
   'agent-plan': Lightbulb,
   'agent-eval': ShieldCheck,
 };
+
+// 文书生成智能体：点能力块不再就地展开三个子按钮（父按钮也不带右箭头），改成在对话里
+// 「召唤它 + 自我介绍 + 三个文书类型选项 + 一句提示」（用户 m00263）。
+// 三个选项的 label/task 直接复用 seed/agentQuickTasks 的同一份数据 —— 点选项发起的 task
+// 与原来点子按钮完全一致，所以 task→intent 契约不变（见该文件顶部说明）。
+// intro/hint 是用户原话的润色：原句「您也可以直接跟我您要生成文书的要求…」缺谓语，已补齐。
+const DOC_AGENT = {
+  name: '文书生成智能体',
+  role: '文书撰写',
+  intro: '您好，我是文书生成智能体，可以帮您撰写各类文书。请选择您要生成的文书类型：',
+  hint: '您也可以直接把生成要求告诉我；需要参考的文件、要写进文书的图片，都可以上传给我。',
+  options: AGENT_QUICK_TASKS.flatMap((agent) => (agent.agentId === 'agent-doc' ? agent.tasks : [])),
+};
+
+/** 文书生成智能体气泡里的选项：三个文书类型 + 一句「也可以直接提要求」的提示。 */
+function DocAgentChoices({ options, hint, disabled, onPick }: {
+  options: { label: string; task: string }[];
+  hint: string;
+  disabled: boolean;
+  onPick: (task: string) => void;
+}) {
+  return (
+    <div className="axn-doc-choices" data-testid="doc-agent-choices">
+      <div className="axn-doc-choice-row">
+        {options.map(({ label, task }) => (
+          <Button key={task} size="small" className="axn-doc-choice" data-choice-task={task} disabled={disabled} onClick={() => onPick(task)}>
+            {label}
+          </Button>
+        ))}
+      </div>
+      <Text type="secondary" className="axn-doc-hint">{hint}</Text>
+    </div>
+  );
+}
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
   const { token } = theme.useToken();
@@ -214,6 +250,18 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     }
   };
 
+  // 点「文书生成」：在对话里召唤文书生成智能体，由它自我介绍并给出三个文书类型选项
+  // （不再就地展开子按钮，用户 m00263）。文本先落在当前会话，真正生成仍走 handleQuickTask。
+  const handleDocAgentInvite = () => {
+    if (!session || busy) return;
+    const { sessionId } = session;
+    useSessionStore.getState().appendMessage(sessionId, {
+      sessionId, role: 'assistant', kind: 'agent', taskId: null,
+      agentName: DOC_AGENT.name, agentRole: DOC_AGENT.role,
+      text: DOC_AGENT.intro, choices: DOC_AGENT.options, hint: DOC_AGENT.hint,
+    });
+  };
+
   const pending = session?.pendingClarification ?? null;
   const submitClarification = () => {
     const value = clarifyValue.trim();
@@ -324,8 +372,18 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               agentName={m.agentName ?? '智能体协同'}
               agentRole={m.agentRole ?? ''}
               action={m.text ?? ''}
-              status={m.taskId ? tasks[m.taskId]?.status : undefined}
+              status={m.choices ? 'queued' : m.taskId ? tasks[m.taskId]?.status : undefined}
             >
+              {/* 自我介绍式召唤（文书生成）：气泡里直接给三个文书类型 +
+                  一句「也可以直接提要求 / 传文件」的提示（用户 m00263） */}
+              {m.choices && (
+                <DocAgentChoices
+                  options={m.choices}
+                  hint={m.hint ?? ''}
+                  disabled={!session || busy}
+                  onPick={(task) => { void handleQuickTask(task); }}
+                />
+              )}
               {m.taskId && tasks[m.taskId] && <TaskCard task={tasks[m.taskId]} onOpenDrawer={onOpenDrawer} />}
             </AgentSummonCard>
           ),
@@ -364,7 +422,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       }
       return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR };
     });
-  }, [session?.messages, tasks, onOpenDrawer]);
+  }, [session?.messages, tasks, onOpenDrawer, busy]);
 
   const hasMessages = items.length > 0;
 
@@ -492,7 +550,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       <div className="axn-cp-chips-wrap">
         <div className="axn-chips" ref={chipsRef}>
           {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => {
-            const open = expandedAgent === agentId;
+            // 文书生成不就地展开子任务：点它是在对话里召唤智能体 + 给选项，所以也不带右箭头（用户 m00263）
+            const expandable = agentId !== 'agent-doc';
+            const open = expandable && expandedAgent === agentId;
             const ChipIcon = AGENT_CHIP_ICONS[agentId];
             return (
               <Fragment key={agentId}>
@@ -503,13 +563,17 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                   title={agentName}
                   data-agent-id={agentId}
                   disabled={!session || busy}
-                  aria-expanded={open}
-                  onClick={() => { recordChipPositions(); setExpandedAgent(open ? null : agentId); }}
+                  aria-expanded={expandable ? open : undefined}
+                  onClick={() => {
+                    if (!expandable) { handleDocAgentInvite(); return; }
+                    recordChipPositions();
+                    setExpandedAgent(open ? null : agentId);
+                  }}
                 >
                   {/* aria-hidden：图标不进可访问名，e2e 的 getByRole('button', { name, exact: true }) 才照旧命中 */}
                   {ChipIcon && <ChipIcon className="axn-chip-icon" size={13} aria-hidden />}
                   {label}
-                  <ChevronRight className="axn-chip-arrow" size={12} aria-hidden />
+                  {expandable && <ChevronRight className="axn-chip-arrow" size={12} aria-hidden />}
                 </Button>
                 {/* 子任务：内联插在父按钮右侧，与父按钮同一行 —— 后面的父按钮会被推到右边
                     （用户 m01646「是横向的一行」/ m01661「父按钮要跟着往右移动」）。

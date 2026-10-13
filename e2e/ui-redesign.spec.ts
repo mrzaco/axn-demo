@@ -260,7 +260,7 @@ test('精简分屏保留未发送输入，关闭后恢复首页', async ({ page 
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
 });
 
-test('五个能力块平铺在输入框上方，文书生成点开向右展开一行三类文书并遵守运行状态', async ({ page }) => {
+test('五个能力块平铺在输入框上方；文书生成在对话里给三类选项，其余能力块仍就地横向展开', async ({ page }) => {
   await page.goto('/');
   const chips = page.locator('.axn-chips');
   const labels = ['文书生成', '态势感知', '救援资源管理', '救援方案生成', '救援效果评估'];
@@ -269,26 +269,45 @@ test('五个能力块平铺在输入框上方，文书生成点开向右展开�
     await expect(chips.getByRole('button', { name, exact: true })).toBeVisible();
   }
   await page.screenshot({ path: 'artifacts/ui-polish/quick-tasks.png' });
-  // 文书生成：点击才就地展开子任务，三项齐备，且子按钮横排在父按钮右侧、同一水平线
-  // （不是浮层，后面的父按钮会被整体推到右边）
+  // 文书生成（用户 m00263）：点击不再就地展开子按钮（父按钮也去掉了右箭头），改成在对话里
+  // 召唤智能体、自我介绍并给出三个文书类型选项；后面的能力块不再被推开（不展开 = 不重排）。
   const docChip = chips.getByRole('button', { name: '文书生成', exact: true });
   const situationChip = chips.getByRole('button', { name: '态势感知', exact: true });
-  const situationXBefore = (await situationChip.boundingBox())?.x ?? 0;
-  await openQuickTaskMenu(page, '文书生成');
+  const layoutX = (name: string) =>
+    chips.getByRole('button', { name, exact: true }).evaluate((el) => (el as HTMLElement).offsetLeft);
+  await expect(situationChip.locator('.axn-chip-arrow')).toHaveCount(1);
+  await expect(docChip.locator('.axn-chip-arrow')).toHaveCount(0);
+  const situationXBefore = await layoutX('态势感知');
+  await docChip.click();
+  await expect(chips.locator('[data-subtask]')).toHaveCount(0);
+  const choices = page.getByTestId('doc-agent-choices').last();
+  await expect(choices).toBeVisible();
+  await expect(page.getByTestId('agent-summon-card').last()).toContainText('文书生成智能体');
+  await expect(page.getByTestId('agent-summon-card').last()).toContainText('您好，我是文书生成智能体，可以帮您撰写各类文书');
+  await expect(choices).toContainText('都可以上传给我');
   for (const name of ['应急要情', '值班日报', '工作总结']) {
-    await expect(chips.getByRole('button', { name, exact: true })).toBeVisible();
+    await expect(choices.getByRole('button', { name, exact: true })).toBeVisible();
   }
-  const chipBox = await docChip.boundingBox();
-  const subBox = await chips.getByRole('button', { name: '应急要情', exact: true }).boundingBox();
-  const situationXAfter = (await situationChip.boundingBox())?.x ?? 0;
+  await page.screenshot({ path: 'artifacts/ui-polish/doc-agent-choices.png' });
+  expect(await layoutX('态势感知')).toBe(situationXBefore);
+
+  // 其余能力块仍是「就地横向展开一行」：子按钮在父按钮右侧、同一水平线，后随父按钮被推到右边
+  // （用 offsetLeft 而不是 boundingBox().x：后者是视口坐标，会被 chips 条的横向滚动干扰）
+  const resourceXBefore = await layoutX('救援资源管理');
+  await openQuickTaskMenu(page, '态势感知');
+  const chipBox = await situationChip.boundingBox();
+  const subBox = await chips.getByRole('button', { name: '灾情摘要', exact: true }).boundingBox();
   expect(chipBox).not.toBeNull();
   expect(subBox).not.toBeNull();
   if (chipBox && subBox) {
     expect(subBox.x).toBeGreaterThanOrEqual(chipBox.x + chipBox.width);
     expect(Math.abs(subBox.y - chipBox.y)).toBeLessThanOrEqual(1);
   }
-  expect(situationXAfter).toBeGreaterThan(situationXBefore);
-  await chips.getByRole('button', { name: '值班日报', exact: true }).click();
+  expect(await layoutX('救援资源管理')).toBeGreaterThan(resourceXBefore);
+  await situationChip.click();
+  await expect(chips.locator('[data-subtask]')).toHaveCount(0);
+
+  await choices.getByRole('button', { name: '值班日报', exact: true }).click();
   await expect(docChip).toBeDisabled();
   await expect(chips.getByRole('button', { name: '态势感知', exact: true })).toBeDisabled();
   await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
