@@ -42,12 +42,25 @@
    窄屏本来就是这个策略（原 @media 767 块），现在全宽统一。 */
 /* 快捷任务 chips 全部平铺，不再有「更多任务」收纳浮层（原手写浮层与 .axn-more-tasks 规则已删）。 */
 .axn-assistant--split .axn-composer { padding: var(--space-3) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); }
-.axn-chip.ant-btn { height: 27px; padding: 0 var(--space-2); border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface)); background: var(--axn-primary-bg); color: var(--axn-primary-text); border-radius: 7px; font-size: var(--fs-meta); box-shadow: none; transition: background .16s, border-color .16s, color .16s; flex: 0 0 auto; scroll-snap-align: start; }
-.axn-chip.ant-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface)); color: var(--axn-primary-text); border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface)); }
+/* 蓝底白字（用户要求「把这几个按钮做成蓝底白字的」）：主色 #1A5CFF 上的白字 5.23:1，
+   12px 正文满足 AA。hover 往深里压一档，不用原来的浅色 hover（会把白字冲淡到不可读）。
+   边框与底色同色，只为了不改 27px 的盒模型尺寸。
+   注：展开瞬间子按钮看着偏白不是配色问题——那是 ChatPanel.tsx:116 的 80ms 延迟 +
+   140ms 淡入（opacity 未到 1 时蓝底被白背景冲淡）；插帧实测子按钮的 bg/color 从第一帧
+   就是 rgb(26,92,255)/#fff，稳定后像素同样是 #1A5CFF 底 + 白字。 */
+.axn-chip.ant-btn { height: 27px; padding: 0 var(--space-2); border: 1px solid var(--axn-primary); background: var(--axn-primary); color: #fff; border-radius: 7px; font-size: var(--fs-meta); box-shadow: none; transition: background .16s, border-color .16s, color .16s; flex: 0 0 auto; scroll-snap-align: start; }
+.axn-chip.ant-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--axn-primary) 86%, #000); border-color: color-mix(in srgb, var(--axn-primary) 86%, #000); color: #fff; }
+/* 子按钮反过来：白底蓝字（用户 m00217「看到的子按钮背景颜色还是蓝色的」）—— 父子反色才能看出层级。
+   浅底色沿用仓里已有的同款（global.css:500 的 .fact-chip / 推荐问题）：--axn-primary-bg 底
+   + 72% 混黑的蓝字，对比度约 7.5:1，12px 也过 AA。hover 只把底色再压深一档。 */
+.axn-chips [data-subtask].ant-btn { background: var(--axn-primary-bg); border-color: color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface)); color: var(--axn-primary-text); }
+.axn-chips [data-subtask].ant-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface)); border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface)); color: var(--axn-primary-text); }
 .axn-chip:disabled { opacity: .5; }
+/* 能力块图标（标注 vibe_1791862025042）：与右箭头的间距对称，图标本身不参与伸缩。 */
+.axn-chip.ant-btn .axn-chip-icon { flex: none; margin-inline-end: var(--space-1); }
 /* 父按钮里的右箭头（用户 m01620）：提示点开是向右展开一行。 */
 .axn-chip.ant-btn .axn-chip-arrow { flex: none; margin-inline-start: var(--space-1); }
-/* 子任务是内联展开的（见 ChatPanel.tsx 里与父按钮同款的 .axn-chip 子按钮），不再走 Dropdown 浮层，
+/* 子任务是内联展开的（见 ChatPanel.tsx 里同尺寸的 .axn-chip 子按钮，颜色走上面的反色规则），不再走 Dropdown 浮层，
    所以原来的 .axn-chip-menu 系列浮层样式已删（用户 m01646 / m01661：横向一行、父按钮跟着右移）。 */
 
 /* 触屏：首页的快捷 chips（27px）与推荐问题（33px）是主要入口，高度太难点中，

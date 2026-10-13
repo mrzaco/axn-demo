@@ -10,11 +10,17 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, use
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
   ChevronRight,
+  FileCheck,
+  Flame,
+  Lightbulb,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Paperclip,
-} from 'lucide-react'
+  ShieldCheck,
+  Wrench,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Alert, App as AntdApp, Button, Input, Select, Space, Tag, Typography, Upload, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
@@ -47,6 +53,16 @@ const formatSize = (bytes: number) =>
 
 // 快捷任务：5 个能力块平铺在输入框上方，点块在它右侧就地横向展开一行子按钮（不再是浮层）
 // （任务全集与 task→intent 契约见 seed/agentQuickTasks，顺序沿用该目录即按智能体分组）
+
+// 能力块图标（标注 vibe_1791862025042：每个块各配一个图标）。
+// 与智能体能力页 NavPages 的 AGENTS[].icon 同源选型，改那边时这里跟着改。
+const AGENT_CHIP_ICONS: Record<string, LucideIcon> = {
+  'agent-doc': FileCheck,
+  'agent-situation': Flame,
+  'agent-resource': Wrench,
+  'agent-plan': Lightbulb,
+  'agent-eval': ShieldCheck,
+};
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
   const { token } = theme.useToken();
@@ -477,6 +493,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         <div className="axn-chips" ref={chipsRef}>
           {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => {
             const open = expandedAgent === agentId;
+            const ChipIcon = AGENT_CHIP_ICONS[agentId];
             return (
               <Fragment key={agentId}>
                 {/* 父按钮：右侧箭头提示「点开是向右展开一行」（用户 m01620）；busy 时整块禁用。 */}
@@ -489,6 +506,8 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                   aria-expanded={open}
                   onClick={() => { recordChipPositions(); setExpandedAgent(open ? null : agentId); }}
                 >
+                  {/* aria-hidden：图标不进可访问名，e2e 的 getByRole('button', { name, exact: true }) 才照旧命中 */}
+                  {ChipIcon && <ChipIcon className="axn-chip-icon" size={13} aria-hidden />}
                   {label}
                   <ChevronRight className="axn-chip-arrow" size={12} aria-hidden />
                 </Button>
