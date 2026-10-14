@@ -11,11 +11,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --force",
+    "typecheck": "tsc -b",
+    "typecheck:watch": "tsc -b --watch --preserveWatchOutput",
     "lint": "eslint .",
+    "verify": "tsc -b && eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:dev": "E2E_DEV=1 playwright test"
   },
   "dependencies": {
     "@ant-design/x": "2.9.0",

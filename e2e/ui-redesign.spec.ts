@@ -147,11 +147,11 @@ test('迟到的 A 会话完成不会在 B 会话打开文书', async ({ page }) 
   await expect(page.getByTestId('document-toolbar')).toContainText('新生成');
 });
 
-test('未保存编辑：关闭需确认，取消保留、放弃丢弃', async ({ page }) => {
+test('未保存编辑：关闭需确认，关闭保留、放弃丢弃', async ({ page }) => {
   await page.goto('/');
   await openFirstSample(page);
   const ws = page.getByTestId('document-workspace');
-  await ws.getByRole('button', { name: '在线编辑', exact: true }).click();
+  // 打开样稿就是编辑态，不需要先点「在线编辑」
   await ws.getByRole('textbox', { name: '文书标题', exact: true }).fill('未保存的标题');
   await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
 
@@ -180,7 +180,7 @@ test('未保存编辑：关闭需确认，取消保留、放弃丢弃', async ({
 
   // 放弃后重开：修改已丢弃（保存作用域未被污染）
   await openFirstSample(page);
-  await expect(page.getByTestId('mock-redhead-document')).not.toContainText('未保存的标题');
+  await expect(page.getByRole('textbox', { name: '文书标题', exact: true })).toHaveValue('防汛值守日报');
 });
 
 test('窄视口（<=1000px）文书视图独占主区且关闭控件可用', async ({ page }) => {
@@ -201,7 +201,6 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await page.goto('/');
   await openFirstSample(page);
   const title = page.getByRole('textbox', { name: '文书标题', exact: true });
-  await page.getByRole('button', { name: '在线编辑', exact: true }).click();
   await title.fill('保护中的工作副本');
   await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
   await page.getByRole('button', { name: '继续编辑' }).click();
@@ -216,7 +215,7 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await expect(title).toHaveValue('保护中的工作副本');
   await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
   await page.getByRole('button', { name: /^继\s*续$/ }).click();
-  // 四条切换路径（导航 / 会话 / 关联事件 / 再导航）都只解除编辑态，不回滚工作副本
+  // 四条切换路径（导航 / 会话 / 关联事件 / 再导航）都不回滚工作副本
   await openFirstSample(page);
   await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
   await expect(title).toHaveValue('保护中的工作副本');
@@ -227,13 +226,12 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
 });
 
-test('从聊天预览切换文书时取消保留编辑、确认后切换（工作副本不丢弃）', async ({ page }) => {
+test('从聊天预览切换文书：确认后切换，工作副本不丢弃', async ({ page }) => {
   await page.goto('/');
   for (const name of ['生成值班日报', '生成应急要情']) {
     await clickQuickTask(page, name);
     await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
   }
-  await page.getByRole('button', { name: '在线编辑', exact: true }).click();
   const title = page.getByRole('textbox', { name: '文书标题', exact: true });
   await title.fill('切换前未保存标题');
   await page.getByRole('button', { name: '查看文书', exact: true }).first().click();
@@ -242,7 +240,8 @@ test('从聊天预览切换文书时取消保留编辑、确认后切换（工�
   await page.getByRole('button', { name: '查看文书', exact: true }).first().click();
   await page.getByRole('button', { name: '打开并保留修改' }).click();
   await expect(page.getByTestId('document-toolbar')).toContainText('防汛值守日报（新生成）');
-  await expect(title).toHaveCount(0);
+  // 切过去的是另一篇文书：同一个标题输入框里已经是新文书的标题
+  await expect(title).toHaveValue('防汛值守日报（新生成）');
 });
 
 

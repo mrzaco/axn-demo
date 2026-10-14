@@ -3,7 +3,7 @@ import { clickQuickTask } from './helpers/quickTasks';
  * 文书智能体 E2E（UI 改版适配）：
  * 独立「文书库」页负责分类浏览 / 生成 / 样稿打开；样稿与草稿的阅读详情在助理页右侧「文书工作区」呈现，
  * 由显式「关闭文书」回到宽对话。业务断言（分类 4、样稿 8、生成回写、工作总结补充、真实草稿打开、
- * 在线编辑/取消/导出为预览不下载）保持不降级。
+ * 在线编辑/放弃修改/导出为预览不下载）保持不降级。
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -95,32 +95,28 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
   }
 });
 
-test('模拟文书详情支持在线编辑、取消保留与放弃修改、导出为预览', async ({ page }) => {
+test('模拟文书详情就是编辑态：边改边存、放弃修改、导出为预览', async ({ page }) => {
   await page.goto('/');
   await openLibrary(page);
   await page.getByTestId('document-library').locator('.doc-sample-row').first().click();
   const panel = page.locator('.doc-center');
-  await panel.getByRole('button', { name: '在线编辑', exact: true }).click();
+  // 打开即是编辑态：标题、正文直接可改，不需要先点「在线编辑」
   await panel.getByRole('textbox', { name: '文书标题', exact: true }).fill('防汛值守日报（修订）');
   await panel.getByRole('textbox', { name: '第1节正文', exact: true }).fill('本班次已完成重点区域巡查，并记录交接事项（模拟）。');
   await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
   await panel.getByRole('button', { name: '保存修改', exact: true }).click();
-  await expect(panel.getByTestId('mock-redhead-document')).toContainText('本班次已完成重点区域巡查');
+  await expect(panel.getByTestId('rich-text-editor').first()).toContainText('本班次已完成重点区域巡查');
+  await expect(page.getByTestId('mock-dirty-note')).toHaveCount(0);
   await closeWorkspace(page);
   await openLibrary(page);
   await page.getByTestId('document-library').locator('.doc-sample-row').filter({ hasText: '防汛值守日报（修订）' }).click();
-  await expect(panel.getByTestId('mock-redhead-document')).toContainText('本班次已完成重点区域巡查');
-  // 取消编辑保留本次编辑内容（未保存），放弃修改才真正丢弃
-  await panel.getByRole('button', { name: '在线编辑', exact: true }).click();
+  await expect(panel.getByTestId('rich-text-editor').first()).toContainText('本班次已完成重点区域巡查');
+  // 未保存的改动离开详情页不丢，只有「放弃修改」才丢弃（离开再回来由单元测试盖）
   await panel.getByRole('textbox', { name: '文书标题', exact: true }).fill('未保存标题');
-  await panel.getByRole('button', { name: '取消编辑', exact: true }).click();
-  await expect(panel.getByTestId('mock-redhead-document')).not.toContainText('未保存标题');
-  await panel.getByRole('button', { name: '在线编辑', exact: true }).click();
-  await expect(panel.getByRole('textbox', { name: '文书标题', exact: true })).toHaveValue('未保存标题');
+  await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
   await panel.getByRole('button', { name: '放弃修改', exact: true }).click();
-  await panel.getByRole('button', { name: '在线编辑', exact: true }).click();
   await expect(panel.getByRole('textbox', { name: '文书标题', exact: true })).toHaveValue('防汛值守日报（修订）');
-  await panel.getByRole('button', { name: '保存修改', exact: true }).click();
+  await expect(page.getByTestId('mock-dirty-note')).toHaveCount(0);
   const downloads: string[] = [];
   page.on('download', download => downloads.push(download.suggestedFilename()));
   for (const format of ['Word', 'PDF']) {
@@ -131,4 +127,57 @@ test('模拟文书详情支持在线编辑、取消保留与放弃修改、导�
   }
   expect(downloads).toEqual([]);
   await page.screenshot({ path: 'artifacts/document-detail-refined.png' });
+});
+
+test('直接编辑支持 Word 风格富文本（字号/加粗/标黄/红字/居中/列表），保存后重开仍带格式', async ({ page }) => {
+  await page.goto('/');
+  await openLibrary(page);
+  await page.getByTestId('document-library').locator('.doc-sample-row').first().click();
+  const panel = page.locator('.doc-center');
+  const editor = panel.getByRole('textbox', { name: '第1节正文', exact: true });
+  const toolbar = panel.getByTestId('rich-text-toolbar');
+  await expect(toolbar).toBeVisible();
+
+  /** execCommand 走 styleWithCSS 时写的是行内样式，所以按计算样式断言「格式真的生效了」。 */
+  const computed = (property: 'fontWeight' | 'color' | 'backgroundColor') =>
+    editor.evaluate((el, prop) => Array.from(el.querySelectorAll('*')).map(node => getComputedStyle(node)[prop as 'fontWeight']), property);
+
+  await editor.selectText();
+  await panel.getByTestId('rich-text-size').click();
+  await page.locator('.ant-select-item-option', { hasText: '小二 24' }).click();
+  await expect(editor.locator('font[size="4"]')).not.toHaveCount(0);
+
+  await editor.selectText();
+  await toolbar.getByRole('button', { name: '加粗' }).click();
+  expect(await computed('fontWeight')).toContain('700');
+
+  await editor.selectText();
+  await toolbar.getByRole('button', { name: '标黄' }).click();
+  expect(await computed('backgroundColor')).toContain('rgb(255, 229, 143)');
+
+  await editor.selectText();
+  await toolbar.getByRole('button', { name: '红字' }).click();
+  expect(await computed('color')).toContain('rgb(198, 40, 40)');
+
+  await editor.click();
+  await toolbar.getByRole('button', { name: '居中' }).click();
+  await expect(editor.locator('p, div').first()).toHaveAttribute('style', /text-align: center/);
+
+  await editor.click();
+  await toolbar.getByRole('button', { name: '无序列表' }).click();
+  await expect(editor.locator('ul > li').first()).toBeVisible();
+  // 列表不能嵌成 p>ul（Chromium 默认会把菜单式内容包成段落）
+  await expect(editor.locator('p > ul')).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: '无序列表' })).toHaveAttribute('aria-pressed', 'true');
+  await page.screenshot({ path: 'artifacts/rich-text-toolbar.png' });
+
+  await panel.getByRole('button', { name: '保存修改', exact: true }).click();
+  // 保存后仍是编辑态（工具条和编辑器都在），格式已经落进 store
+  await expect(toolbar).toBeVisible();
+  await closeWorkspace(page);
+  await openLibrary(page);
+  await page.getByTestId('document-library').locator('.doc-sample-row').first().click();
+  const reopened = panel.getByRole('textbox', { name: '第1节正文', exact: true });
+  await expect(reopened.locator('font[size="4"]')).not.toHaveCount(0);
+  await expect(reopened.locator('ul > li')).not.toHaveCount(0);
 });
