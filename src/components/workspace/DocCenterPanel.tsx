@@ -21,6 +21,7 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { refreshDraftSnapshot } from '@/services/documentFactory';
 import { generateWorkSummary } from '@/services/workSummaryWorkflow';
+import { startWeeklyDynamics } from '@/services/weeklyDynamicsWorkflow';
 import { shiftEventIds, formatFactValue } from '@/services/factLookup';
 import { templateByCode } from '@/seed/scenario';
 import { DOCUMENT_CATEGORIES } from '@/seed/mockDocuments';
@@ -135,6 +136,11 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       navigate(NAV_PATH.assistant);
       if (code === 'WORK_SUMMARY' && sessionId) {
         void generateWorkSummary(sessionId);
+        return;
+      }
+      // 周工作动态同样不在文书库里直接出件：先去对话里要参考文档与附件（weeklyDynamicsWorkflow）。
+      if (code === 'WEEKLY_DYNAMICS' && sessionId) {
+        startWeeklyDynamics(sessionId);
         return;
       }
       void useMockDocumentStore.getState().generate(libraryScope, code);

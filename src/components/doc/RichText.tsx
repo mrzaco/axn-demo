@@ -27,7 +27,7 @@ export default function RichTextEditor({ value, onChange, ariaLabel, autoFocus }
     emitted.current = html;
     onChange(html);
   };
-  return <div ref={ref} className="doc-rich doc-rich-editor" data-testid="rich-text-editor" contentEditable suppressContentEditableWarning
+  return <div ref={ref} className="doc-rich doc-rich-editor doc-inline-edit" data-testid="rich-text-editor" contentEditable suppressContentEditableWarning
     role="textbox" aria-multiline="true" aria-label={ariaLabel} onInput={emit}
     onPaste={event => {
       // 粘贴一律落成纯文本：外部 HTML 带进来的字体/颜色会污染公文排版。

@@ -49,7 +49,10 @@ for (const { width, height, name } of DESKTOPS) {
     await expect(page.locator('.axn-chat-pane .axn-home-hero')).toHaveCount(0);
     await expect(page.getByTestId('document-toolbar')).toHaveCount(1);
     const paperBox = await page.getByTestId('mock-redhead-document').boundingBox();
-    expect(paperBox?.y ?? Infinity).toBeLessThan(160);
+    // 打开文书即富文本编辑态（3471277）：纸面上方固定占着 118px 文书头 + Word 风格工具条
+    //（1366/1440 下工具条换行到 75px），纸面 top 约 220 —— 这里断言的是「纸面仍在首屏上部」，
+    // 不再是「在线编辑」按钮时代 118px 单头的 <160
+    expect(paperBox?.y ?? Infinity).toBeLessThan(260);
     const chatBox = await page.locator('.axn-chat-pane').boundingBox();
     expect(chatBox?.width ?? 0).toBeGreaterThanOrEqual(415);
     expect(chatBox?.width ?? 0).toBeLessThanOrEqual(500);
@@ -79,7 +82,7 @@ test('文书库打开 → 工作区显示 → 关闭回宽对话 → 同份重�
   await page.goto('/');
   await openLibrary(page);
   const rows = page.getByTestId('document-library').locator('.doc-sample-row');
-  await expect(rows).toHaveCount(8);
+  await expect(rows).toHaveCount(10);
   const title = (await rows.first().locator('.doc-file-copy > span').first().textContent())?.trim() ?? '';
   expect(title.length).toBeGreaterThan(0);
   await rows.first().click();
@@ -105,7 +108,7 @@ test('生成文书自动打开工作区；关闭后同一完成不再自动弹�
   await page.getByTestId('workspace-close-btn').click();
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
   // 任务完成 / 无关重渲染后不再自动弹出（关闭标记生效）
-  await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 15000 });
+  await expect(page.getByTestId('document-generation-card').last().getByTestId('doc-collect-done')).toBeVisible( { timeout: 15000 });
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
   // 已完成的模拟文书预览可显式重开；真实草稿重开由业务主线覆盖
   await page.getByRole('button', { name: '查看文书', exact: true }).last().click();
@@ -141,7 +144,7 @@ test('迟到的 A 会话完成不会在 B 会话打开文书', async ({ page }) 
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
   await expect(page.locator('.axn-chat-page')).toBeVisible();
   await page.locator('.axn-gs-conversation', { hasText: '南堤' }).first().click();
-  await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成');
+  await expect(page.getByTestId('document-generation-card').last().getByTestId('doc-collect-done')).toBeVisible();
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
   await page.getByRole('button', { name: '查看文书', exact: true }).last().click();
   await expect(page.getByTestId('document-toolbar')).toContainText('新生成');
@@ -229,7 +232,7 @@ test('从聊天预览切换文书：确认后切换，工作副本不丢弃', as
   await page.goto('/');
   for (const name of ['值班日报', '应急要情']) {
     await clickDocTask(page, name);
-    await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
+    await expect(page.getByTestId('document-generation-card').last().getByTestId('doc-collect-done')).toBeVisible( { timeout: 20000 });
   }
   const title = page.getByRole('textbox', { name: '文书标题', exact: true });
   await title.fill('切换前未保存标题');
@@ -259,7 +262,7 @@ test('精简分屏保留未发送输入，关闭后恢复首页', async ({ page 
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
 });
 
-test('五个能力块平铺在输入框上方；文书生成在对话里给三类选项，其余能力块仍就地横向展开', async ({ page }) => {
+test('五个能力块平铺在输入框上方；文书生成在对话里给四类选项，其余能力块仍就地横向展开', async ({ page }) => {
   await page.goto('/');
   const chips = page.locator('.axn-chips');
   const labels = ['文书生成', '态势感知', '救援资源管理', '救援方案生成', '救援效果评估'];
@@ -269,7 +272,8 @@ test('五个能力块平铺在输入框上方；文书生成在对话里给三�
   }
   await page.screenshot({ path: 'artifacts/ui-polish/quick-tasks.png' });
   // 文书生成（用户 m00263）：点击不再就地展开子按钮（父按钮也去掉了右箭头），改成在对话里
-  // 召唤智能体、自我介绍并给出三个文书类型选项；后面的能力块不再被推开（不展开 = 不重排）。
+  // 召唤智能体、自我介绍并给文书类型选项（现有四类，周工作动态见标注 vibe_1791945318621）；
+  // 后面的能力块不再被推开（不展开 = 不重排）。
   const docChip = chips.getByRole('button', { name: '文书生成', exact: true });
   const situationChip = chips.getByRole('button', { name: '态势感知', exact: true });
   const layoutX = (name: string) =>
@@ -284,7 +288,7 @@ test('五个能力块平铺在输入框上方；文书生成在对话里给三�
   await expect(page.getByTestId('agent-summon-card').last()).toContainText('文书生成智能体');
   await expect(page.getByTestId('agent-summon-card').last()).toContainText('您好，我是文书生成智能体，可以帮您撰写各类文书');
   await expect(choices).toContainText('都可以上传给我');
-  for (const name of ['应急要情', '值班日报', '工作总结']) {
+  for (const name of ['应急要情', '值班日报', '周工作动态', '工作总结']) {
     await expect(choices.getByRole('button', { name, exact: true })).toBeVisible();
   }
   await page.screenshot({ path: 'artifacts/ui-polish/doc-agent-choices.png' });
@@ -309,7 +313,47 @@ test('五个能力块平铺在输入框上方；文书生成在对话里给三�
   await choices.getByRole('button', { name: '值班日报', exact: true }).click();
   await expect(docChip).toBeDisabled();
   await expect(chips.getByRole('button', { name: '态势感知', exact: true })).toBeDisabled();
-  await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
+  await expect(page.getByTestId('document-generation-card').last().getByTestId('doc-collect-done')).toBeVisible( { timeout: 20000 });
   await expect(page.getByTestId('document-toolbar')).toContainText('防汛值守日报（新生成）');
   await expect(docChip).toBeEnabled();
+});
+
+// 语音输入模拟（标注 vibe_1791960862035）：演示环境没有麦克风，点语音按钮改为「逐字实时转写」一段示例话语。
+const SPEECH_SAMPLE = '请汇总南堤堤防管涌险情的最新处置进展，并生成一份情况报告';
+
+test('语音按钮：点击后模拟实时转写，文字逐字填入输入框，完成后回到发送态', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('.ant-sender textarea');
+  const speech = page.getByTestId('composer-speech');
+  await expect(speech).toBeEnabled();
+
+  await speech.click();
+  await expect(speech).toHaveAttribute('aria-label', '停止语音输入');
+  // 转写中：文字在增长
+  const len1 = (await input.inputValue()).length;
+  await page.waitForTimeout(600);
+  expect((await input.inputValue()).length).toBeGreaterThan(len1);
+
+  // 转写完：填入完整示例句，语音按钮自动换成发送按钮
+  await expect(input).toHaveValue(SPEECH_SAMPLE, { timeout: 8000 });
+  await expect(speech).toHaveCount(0);
+  await expect(page.locator('.ant-sender-actions-btn').last()).toBeEnabled();
+});
+
+test('语音按钮：转写中再点一下可停止，文字不再增长', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('.ant-sender textarea');
+  const speech = page.getByTestId('composer-speech');
+
+  await speech.click();
+  await expect(speech).toHaveAttribute('aria-label', '停止语音输入');
+  await page.waitForTimeout(400);
+  await speech.click(); // 中途停止
+
+  const frozen = await input.inputValue();
+  expect(frozen.length).toBeGreaterThan(0);
+  expect(SPEECH_SAMPLE.startsWith(frozen)).toBe(true);
+  expect(frozen).not.toBe(SPEECH_SAMPLE);
+  await page.waitForTimeout(700);
+  expect(await input.inputValue()).toBe(frozen); // 已停下，不再增长
 });

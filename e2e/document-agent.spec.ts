@@ -2,7 +2,7 @@ import { clickDocTask } from './helpers/quickTasks';
 /**
  * 文书智能体 E2E（UI 改版适配）：
  * 独立「文书库」页负责分类浏览 / 生成 / 样稿打开；样稿与草稿的阅读详情在助理页右侧「文书工作区」呈现，
- * 由显式「关闭文书」回到宽对话。业务断言（分类 4、样稿 8、生成回写、工作总结补充、真实草稿打开、
+ * 由显式「关闭文书」回到宽对话。业务断言（分类 5、样稿 10、生成回写、工作总结补充、真实草稿打开、
  * 在线编辑/放弃修改/导出为预览不下载）保持不降级。
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -22,8 +22,10 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
   await openLibrary(page);
   const library = page.getByTestId('document-library');
   await expect(library.getByRole('heading', { name: '文书库' })).toBeVisible();
-  await expect(library.locator('.doc-library-row')).toHaveCount(4);
-  await expect(library.locator('.doc-sample-row')).toHaveCount(8);
+  await expect(library.locator('.doc-library-row')).toHaveCount(5);
+  await expect(library.locator('.doc-sample-row')).toHaveCount(10);
+  // 应急救援周工作动态不在这个循环里：它在文书库点「生成」不去直接出件，而是回对话要参考文档与附件
+  // （流程见 services/weeklyDynamicsWorkflow，用例见下面的「周工作动态」。）
   for (const name of ['值班日报', '应急要情', '会议纪要', '工作总结']) {
     const category = library.locator('.doc-category').filter({ hasText: name });
     // 点开样稿 → 回到助理页并展示右侧文书工作区
@@ -31,6 +33,13 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
     await expect(page.getByTestId('document-workspace')).toBeVisible();
     await expect(page.getByTestId('mock-redhead-document')).toBeVisible();
     await expect(page.locator('.axn-redhead-org')).toHaveText('中国安能建设集团有限公司');
+    if (name === '应急要情') {
+      // 正文尾部现场图片（用户 m01044）：只给「重点河段险情处置要情」这篇样稿挂了两张模拟照片
+      const figures = page.getByTestId('mock-document-figures').first();
+      await expect(figures).toBeVisible();
+      await expect(figures.locator('figure')).toHaveCount(2);
+      await expect(figures).toContainText('图2');
+    }
     await closeWorkspace(page);
     // 分类生成 → 生成中自动打开工作区 → 完成后回写该分类
     await openLibrary(page);
@@ -74,23 +83,100 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
   for (const [name, title] of [['值班日报', '防汛值守日报'], ['应急要情', '重点河段险情处置要情']]) {
     await clickDocTask(page, name);
     const workflow = page.getByTestId('document-generation-card').last();
-    await expect(workflow).toContainText('正在整理已收集的文书要素');
-    await expect(workflow).toContainText('编制单位');
-    await expect(workflow).toContainText('以下模拟用户已提供并确认的信息');
-    await expect(workflow).toContainText('正在调用文书生成智能体…');
-    await expect(workflow).toContainText('正在生成文书…');
+    // 气泡里只有「要素收集」一个过程（用户 m00705）：调用/生成的过程流水账不再展示
+    await expect(workflow).toContainText('正在收集文书要素 ·');
+    // 收集动画（用户 m01044）：进度条按要素条数走（6 条）
+    await expect(workflow.getByTestId('doc-collect-progress')).toHaveAttribute('aria-valuemax', '6');
+    // 要素表（文书类型/编制单位/…）不再展示（用户 m00861）：气泡里只留「要素收集」这一个过程
+    await expect(workflow).not.toContainText('编制单位');
     await expect(panel).toContainText('正在生成文书');
     await expect(panel.getByTestId('document-toolbar')).toContainText(`${title}（新生成）`);
     await expect(panel.locator('.axn-redhead-org')).toHaveText('中国安能建设集团有限公司');
-    await expect(workflow).toContainText('红头文书已生成');
-    await expect(workflow).toContainText('要素齐备，已确认（模拟）');
     await expect(panel.getByTestId('mock-redhead-document')).not.toContainText('文书要素（模拟收集）');
-    await expect(page.getByText(`已生成《${title}（新生成）》（模拟文书），已在右侧文书工作区打开。`)).toBeVisible();
+    // 正文尾部附图（用户 m01044）：生成出来的应急要情也带那两张现场图片，不只是样稿（用户 m01196）
+    const figures = panel.getByTestId('mock-document-figures');
+    if (name === '应急要情') {
+      await expect(figures).toBeVisible();
+      await expect(figures.locator('figure')).toHaveCount(2);
+      await expect(figures).toContainText('图2　现场指挥组与抢险队伍会商处置方案（模拟）');
+    } else {
+      await expect(figures).toHaveCount(0);
+    }
+    // 完成态只剩一行收尾 + 一个入口（原来是页脚再加单独一条「已生成…」消息，同一件事说两遍）
+    const done = workflow.getByTestId('doc-collect-done');
+    await expect(done).toContainText(`已生成《${title}（新生成）》`);
+    await expect(done.getByRole('button', { name: '查看文书' })).toBeVisible();
     await closeWorkspace(page);
     await openLibrary(page);
     await expect(page.getByTestId('document-library').locator('.doc-category').filter({ hasText: name }).locator('.doc-sample-row')).toHaveCount(3);
     await page.locator('.axn-gs-nav-item', { hasText: '智能助理' }).first().click();
   }
+});
+
+test('周工作动态：先在气泡卡片里上传参考文档与附件，再生成红头文书', async ({ page }) => {
+  await page.goto('/');
+  await clickDocTask(page, '周工作动态');
+  const workflow = page.getByTestId('document-generation-card').last();
+  // 上传入口就在卡里（用户 m00994）：卡里说明要哪三份统计表，并给「上传参考文档与附件」+「开始生成」
+  await expect(workflow).toContainText('等待上传参考文档与附件');
+  await expect(workflow).toContainText('工程练兵情况统计表（附件1）');
+  await expect(workflow).toContainText('安全应急产业营收情况统计表（附件2）');
+  await expect(workflow).not.toContainText('至少 1 份'); // 「（至少 1 份）」这类量词不进文案（用户 m00972）
+  await expect(workflow.getByTestId('doc-upload-gate')).toHaveCount(0);
+  // 没材料时生成按钮是灰的、清单还没出现
+  const generate = workflow.getByTestId('doc-source-generate');
+  await expect(generate).toBeDisabled();
+  await expect(workflow.getByTestId('doc-source-list')).toHaveCount(0);
+  // 输入框的 📎 仍然是「把文件发给智能体」的入口：门开着时那些文件也算材料（m00994 只是把按钮加进卡里）
+  const composerInput = page.locator('.axn-composer-upload-wrap input[type="file"]');
+  await composerInput.setInputFiles({ name: '工程练兵情况统计表.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('工程练兵（模拟）') });
+  await expect(page.getByTestId('composer-submit-sources')).toBeVisible();
+  await page.locator('.axn-attach-tag .ant-tag-close-icon').click(); // 撤掉，下面只验卡里这条入口
+  await expect(page.getByTestId('composer-submit-sources')).toHaveCount(0);
+  // 传两份材料（演示环境不落盘：Upload 的 beforeUpload 返回 false，不发请求）
+  await workflow.locator('input[type="file"]').setInputFiles([
+    { name: '工程练兵情况统计表.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('工程练兵（模拟）') },
+    { name: '本周中标项目汇总表.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('中标项目（模拟）') },
+  ]);
+  // 传完列成清单（名字 + 大小 + 可移除）并放行生成（用户 m00994：上传之后的样式）
+  const list = workflow.getByTestId('doc-source-list');
+  await expect(list.locator('li')).toHaveCount(2);
+  await expect(list).toContainText('工程练兵情况统计表.xlsx');
+  await expect(list).toContainText('本周中标项目汇总表.docx');
+  await expect(list.locator('.axn-source-size').first()).toHaveText('24 B');
+  await expect(generate).toBeEnabled();
+  // 逐份移除后还能再传回来
+  await list.getByRole('button', { name: '移除 本周中标项目汇总表.docx' }).click();
+  await expect(list.locator('li')).toHaveCount(1);
+  await workflow.locator('input[type="file"]').setInputFiles({ name: '本周中标项目汇总表.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('中标项目（模拟）') });
+  await expect(list.locator('li')).toHaveCount(2);
+  await generate.click();
+  // 材料到位：上传件进对话流，气泡里接着走要素收集
+  await expect(page.getByTestId('message-attachments').last()).toContainText('工程练兵情况统计表.xlsx');
+  await expect(workflow).toContainText(/要素已收集/, { timeout: 20000 });
+  await expect(workflow.getByTestId('doc-collect-done')).toContainText('已生成《防汛应急周工作动态（新生成）》', { timeout: 20000 });
+  const panel = page.locator('.doc-center');
+  await expect(panel.getByTestId('document-toolbar')).toContainText('防汛应急周工作动态（新生成）');
+  // 正文骨架来自该文种，但「附件」一节换成本轮真上传的清单
+  const paper = panel.getByTestId('mock-redhead-document');
+  // 节标题渲染成可编辑的 <input>，文本不进 innerText，得按 value 断言
+  await expect(paper.locator('.doc-edit-heading').first()).toHaveValue('一、上周工作完成情况');
+  await expect(paper.locator('.doc-edit-heading').last()).toHaveValue('附件');
+  await expect(paper).toContainText('附件1：工程练兵情况统计表.xlsx');
+  await expect(paper).toContainText('附件2：本周中标项目汇总表.docx');
+  await expect(paper).toContainText('各附件表体见下方');
+  // 附件表体（用户 m01163）：三张统计表按参考真件的表头与数据渲染，数值不是占位符
+  const tables = paper.getByTestId('mock-document-tables');
+  await expect(tables).toBeVisible();
+  await expect(tables.locator('table')).toHaveCount(3);
+  await expect(tables).toContainText('工程练兵情况统计表');
+  await expect(tables).toContainText('安全应急产业营收情况统计表');
+  await expect(tables).toContainText('本周中标项目（直接签订合同项目）汇总表');
+  await expect(tables).toContainText('1294');     // 附件1：总计投入人数
+  await expect(tables).toContainText('10051.35'); // 附件2：合计年度累计营收
+  await expect(tables).toContainText('61.35');    // 附件3：三局新疆公司合同金额
+  // 附件1 的「分类」列是真件里的合并单元格（每组跳三行）
+  await expect(tables.locator('th[rowspan="3"]')).toHaveCount(5);
 });
 
 test('模拟文书详情就是编辑态：边改边存、放弃修改、导出为预览', async ({ page }) => {

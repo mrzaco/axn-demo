@@ -1,55 +1,104 @@
 import { useState } from 'react';
 import { submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
-import {
-  Bot,
-  CircleCheck,
-  FileText,
-  LoaderCircle,
-} from 'lucide-react'
-import { Button, Input, Space, Steps, Tag, Typography } from 'antd';
+import { REQUIRED_ATTACHMENTS, submitDynamicsSources } from '@/services/weeklyDynamicsWorkflow';
+import { formatSize } from '@/shared/format';
+import { Bot, CircleCheck, FileText, LoaderCircle, Paperclip, X } from 'lucide-react';
+import { Button, Input, Space, Tag, Typography, Upload } from 'antd';
 import type { ChatMessage } from '@/domain/types';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
 
+/**
+ * 文书生成气泡里只展示「要素收集」这一个过程（用户 m00705）：需要要素或材料就在这里找用户要。
+ * 三件曾经铺在卡里的东西一律不展示 —— 调用智能体/生成正文的过程流水账、完成后的正文摘要、
+ * 以及「已生成，可在右侧查看」的页脚（完成态一句话 + 一个入口就够，正文去右侧文书工作区看）。
+ * 上传入口就在卡里（用户 m00994，把 m00710 挪出去的做法又挪回来）：等材料时这里出上传按钮，
+ * 传完把材料列成清单、给「开始生成」。输入框的 📎 仍能用（把文件直接发给智能体），但不再为它做箭头指路。
+ */
+
+/** 等材料期间选中的参考文档/附件（演示环境不落盘：beforeUpload 返回 false，只留文件名与大小）。 */
+type SourceFile = { name: string; size: number };
+
 export default function DocumentGenerationCard({ message }: { message: ChatMessage }) {
   const [improvement, setImprovement] = useState('');
+  const [sources, setSources] = useState<SourceFile[]>([]);
   const openDocument = useDocumentNavigation();
   const workflow = message.documentWorkflow!;
   const waiting = workflow.stage === 'waiting_input';
+  /** 素材依赖型文书（周工作动态）等参考文档/附件：上传按钮就在卡里（见下面的 uploading 分支）。 */
+  const uploading = workflow.stage === 'waiting_upload';
+  const collecting = workflow.stage === 'collecting';
   const completed = workflow.stage === 'completed';
   const interrupted = workflow.stage === 'interrupted';
-  const current = { collecting: 0, waiting_input: 0, calling: 1, generating: 2, completed: 3, interrupted: 0 }[workflow.stage];
+  const collected = workflow.collectedCount ?? 0;
+  // 要素收集动画（用户 m01044）：要素表本身不许展示（用户 m00861），所以过程只能抽象成
+  // 「已走到第几条」——计数在标题里，进度条在下面。
+  const elementCount = workflow.elements?.length ?? 0;
+  const collectPercent = elementCount > 0 ? Math.round(collected / elementCount * 100) : 0;
+  // 收集过程逐轮长出来：进行中/等补充时多显示一轮（最后一轮就是要用户填的那个表单）。
+  const rounds = workflow.collection?.slice(
+    0,
+    Math.min(collected + (collecting || waiting ? 1 : 0), workflow.collection.length),
+  ) ?? [];
+  const title = uploading
+    ? '等待上传参考文档与附件'
+    : workflow.collection
+      ? (collecting || waiting ? `正在收集复盘要素 · ${collected}/${workflow.collection.length}` : '复盘要素已收集')
+      : (collecting ? `正在收集文书要素 · ${collected}/${elementCount}` : '文书要素已收集');
   const document = useMockDocumentStore(s => s.libraries[message.sessionId]?.documents.find(item => item.id === workflow.documentId));
-  // 完成后的“查看文书”显式打开右侧文书工作区（不触发重新生成）。
   const openInWorkspace = () => {
     if (!document) return;
     openDocument(message.sessionId, { kind: 'mock', id: document.id });
   };
+  /** 卡片里交材料：和输入框那条路走同一个服务（都把材料记进对话流，再进要素整理）。 */
+  const submitSources = () => void submitDynamicsSources(message.sessionId, message.messageId, sources);
   return <div className="axn-document-workflow" data-testid="document-generation-card" aria-live="polite">
-    <Space wrap className="axn-document-workflow-head"><Bot /><Typography.Text strong>文书生成智能体</Typography.Text><Tag color={completed ? 'blue' : 'processing'}>{completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : '执行中'}</Tag></Space>
-    <Typography.Paragraph type="secondary">{message.agentRole} · 模拟</Typography.Paragraph>
-    <Steps orientation="vertical" size="small" current={current} status={interrupted ? 'error' : undefined} items={[
-      { title: current === 0 ? (workflow.collection ? `正在收集复盘要素 · ${workflow.collectedCount ?? 0}/${workflow.collection.length}` : '正在整理已收集的文书要素') : '文书要素已收集', description: <>
-        <Typography.Text type="secondary">{workflow.collection ? '前五项为模拟资料，下一步改进由你补充' : '以下模拟用户已提供并确认的信息'}</Typography.Text>
-        {workflow.collection && <div className="axn-summary-collection">{workflow.collection.slice(0, Math.min((workflow.collectedCount ?? 0) + (current === 0 ? 1 : 0), workflow.collection.length)).map((round, index) => <div key={round.question} className="axn-summary-round">
-          <Typography.Text strong>{index + 1}. {round.question}</Typography.Text>
-          {index < (workflow.collectedCount ?? 0) ? <Typography.Paragraph><Tag color="blue">{index === 5 ? '用户补充 · 已确认' : '模拟补充 · 已确认'}</Tag>{round.answer}</Typography.Paragraph> : waiting ? <div className="axn-summary-input">
-            <Typography.Paragraph type="secondary">请填写下一步改进措施，可包含通信或服装采购、餐食保障、人员轮换机制，以及责任人和完成时限。</Typography.Paragraph>
-            <Input.TextArea aria-label="下一步改进措施" placeholder="请输入你的改进计划…" autoSize={{ minRows: 3, maxRows: 8 }} value={improvement} onChange={event => setImprovement(event.target.value)} />
-            <Button type="primary" disabled={!improvement.trim()} onClick={() => void submitWorkSummaryImprovement(message.sessionId, message.messageId, improvement)}>提交并生成工作总结</Button>
-          </div> : <Typography.Paragraph type="secondary"><LoaderCircle /> 正在整理本轮模拟资料…</Typography.Paragraph>}
-        </div>)}</div>}
-        <dl className="axn-document-elements">{workflow.elements.map(item => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
-        {current > 0 && <Typography.Text type="success"><CircleCheck /> 要素齐备，已确认（模拟）</Typography.Text>}
-      </> },
-      { title: '调用文书生成智能体', description: current >= 1 ? '已传入文书类型、编制单位及内容要求' : '等待要素整理完成' },
-      { title: completed ? '红头文书已生成' : '正在生成红头文书', description: current >= 2 ? '整理正文 · 编排红头格式 · 同步右侧面板' : '等待智能体调用' },
-    ]} />
-    {completed && document && <div className="axn-document-result" data-testid="document-result-summary">
-      <Typography.Text strong><FileText /> {document.title}</Typography.Text>
-      <Typography.Paragraph type="secondary">{document.date} · 红头格式 · 模拟文书</Typography.Paragraph>
-      <Typography.Paragraph ellipsis={{ rows: 3 }}>{document.sections[0]?.[1]}</Typography.Paragraph>
-    </div>}
-    {waiting ? <Typography.Text type="secondary">等待你补充改进计划，也可以在下方对话框直接回复。</Typography.Text> : interrupted ? <Typography.Text type="secondary">页面刷新中断了模拟过程，请重新点击生成。</Typography.Text> : completed ? <Space wrap className="axn-document-workflow-footer"><CircleCheck /><Typography.Text>已生成，可在右侧文书工作区查看详情</Typography.Text>{document && <Button aria-label="查看文书" size="small" icon={<FileText />} onClick={openInWorkspace}>查看文书</Button>}</Space> : <Space><LoaderCircle /><Typography.Text>{workflow.stage === 'collecting' ? '整理文书要素…' : workflow.stage === 'calling' ? '正在调用文书生成智能体…' : '正在生成文书…'}</Typography.Text></Space>}
+    <Space wrap className="axn-document-workflow-head"><Bot /><Typography.Text strong>文书生成智能体</Typography.Text><Tag color={completed ? 'blue' : interrupted ? 'error' : 'processing'}>{completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : uploading ? '待上传素材' : '执行中'}</Tag></Space>
+    <div className="axn-document-collect">
+      <Typography.Text strong>{title}</Typography.Text>
+      {uploading && <>
+        <Typography.Text type="secondary">正文数据全部来自下面这些统计表 —— 请把它们交给我（可一次多选），收到材料就开始编制：</Typography.Text>
+        <ul className="axn-upload-needed">{REQUIRED_ATTACHMENTS.map(item => <li key={item}>{item}</li>)}</ul>
+        <Space wrap>
+          <Upload
+            multiple
+            showUploadList={false}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,.png,.jpg,.jpeg"
+            beforeUpload={(file) => {
+              setSources(list => [...list, { name: file.name, size: file.size }]);
+              return false; // 没有上传接口：只拦下文件，不让 antd 发起请求
+            }}
+          >
+            <Button icon={<Paperclip size={14} />} aria-label="上传参考文档与附件" data-testid="doc-source-upload">上传参考文档与附件</Button>
+          </Upload>
+          <Button type="primary" disabled={sources.length === 0} onClick={submitSources} data-testid="doc-source-generate">开始生成</Button>
+        </Space>
+        {sources.length > 0 && <ul className="axn-source-list" data-testid="doc-source-list">
+          {sources.map((file, index) => <li key={`${file.name}-${index}`}>
+            <FileText size={14} aria-hidden />
+            <span className="axn-source-name">{file.name}</span>
+            <span className="axn-source-size">{formatSize(file.size)}</span>
+            <Button type="text" size="small" aria-label={`移除 ${file.name}`} icon={<X size={14} />} onClick={() => setSources(list => list.filter((_, i) => i !== index))} />
+          </li>)}
+        </ul>}
+      </>}
+      {workflow.collection && <Typography.Text type="secondary">前五项为模拟资料，下一步改进由你补充</Typography.Text>}
+      {rounds.length > 0 && <div className="axn-summary-collection">{rounds.map((round, index) => <div key={round.question} className={`axn-summary-round${collecting && index === collected ? ' is-collecting' : ''}`}>
+        <Typography.Text strong>{index + 1}. {round.question}</Typography.Text>
+        {index < collected ? <Typography.Paragraph><Tag color="blue">{index === 5 ? '用户补充 · 已确认' : '模拟补充 · 已确认'}</Tag>{round.answer}</Typography.Paragraph> : waiting ? <div className="axn-summary-input">
+          <Typography.Paragraph type="secondary">请填写下一步改进措施，可包含通信或服装采购、餐食保障、人员轮换机制，以及责任人和完成时限。</Typography.Paragraph>
+          <Input.TextArea aria-label="下一步改进措施" placeholder="请输入你的改进计划…" autoSize={{ minRows: 3, maxRows: 8 }} value={improvement} onChange={event => setImprovement(event.target.value)} />
+          <Button type="primary" disabled={!improvement.trim()} onClick={() => void submitWorkSummaryImprovement(message.sessionId, message.messageId, improvement)}>提交并生成工作总结</Button>
+        </div> : <Typography.Paragraph type="secondary"><LoaderCircle size={14} /> 正在整理本轮模拟资料…</Typography.Paragraph>}
+      </div>)}</div>}
+      {collecting && !workflow.collection && <>
+        <div className="axn-collect-progress" data-testid="doc-collect-progress" role="progressbar" aria-label="文书要素收集进度" aria-valuemin={0} aria-valuemax={elementCount} aria-valuenow={collected}>
+          <div className="axn-collect-progress-bar" style={{ width: `${collectPercent}%` }} />
+        </div>
+        <Typography.Text type="secondary"><LoaderCircle size={14} className="axn-spin" /> 正在逐项核对要素，收齐即开始编制…</Typography.Text>
+      </>}
+      {interrupted && <Typography.Text type="warning">页面刷新中断了模拟过程，请重新点击生成。</Typography.Text>}
+      {completed && <Space wrap className="axn-document-collect-done" data-testid="doc-collect-done"><CircleCheck size={14} /><Typography.Text>已生成{document ? `《${document.title}》` : '（模拟文书）'}</Typography.Text>{document && <Button size="small" type="link" icon={<FileText size={14} />} aria-label="查看文书" onClick={openInWorkspace}>查看文书</Button>}</Space>}
+    </div>
   </div>;
 }

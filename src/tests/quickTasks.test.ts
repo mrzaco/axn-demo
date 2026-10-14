@@ -17,11 +17,13 @@ const ctx = { lastResourceResultIds: [], candidateResourceIds: [] };
 
 /**
  * 不经 recognize、由 ChatPanel.tsx 的 handleQuickTask 本地分流的任务：
- * 「生成工作总结」走 generateWorkSummary（词面匹配不到任何演示意图，故必须豁免）。
+ * - 「生成工作总结」走 generateWorkSummary（词面匹配不到任何演示意图，故必须豁免）。
+ * - 「生成应急救援周工作动态」走 startWeeklyDynamics：表文类型与数据都来自用户上传的统计表，
+ *   词面同样命中不了任何意图（不是「要情/日报」，也不该被当成摘要）。
  * 其余「应急要情 / 值班日报」虽也被本地分流，但词面同样能命中 doc_brief / doc_daily，
  * 所以不需要豁免 —— 顺便守住“摘掉本地分流后仍不会兜底”。
  */
-const HANDLED_LOCALLY = new Set(['生成工作总结']);
+const HANDLED_LOCALLY = new Set(['生成工作总结', '生成应急救援周工作动态']);
 
 describe('快捷任务目录与意图识别的契约', () => {
   it('每项 task 都能被 recognize 命中，不会落到 unknown 兜底', () => {

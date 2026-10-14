@@ -125,6 +125,8 @@
 }
 /* antd Upload 会在按钮外裹一层 .ant-upload，去掉它自带的行高以免撑高输入行 */
 .axn-composer-shell .ant-upload { line-height: 0; }
+/* 📎 外面包一层 span 给 Upload 收 ref（antd Upload 不转 ref） */
+.axn-composer-upload-wrap { display: inline-flex; }
 
 /* 已选附件：输入框上方的可移除 chip */
 .axn-attach-list {
@@ -188,7 +190,7 @@
 .axn-artifact > .ant-btn { margin: var(--space-3) var(--space-3) var(--space-3); }
 .axn-artifact > .ant-alert { margin: var(--space-3); }
 .axn-resource-results { display: grid; gap: var(--space-2); padding: var(--space-3); }
-.axn-resource-result, .axn-document-result { padding: var(--space-3); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-soft); }
+.axn-resource-result { padding: var(--space-3); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-soft); }
 .axn-resource-result { display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--fs-body); line-height: var(--lh-normal); }
 .axn-resource-result .ant-typography { font-size: var(--fs-body); overflow-wrap: anywhere; }
 .axn-artifact > .axn-resource-result { margin: var(--space-3); }
@@ -270,21 +272,28 @@
 .axn-document-workflow { padding: var(--space-4); border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: var(--axn-surface); }
 .axn-document-workflow-head { margin-bottom: var(--space-2); }
 .axn-document-workflow-head svg.lucide { color: var(--axn-primary); }
-.axn-document-workflow > .ant-typography { font-size: var(--fs-body); margin-bottom: var(--space-4); }
-.axn-document-workflow .ant-steps { margin-bottom: var(--space-4); }
-.axn-document-workflow .ant-steps-item-title { font-size: var(--fs-meta); font-weight: 500; }
-.axn-document-workflow .ant-steps-item-description { font-size: var(--fs-body); line-height: var(--lh-normal); }
-.axn-document-elements { margin: var(--space-3) 0; padding: var(--space-1) var(--space-3); font-size: var(--fs-body); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-soft); }
-.axn-document-elements > div { display: grid; grid-template-columns: 60px minmax(0,1fr); gap: var(--space-2); padding: var(--space-2) 0; line-height: var(--lh-normal); }
-.axn-document-elements > div + div { border-top: 1px solid var(--axn-border); }
-.axn-document-elements dt { color: var(--axn-muted); font-size: var(--fs-meta); }
-.axn-document-elements dd { margin: 0; overflow-wrap: anywhere; color: var(--axn-text); }
-.axn-document-result { margin: var(--space-4) 0; }
-.axn-document-result .ant-typography { margin-bottom: var(--space-2); font-size: var(--fs-body); line-height: var(--lh-relaxed); }
-.axn-document-result > .ant-typography:first-child { display: block; }
-.axn-document-workflow-footer { padding-top: var(--space-3); border-top: 1px solid var(--axn-border); width: 100%; }
-.axn-document-workflow-footer .ant-typography { font-size: var(--fs-body); }
-.axn-document-workflow-footer svg.lucide { color: var(--axn-success); }
+/* 卡里只有「要素收集」一块（用户 m00705）：浅底描边的盒子，内部单列堆叠。
+   盒内的明细（逐轮问答）反过来用 surface 白底，才不至于软底压软底糊成一片。 */
+.axn-document-collect { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-soft); }
+.axn-document-collect > .ant-typography { font-size: var(--fs-body); line-height: var(--lh-normal); }
+.axn-document-collect-done { padding-top: var(--space-2); border-top: 1px solid var(--axn-border); }
+.axn-document-collect-done svg.lucide { color: var(--axn-success); }
+.axn-document-collect-done .ant-typography { font-size: var(--fs-body); }
+.axn-upload-needed { margin: 0; padding-left: var(--space-4); font-size: var(--fs-body); line-height: var(--lh-normal); color: var(--axn-text); }
+/* 卡里交完材料列出的上传件清单（用户 m00994：上传之后的样式）—— 盒内明细用白底压软底 */
+.axn-source-list { display: grid; gap: var(--space-1-5); margin: 0; padding: 0; list-style: none; }
+.axn-source-list > li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1-5) var(--space-3); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-surface); }
+.axn-source-list > li > svg.lucide { flex: none; color: var(--axn-primary); }
+.axn-source-name { flex: 1; min-width: 0; overflow: hidden; font-size: var(--fs-body); text-overflow: ellipsis; white-space: nowrap; }
+.axn-source-size { flex: none; color: var(--axn-muted); font-size: var(--fs-meta); }
+/* 要素收集进度（用户 m01044：收集过程要模拟一个动画）。要素表本身不许展示（用户 m00861），
+   所以过程只能抽象成「已经走到第几条」：计数写在标题里，进度条按 collectedCount 逐条推进，
+   一道扫光表示正在核对当前这条（这就是“在做事”的全部视觉信号）。 */
+.axn-collect-progress { position: relative; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--axn-primary) 14%, var(--axn-surface)); overflow: hidden; }
+.axn-collect-progress-bar { height: 100%; border-radius: inherit; background: var(--axn-primary); transition: width var(--dur-slower) var(--ease-out); }
+.axn-collect-progress::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--axn-surface) 72%, transparent), transparent); animation: axn-collect-sweep 1.4s var(--ease-in-out) infinite; }
+@keyframes axn-collect-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
 @media (prefers-reduced-motion: reduce) {
   .is-running .axn-agent-summon-avatar::after { animation: none; }
   .axn-question-item, .axn-chip { transition: none; }
@@ -293,10 +302,14 @@
   .axn-task-step .axn-step-output, .axn-task-answer, .axn-agent-execution:not(.is-running) .axn-agent-summon-action,
   .axn-step-running::before, .axn-step-running .axn-step-output { animation: none; }
   .axn-task-step > svg.lucide, .axn-task-head .ant-tag { transition: none; }
+  .axn-summary-round, .axn-collect-progress::after, .axn-summary-round.is-collecting::after { animation: none; }
 }
 
-.axn-summary-collection { display: grid; gap: var(--space-3); margin: var(--space-4) 0; }
-.axn-summary-round { padding: var(--space-3) var(--space-4); border: 1px solid var(--axn-border); border-radius: 10px; background: var(--axn-soft); }
+.axn-summary-collection { display: grid; gap: var(--space-3); margin: var(--space-1) 0 0; }
+.axn-summary-round { padding: var(--space-3) var(--space-4); border: 1px solid var(--axn-border); border-radius: 10px; background: var(--axn-surface); animation: axn-rise-in var(--dur-slower) var(--ease-in-out) backwards; }
+/* 正在收集的那一轮：描边挑亮 + 扫光，和进度条同一语言（用户 m01044） */
+.axn-summary-round.is-collecting { position: relative; overflow: hidden; border-color: color-mix(in srgb, var(--axn-primary) 30%, var(--axn-border)); }
+.axn-summary-round.is-collecting::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--axn-primary) 9%, transparent), transparent); animation: axn-collect-sweep 1.6s var(--ease-in-out) infinite; }
 .axn-summary-round .ant-typography { line-height: var(--lh-relaxed); }
 .axn-summary-round .ant-typography + .ant-typography { margin: var(--space-2) 0 0; }
 .axn-summary-input { display: grid; gap: var(--space-3); margin-top: var(--space-3); }

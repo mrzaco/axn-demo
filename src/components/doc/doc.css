@@ -278,7 +278,7 @@
   margin-bottom: var(--space-3);
 }
 
-/* 正文：三号（21px）、首行缩进 2 字符、两端对齐。节标题现在是 antd 输入框，
+/* 正文：三号（21px）、首行缩进 2 字符、两端对齐。节标题是同一张纸上的可编辑文字，
    黑体字样式见 .doc-paper-editing .doc-edit-heading。 */
 .axn-redhead-body p {
   font-size: 21px;
@@ -310,6 +310,54 @@
 .doc-rich font[size="3"] { font-size: 21px; }
 .doc-rich font[size="4"] { font-size: 24px; }
 .doc-rich font[size="5"] { font-size: 29px; }
+
+/* 正文尾部附图（样稿的现场照片；用户 m01044）：不进富文本正文，只按图注渲染。
+   图注用仿宋小字居中，和公文的「图片说明」习惯一致；图本身撑满正文栏宽。 */
+.axn-redhead-figures {
+  margin-top: var(--space-5);
+}
+
+.axn-redhead-figures-label {
+  font-size: var(--fs-meta);
+  color: #45403a;
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.axn-redhead-figures figure {
+  margin: 0 0 var(--space-5);
+  text-align: center;
+}
+
+.axn-redhead-figures img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--axn-border);
+  border-radius: var(--radius-sm);
+  background: var(--axn-surface-muted);
+}
+
+.axn-redhead-figures figcaption {
+  font-size: var(--fs-meta);
+  line-height: 1.7;
+  color: var(--axn-text-muted);
+  margin-top: var(--space-2);
+}
+
+.axn-redhead-figures figure:last-child { margin-bottom: 0; }
+
+/* 附件统计表（用户 m01163：周工作动态的附件要模拟出表格）。真件的表体列窄字小，纸面栏宽只有 ~480px，
+   所以压到 11px 仿宋、单元格单行不折行；宽表（营收 12 列、中标 11 列）交给外层横向滚动，
+   不在纸面上堆成一团。表头与合并首列用浅底，和图上“真件表体”的观感一致。 */
+.axn-redhead-tables { margin-top: var(--space-5); }
+.axn-redhead-table + .axn-redhead-table { margin-top: var(--space-5); }
+.axn-redhead-table-title { margin-bottom: var(--space-3); font-size: var(--fs-body); font-weight: 600; text-align: center; color: var(--axn-text); }
+.axn-redhead-table-scroll { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--axn-border) transparent; }
+.axn-redhead-table table { border-collapse: collapse; font-size: 11px; line-height: 1.6; color: var(--axn-text); }
+.axn-redhead-table th, .axn-redhead-table td { padding: 3px 6px; border: 1px solid var(--axn-border); text-align: left; white-space: nowrap; }
+.axn-redhead-table thead th { background: var(--axn-soft); font-weight: 600; text-align: center; }
+.axn-redhead-table tbody th { background: var(--axn-soft); font-weight: 400; white-space: normal; }
 
 /* 落款/尾部：日报=值班员+电话；要情=报送/抄送/承办；报告类=单位署名+日期+联系人 */
 .axn-redhead-tail {
@@ -531,12 +579,19 @@
 .doc-document-signature p { margin: var(--space-1) 0; }
 .doc-reading-footer { display: flex; align-items: center; gap: var(--space-2); max-width: var(--measure-doc); margin: var(--space-4) auto 0; color: var(--axn-muted); font-size: var(--fs-body); }
 .doc-reading-footer > span { margin-left: auto; }
-.doc-edit-notice { max-width: var(--measure-doc); margin: 0 auto var(--space-4); padding: var(--space-2-5) var(--space-3-5); box-sizing: border-box; background: var(--axn-primary-bg); color: var(--axn-primary-text); border-radius: 6px; font-size: var(--fs-body); }
+.doc-paper-editing .doc-edit-title,
+.doc-paper-editing .doc-edit-heading,
+.doc-paper-editing .doc-rich-editor { display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 0; border: none; background: transparent; font: inherit; color: inherit; }
 .doc-paper-editing .doc-edit-title { font-family: 'FZXiaoBiaoSong-B05S', '方正小标宋简体', 'Noto Serif CJK SC', serif; font-size: 23px; text-align: center; font-weight: 700; margin-bottom: var(--space-5); }
 .doc-paper-editing .doc-edit-heading { margin: var(--space-4) 0 var(--space-1); font-size: 21px; font-weight: 600; font-family: 'SimHei', 'Noto Sans CJK SC', sans-serif; }
-/* 正文的富文本编辑器：外框向旁边两个 antd 输入框看齐，段落排版复用 .axn-redhead-body p / .doc-rich */
-.doc-paper-editing .doc-rich-editor { min-height: 112px; padding: 4px 11px; box-sizing: border-box; border: 1px solid var(--axn-border); border-radius: 6px; background: var(--axn-canvas); font-family: inherit; font-size: 21px; line-height: 1.78; }
-.doc-paper-editing .doc-rich-editor:focus { outline: 2px solid var(--axn-primary); outline-offset: 0; background: var(--axn-surface); }
+/* 正文的富文本编辑器：不再给外框，段落排版复用 .axn-redhead-body p / .doc-rich */
+.doc-paper-editing .doc-rich-editor { min-height: 112px; font-size: 21px; line-height: 1.78; }
+
+/* 版面内的可编辑文字一律不画输入框：纸面本身就是编辑器。
+   悬停/聚焦只给一层柔和底色提示可编辑位置；box-shadow 是外扩的，所以不占布局、不推动文字。 */
+.doc-paper-editing .doc-inline-edit { border-radius: 4px; }
+.doc-paper-editing .doc-inline-edit:hover { background: var(--axn-primary-bg); }
+.doc-paper-editing .doc-inline-edit:focus { outline: none; background: var(--axn-primary-bg); box-shadow: 0 0 0 4px var(--axn-primary-bg); }
 
 /* 富文本工具条：随文书常驻（文书打开即可编辑），横在文书上方（与 .doc-detail-toolbar--full 同一条工位） */
 .doc-rich-toolbar { flex-shrink: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; padding: var(--space-2) var(--space-6); background: var(--axn-surface); border-bottom: 1px solid var(--axn-border); }

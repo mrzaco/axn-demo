@@ -4,6 +4,9 @@
  *   结尾=值班员/值班电话。
  * - 应急要情：平台行 + 机关标志 + 「应 急 救 援 要 情」，有期号行与黑色标题行；
  *   结尾=报送/抄送/承办·编辑·电话。
+ * - 应急救援周工作动态（真件：`/home/xx/应急救援周工作动态 .doc`）：机关标志 + 红字文种，
+ *   行首是「〔2026〕第13期」式期号、时间行排一周区间；结尾=送/发两行（无承办编辑），
+ *   正文后带「附件」一节（真件里附件1/2是统计表，本模型不排表体，只列附件清单）。
  * - 报告类（工作总结/会议纪要）：机关标志 + 红字文种 + 黑色标题；结尾=单位署名 + 日期 + 联系人。
  */
 export type RedheadSpec = {
@@ -17,7 +20,7 @@ export type RedheadSpec = {
   /** 日报类不排黑色标题行（标题即红字文种） */
   showTitle?: boolean;
   /** 结尾块样式 */
-  tail: 'duty' | 'brief' | 'report';
+  tail: 'duty' | 'brief' | 'report' | 'dynamics';
 };
 
 /** 文书库样稿，不写入正式文书审批与事实快照。 */
@@ -35,6 +38,25 @@ export const DOCUMENT_CATEGORIES = [
     ['四、重点、难点及采取的措施', '重点、难点：控制渗流通道，防止堤身进一步掏空；夜间作业、取土场地受限。采取的措施：分段施工、加密水位与位移监测、预置抢险物资与备用电源（模拟）。'],
     ['五、其他重要情况', '报送：集团应急指挥中心（模拟）；抄送：清河段防汛值班室（模拟）；承办：市应急指挥中心值班室（模拟）。'],
   ] },
+  // 素材依赖型文书：正文数据基本来自各二级企业报来的统计表，所以生成前必须先上传参考文档与附件
+  // （走 services/weeklyDynamicsWorkflow 的上传门，不走文书库分类「生成」的直出路径）。
+  { code: 'WEEKLY_DYNAMICS', name: '应急救援周工作动态', prefix: '应急周动', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '应 急 救 援 周 工 作 动 态', showNumber: true, showTitle: true, tail: 'dynamics' }, topics: ['防汛应急周工作动态', '应急救援能力建设周工作动态'], sections: [
+    ['一、上周工作完成情况', [
+      '（一）应急救援行动。4月18日，派员参加北京市丰台区防汛工作会议，共同研判防汛形势，介绍安能防灾减灾救灾能力，进一步顺畅对接协同机制（模拟）。',
+      '（二）应急能力建设。1.工程练兵。共有23支专业中队、1294人、507台装备，在39个项目参与工程练兵，周完成产值574.67万元，完成计划的104.49%（模拟）。（详见附件1）2.训练培训。4月17日，召开通信侦测装备及无人机操作集训动员大会，来自各工程局、科工和研究院共100余人操作骨干在三局重庆队正式开训（模拟）。',
+      '（三）安全应急产业。1.市场拓展。本周新增中标项目（含直接签订合同）4个，合同金额106.88万元（模拟）。2.安全应急产业营收。本周安全应急产业营收444.98万元（模拟）。（详见附件2）3.重点客户及项目跟踪。一局推进与大藤峡2026年应急演练项目；二局推动内蒙古电力（集团）有限责任公司基干队伍应急培训项目落地；三局对接白鹤滩电站坝区地灾应急处理与边坡维护项目（模拟）。',
+    ].join('\n')],
+    ['二、本周工作计划', [
+      '（一）应急救援工作。1.督导各级加强应急值班备勤工作，重点加大对各救援基地、队伍视频检查力度。2.筹备抢险救灾动员部署会（模拟）。',
+      '（二）应急能力建设。1.工程练兵。计划完成产值602万元，其中一局189万元、二局300万元、三局113万元（模拟）。2.国有资本预算申报。根据财政部批复编制预算执行计划，提交集团会议研究审议（模拟）。',
+      '（三）安全应急产业。1.安全应急服务营收。计划完成安全应急服务营收360.98万元，其中一局25万元、二局200万元、三局120万元、科工15.98万元（模拟）。2.安全应急产品体系规范工作。组织专家对《安全应急服务产品清单实施指南》进行会审（模拟）。',
+    ].join('\n')],
+    ['附件', [
+      '附件1：工程练兵情况统计表（模拟）',
+      '附件2：安全应急产业营收情况统计表（模拟）',
+      '附件3：本周中标项目（直接签订合同项目）汇总表（模拟）',
+    ].join('\n')],
+  ] },
   { code: 'MEETING_MINUTES', name: '会议纪要', prefix: '应急会纪', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '会 议 纪 要', showNumber: true, showTitle: true, tail: 'report' }, topics: ['防汛应急协调会议纪要', '值班值守工作部署会议纪要'], sections: [
     ['一、会议议题', '会议围绕重点区域风险排查、应急值守与信息报送开展研究。参会单位包括值班协调、现场巡查和物资保障等工作组（模拟设定）。'],
     ['二、议定事项', '建立重点风险清单，明确责任人和跟进节点；完善信息核实与报送流程；对力量调配和物资保障需求开展联合研判。'],
@@ -48,6 +70,18 @@ export const DOCUMENT_CATEGORIES = [
   ] },
 ] as const;
 
+/** 样稿正文尾部的现场图片：不进富文本正文，由详情页按图注渲染（用户 m01044 提供的两张模拟素材）。 */
+type MockFigure = { src: string; caption: string };
+
+/**
+ * 附件统计表（用户 m01163：周工作动态的附件要模拟出表格）。
+ * 数据取自参考真件（/home/xx/应急救援周工作动态 .doc，WPS 导出的 6 页原件），
+ * 表头只铺平一层：真件里的合并表头（如「年度累计完成情况/本周营收情况」跨列、「项目概况」下嵌 4 列）
+ * 在 570px 宽的纸面上排不下，拆成一列一个语义完整的字段更可读。
+ * `group` 是真件里的合并首列（如「本周完成产值」跨三行）：只写在每组第一行，渲染时按相邻行补 rowSpan。
+ */
+type MockTable = { title: string; head: readonly string[]; rows: readonly { group?: string; cells: readonly string[] }[] };
+
 export type MockDocument = {
   id: string;
   code: string;
@@ -55,6 +89,29 @@ export type MockDocument = {
   date: string;
   number: string;
   sections: readonly (readonly [string, string])[];
+  /** 正文尾部附图（可选）；只挂给带了现场照片的那一篇样稿。 */
+  figures?: readonly MockFigure[];
+  /** 附件统计表（可选）；目前只有周工作动态带表体。 */
+  tables?: readonly MockTable[];
+  /**
+   * 红头 / 时间行 / 落款 / 页码等没有结构化字段的文字的编辑覆盖值，键见 MockDocumentDetail 里的 fieldKey。
+   * 缺省即用样稿默认值；用户改回默认值时会删掉对应键，所以「空对象」和「没有 paper」等价。
+   */
+  paper?: Readonly<Record<string, string>>;
+};
+
+const NO_PAPER_FIELDS: string[] = [];
+
+/**
+ * 样稿封面的按类覆盖：周工作动态是按期下发的期刊，行首是期号、时间行排一周区间，
+ * 与「应急报〔2026〕021号」那套发文字号不同（真件：「〔2026〕第13期」「4月11日-4月17日」）。
+ * 只覆盖这两项，其余样稿字段仍由 category 推导。
+ */
+const SAMPLE_COVER: Partial<Record<string, { number: (index: number) => string; date: (index: number) => string }>> = {
+  WEEKLY_DYNAMICS: {
+    number: (index) => `〔2026〕第${13 + index}期`,
+    date: (index) => `4月${11 + index * 7}日-4月${17 + index * 7}日`,
+  },
 };
 
 /**
@@ -66,18 +123,86 @@ export function sameMockDocument(a: MockDocument, b: MockDocument): boolean {
   if (a === b) return true;
   if (a.id !== b.id || a.code !== b.code || a.title !== b.title || a.date !== b.date || a.number !== b.number) return false;
   if (a.sections.length !== b.sections.length) return false;
-  return a.sections.every(
+  if (!a.sections.every(
     (section, index) => section[0] === b.sections[index][0] && section[1] === b.sections[index][1],
-  );
+  )) return false;
+  // paper 通常是 undefined（没编辑过红头/落款），相同的 undefined 直接跳过，别每次击键都分配数组。
+  if (a.paper === b.paper) return true;
+  const keys = a.paper ? Object.keys(a.paper) : NO_PAPER_FIELDS;
+  return keys.length === (b.paper ? Object.keys(b.paper).length : 0)
+    && keys.every(key => a.paper?.[key] === b.paper?.[key]);
 }
 
-export const MOCK_DOCUMENTS: MockDocument[] = DOCUMENT_CATEGORIES.flatMap(category =>
-  category.topics.map((title, index) => ({
+/**
+ * 按标题挂的尾部附图：只给「重点河段险情处置要情」这一篇样稿配现场照片（用户 m01044）。
+ * 图片放在 public/doc-assets/（原图 4096×3072、12–15MB，已压到 1400px / 约 350KB 再入库）。
+ */
+const SAMPLE_FIGURES: Record<string, readonly MockFigure[]> = {
+  '重点河段险情处置要情': [
+    { src: '/doc-assets/qinghe-site-1.jpg', caption: '图1　抢险机械进场清理危岩、开辟作业平台（模拟）' },
+    { src: '/doc-assets/qinghe-site-2.jpg', caption: '图2　现场指挥组与抢险队伍会商处置方案（模拟）' },
+  ],
+};
+
+/** 附件统计表（用户 m01163）：周工作动态的三张表，与上传门清单（services/weeklyDynamicsWorkflow 的
+ * REQUIRED_ATTACHMENTS）及种子里的附件清单一一对应。数值全取自参考真件（模拟稿口径）。 */
+const SAMPLE_TABLES: Record<string, readonly MockTable[]> = {
+  WEEKLY_DYNAMICS: [
+    {
+      title: '工程练兵情况统计表',
+      head: ['分类', '项目', '一局', '二局', '三局', '总计'],
+      rows: [
+        { group: '专业中队人员投入', cells: ['投入人数', '436', '468', '390', '1294'] },
+        { cells: ['专业中队总人数', '606', '500', '509', '1615'] },
+        { cells: ['占比', '71.95%', '93.60%', '73.53%', '80.1%'] },
+        { group: '工程机械类装备投入', cells: ['投入台套数', '147', '169', '191', '507'] },
+        { cells: ['总台套数', '286', '211', '225', '722'] },
+        { cells: ['占比', '51.4%', '80.09%', '84.89%', '70.22%'] },
+        { group: '本周完成产值', cells: ['完成产值（万元）', '186.84', '277.83', '110', '574.67'] },
+        { cells: ['周计划产值（万元）', '185', '250', '115', '550'] },
+        { cells: ['完成率', '101%', '111.13%', '95.6%', '104.49%'] },
+        { group: '开累完成产值', cells: ['完成产值（万元）', '1500.5', '3105.08', '2443.74', '7049.32'] },
+        { cells: ['目标产值（万元）', '21210', '17500', '17815', '56525'] },
+        { cells: ['完成率', '7.07%', '17.74%', '13.71%', '12.47%'] },
+        { group: '年度人均练兵产值', cells: ['目前人均练兵产值', '2.48', '6.21', '4.8', '4.36'] },
+        { cells: ['目标产值', '35', '35', '35', '35'] },
+        { cells: ['完成率', '7.07%', '17.74%', '13.7%', '12.47%'] },
+      ],
+    },
+    {
+      title: '安全应急产业营收情况统计表',
+      head: ['单位', '年度累计营收', '应急服务营收', '应急服务占比', '教育培训营收', '教育培训占比', '周营收合计', '本周应急服务', '本周应急服务占比', '本周教育培训', '本周教育培训占比', '下周计划营收'],
+      rows: [
+        { cells: ['合计', '10051.35', '9691.74', '96.42%', '359.61', '3.58%', '444.98', '429.22', '96.46%', '15.76', '3.54%', '360.98'] },
+        { cells: ['一局', '3059.27', '3036.01', '99.24%', '23.26', '0.76%', '9.76', '0.00', '0.00%', '9.76', '100.00%', '25'] },
+        { cells: ['二局', '3086.56', '2965.87', '96.09%', '120.69', '3.91%', '198.05', '198.05', '100.00%', '0.00', '0.00%', '200'] },
+        { cells: ['三局', '3168.19', '2952.53', '93.19%', '215.66', '6.81%', '121.00', '115.00', '95.04%', '6.00', '4.96%', '120'] },
+        { cells: ['科工', '737.33', '737.33', '100.00%', '0.00', '0.00%', '116.17', '116.17', '100.00%', '0.00', '0.00%', '15.98'] },
+      ],
+    },
+    {
+      title: '本周中标项目（直接签订合同项目）汇总表',
+      head: ['序号', '中标单位', '业主单位（发包人）', '项目业态', '项目名称', '项目内容', '中标模式', '中标金额（万元）', '项目所在地', '中标时间', '合同金额（万元）'],
+      rows: [
+        { cells: ['1', '一局唐山分公司', '河北省应急物资供应中心', '应急服务', '应急物资代储', '物资代储', '单价合同', '2.55', '唐山', '2026.01.01', '2.55'] },
+        { cells: ['2', '三局西安基地', '国家管网兰州输油气分公司', '应急服务', '兰州输油气分公司应急演练机械租赁项目', '—', '独立中标', '42.98', '兰州', '2026.4.8', '42.98'] },
+        { cells: ['3', '三局新疆公司', '新疆送变电有限公司', '应急服务', '2026年产业单位第三次服务类竞争性谈判采购', '设备租赁服务', '独立中标', '61.35', '新疆乌鲁木齐', '2026.4.10', '61.35'] },
+        { cells: ['4', '三局武汉公司', '武汉市国防动员办公室', '应急服务', '全市国防动员专业保障队伍骨干培训保障服务项目', '培训保障', '独立中标', '单价合同', '武汉', '2026.4.10', '单价合同'] },
+      ],
+    },
+  ],
+};
+
+export const MOCK_DOCUMENTS: MockDocument[] = DOCUMENT_CATEGORIES.flatMap(category => {
+  const cover = SAMPLE_COVER[category.code];
+  return category.topics.map((title, index) => ({
     id: `sample-${category.code}-${index}`,
     code: category.code,
     title,
-    date: `2026年9月${28 - index}日`,
-    number: `${category.prefix}〔2026〕${String(index + 21).padStart(3, '0')}号`,
+    date: cover ? cover.date(index) : `2026年9月${28 - index}日`,
+    number: cover ? cover.number(index) : `${category.prefix}〔2026〕${String(index + 21).padStart(3, '0')}号`,
     sections: category.sections,
-  })),
-);
+    figures: SAMPLE_FIGURES[title],
+    tables: SAMPLE_TABLES[category.code],
+  }));
+});

@@ -197,12 +197,17 @@ export interface ChatMessage {
   choices?: { label: string; task: string }[];
   hint?: string;
   documentWorkflow?: {
-    stage: 'collecting' | 'waiting_input' | 'calling' | 'generating' | 'completed' | 'interrupted';
+    /** waiting_upload：素材依赖型文书（周工作动态）在收要素前先等用户上传参考文档/附件。 */
+    stage: 'collecting' | 'waiting_upload' | 'waiting_input' | 'calling' | 'generating' | 'completed' | 'interrupted';
     elements: { label: string; value: string }[];
     collection?: { question: string; answer: string }[];
     collectedCount?: number;
     reportSections?: [string, string][];
     documentId?: string;
+    /** 生成前需要用户上传的参考文档与附件清单：门在收到上传件之后才放行（周工作动态用）。 */
+    requiredAttachments?: string[];
+    /** 本轮实际收到的上传件，演示环境只留文件名与大小（不落盘、不读取内容）。 */
+    attachments?: { name: string; size: number }[];
   };
   /** 用户上传的附件（演示环境仅保留文件名与大小：不落盘、不读取内容、不参与意图识别） */
   attachments?: { name: string; size: number }[];

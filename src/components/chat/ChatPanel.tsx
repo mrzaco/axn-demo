@@ -1,4 +1,6 @@
 import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
+import { startWeeklyDynamics, submitDynamicsSources } from '@/services/weeklyDynamicsWorkflow';
+import { formatSize } from '@/shared/format';
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
  * + 圆角一体化输入区（快捷任务 chips 位于输入框上方）+ 补录表单。
@@ -10,6 +12,7 @@ import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/wo
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
+  ArrowUp,
   ChevronRight,
   FileCheck,
   Flame,
@@ -49,8 +52,8 @@ export interface ChatPanelProps {
 
 const AVATAR = <div className="axn-chat-avatar">安</div>;
 
-const formatSize = (bytes: number) =>
-  bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+// 语音输入模拟用的示例话语（标注 vibe_1791960862035）：点麦克风逐字「转写」这句话。
+const SPEECH_SAMPLE = '请汇总南堤堤防管涌险情的最新处置进展，并生成一份情况报告';
 
 // 快捷任务：5 个能力块平铺在输入框上方，点块在它右侧就地横向展开一行子按钮（不再是浮层）；
 // 例外是文书生成：点它改成在对话里召唤智能体 + 给三个文书类型选项（用户 m00263）
@@ -66,9 +69,9 @@ const AGENT_CHIP_ICONS: Record<string, LucideIcon> = {
   'agent-eval': ShieldCheck,
 };
 
-// 文书生成智能体：点能力块不再就地展开三个子按钮（父按钮也不带右箭头），改成在对话里
-// 「召唤它 + 自我介绍 + 三个文书类型选项 + 一句提示」（用户 m00263）。
-// 三个选项的 label/task 直接复用 seed/agentQuickTasks 的同一份数据 —— 点选项发起的 task
+// 文书生成智能体：点能力块不再就地展开子按钮（父按钮也不带右箭头），改成在对话里
+// 「召唤它 + 自我介绍 + 文书类型选项 + 一句提示」（用户 m00263）。
+// 选项的 label/task 直接复用 seed/agentQuickTasks 的同一份数据 —— 点选项发起的 task
 // 与原来点子按钮完全一致，所以 task→intent 契约不变（见该文件顶部说明）。
 // intro/hint 是用户原话的润色：原句「您也可以直接跟我您要生成文书的要求…」缺谓语，已补齐。
 const DOC_AGENT = {
@@ -174,6 +177,31 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   };
   const removeAttachment = (uid: string) => setAttachments((prev) => prev.filter((f) => f.uid !== uid));
 
+  // 语音输入（标注 vibe_1791960862035）：演示环境没有麦克风/语音识别，点语音按钮改为
+  // 「模拟实时转写」——逐字把一段示例话语填进输入框，按钮同步显示录音中的动画。
+  const [transcribing, setTranscribing] = useState(false);
+  const speechTimer = useRef<number | null>(null);
+  const stopTranscribing = useCallback(() => {
+    if (speechTimer.current != null) {
+      window.clearInterval(speechTimer.current);
+      speechTimer.current = null;
+    }
+    setTranscribing(false);
+  }, []);
+  const startTranscribing = useCallback(() => {
+    stopTranscribing();
+    setInput('');
+    setTranscribing(true);
+    let i = 0;
+    speechTimer.current = window.setInterval(() => {
+      i += 1;
+      setInput(SPEECH_SAMPLE.slice(0, i));
+      if (i >= SPEECH_SAMPLE.length) stopTranscribing();
+    }, 70);
+  }, [stopTranscribing]);
+  // 卸载/切会话时别把 interval 留住
+  useEffect(() => () => stopTranscribing(), [stopTranscribing]);
+
   // 事件切换/重置后确保会话存在并跟随当前事件
   useEffect(() => {
     if (activeConversation) {
@@ -192,14 +220,25 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   );
   const generatingDocument = useMockDocumentStore(s => s.libraries[session?.sessionId ?? '']?.generatingCode);
   const busy = runningTask != null || !!generatingDocument;
+  // 素材依赖型文书（周工作动态）正在等参考文档/附件：气泡里不做上传入口，入口就是输入框的 📎，
+  // 所以这时候在 📎 上出箭头动画把目光带过去（用户 m00810），要传什么写在气泡里。卡片与输入框共用这一份判断。
+  const waitingUpload = session?.messages.find(message => message.documentWorkflow?.stage === 'waiting_upload') ?? null;
+  /** 只传了附件、输入框里还没打字：等材料期间这就算一条完整输入，回车与发送按钮都交得出去。 */
+  const submittingSources = waitingUpload != null && attachments.length > 0;
 
   const handleSend = (raw: string) => {
     const text = raw.trim();
-    if (!session || !text || busy) return;
-    setInput('');
-    // 附件随本条消息送出后清空（只有默认问答路径消费附件；工作总结 / 文书生成路径不读）
+    if (!session || busy) return;
+    // 附件随本条消息送出后清空。消费附件的两条路：周工作动态的上传门（下面）、默认问答。
     const pendingAttachments = attachments;
+    // 上传门开着时，把文件直接发过来 = 上传并开始生成，所以允许只传文件不写字。
+    if (!text && !(waitingUpload && pendingAttachments.length)) return;
+    setInput('');
     setAttachments([]);
+    if (waitingUpload && pendingAttachments.length) {
+      void submitDynamicsSources(session.sessionId, waitingUpload.messageId, pendingAttachments);
+      return;
+    }
     const waitingSummary = session.messages.find(message => message.documentWorkflow?.stage === 'waiting_input');
     if (waitingSummary) {
       void submitWorkSummaryImprovement(session.sessionId, waitingSummary.messageId, text);
@@ -212,9 +251,23 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     void sendMessage(session.sessionId, { text, attachments: pendingAttachments.length ? pendingAttachments : undefined });
   };
 
+  /** 只传了附件、输入框里没打字时的提交：Sender 内部按输入值拦提交（内部 state，props 改不了），所以这条路自己走。
+   *  与 handleSend 里“上传门开着时直接发文件”是同一条路（那边管的是“打了字又带了附件”）。 */
+  const startDynamicsWithSources = () => {
+    if (!session || !waitingUpload || attachments.length === 0) return;
+    const files = attachments;
+    setAttachments([]);
+    void submitDynamicsSources(session.sessionId, waitingUpload.messageId, files);
+  };
+
   const handleQuickTask = async (text: string) => {
     if (text === '生成工作总结') {
       if (session && !busy) await generateWorkSummary(session.sessionId, text);
+      return;
+    }
+    // 素材依赖型文书：先落一张上传门，等参考文档/附件到位再收要素并生成。
+    if (text === '生成应急救援周工作动态') {
+      if (session && !busy) startWeeklyDynamics(session.sessionId, text);
       return;
     }
     const code = text === '生成值班日报' ? 'DUTY_DAILY' : text === '生成应急要情' ? 'EMERGENCY_BRIEF' : null;
@@ -237,17 +290,15 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     });
     const document = await useMockDocumentStore.getState().generate(sessionId, code, {
       elements,
+      // 逐条上报进度，气泡里的收集进度条才有东西走（用户 m01044）。
+      onCollected: count => useSessionStore.getState().updateDocumentWorkflow(sessionId, invocation.messageId, { stage: 'collecting', elements, collectedCount: count }),
       onStage: stage => useSessionStore.getState().updateDocumentWorkflow(sessionId, invocation.messageId, { stage, elements }),
     });
     useSessionStore.getState().updateDocumentWorkflow(sessionId, invocation.messageId, {
       stage: document ? 'completed' : 'interrupted', elements, documentId: document?.id,
     });
-    if (document && useSessionStore.getState().sessions[sessionId]) {
-      useSessionStore.getState().appendMessage(sessionId, {
-        sessionId, role: 'assistant', kind: 'text', taskId: null,
-        text: `已生成《${document.title}》（模拟文书），已在右侧文书工作区打开。`,
-      });
-    }
+    // 不再追加「已生成《…》，已在右侧文书工作区打开」这条消息：气泡自己就是这条消息，
+    // 同一件事说两遍（用户 m00705「气泡里只展示一个要素收集的过程，其他不要了」）。
   };
 
   // 点「文书生成」：在对话里召唤文书生成智能体，由它自我介绍并给出三个文书类型选项
@@ -373,11 +424,13 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               agentRole={m.agentRole ?? ''}
               action={m.text ?? ''}
               status={m.choices ? 'queued' : m.taskId ? tasks[m.taskId]?.status : undefined}
-              // 自我介绍式召唤（文书生成）：三个文书类型 + 一句「也可以直接提要求 / 传文件」的提示，
+              // 自我介绍式召唤（文书生成）：文书类型选项 + 一句「也可以直接提要求 / 传文件」的提示，
               // 放在正文列末尾（bodyExtra）——与姓名下的文字左对齐（标注 vibe_1791874890135）
+              // 选项按当前 seed 渲染，不用消息里的快照：会话存在 localStorage 里，快照会让旧会话
+              // 永远停在当时那几项上，新加的文书类型进不来（标注 vibe_1791945318621）。m.choices 只当标记用。
               bodyExtra={m.choices ? (
                 <DocAgentChoices
-                  options={m.choices}
+                  options={DOC_AGENT.options}
                   hint={m.hint ?? ''}
                   disabled={!session || busy}
                   onPick={(task) => { void handleQuickTask(task); }}
@@ -627,11 +680,21 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             onChange={(v) => setInput(v)}
             onSubmit={(message) => handleSend(message)}
             loading={runningTask != null}
+            // 受控录音开关：点麦克风在「开始/停止模拟转写」间切换，按钮自己会显示录音中的动画。
+            // 演示环境拿不到真实语音识别，所以只用它做交互外观，转写内容由 startTranscribing 模拟。
+            allowSpeech={{
+              recording: transcribing,
+              onRecordingChange: (recording) => (recording ? startTranscribing() : stopTranscribing()),
+            }}
             onCancel={() => {
               if (runningTask) cancelTask(runningTask.taskId);
             }}
             prefix={(
-              /* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上 */
+              /* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上。
+                 周工作动态的上传入口在对话气泡的卡里（用户 m00994），所以这里不再挂箭头提示、也不再挂弹出层；
+                 但文件依旧可以在这里交给智能体（上传门开着时＝交材料）。
+                 外面这层 span 只给 Upload 收 ref（antd Upload 不转 ref，直接当 child 会告警）。 */
+              <span className="axn-composer-upload-wrap">
               <Upload
                 multiple
                 showUploadList={false}
@@ -650,13 +713,28 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                   data-testid="composer-upload"
                 />
               </Upload>
+              </span>
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
               <>
                 {incidentSelect}
-                {/* 空输入→语音，有文字→发送，运行中→停止（可取消当前任务）
-                    同一位置同一动作槽：语音按钮与发送按钮同形（实心圆形主色容器）。 */}
-                {runningTask != null ? <LoadingButton /> : input.trim() ? <SendButton /> : <SpeechButton variant="solid" color="primary" shape="circle" />}
+                {/* 空输入→语音，有文字→发送，运行中→停止（可取消当前任务）；模拟转写中保持语音按钮，
+                    再点一下可中途停下（此时输入框已有字，否则会被换成发送按钮）
+                    同一位置同一动作槽：语音按钮与发送按钮同形（实心圆形主色容器）。
+                    只传了附件时不走 Sender 的提交（空文本会被它内部的 submitDisabled 拦住），
+                    所以等材料期间这里换成自己这个按钮把附件交出去，不然“传完没反应”。 */}
+                {runningTask != null ? <LoadingButton /> : submittingSources
+                  ? <Button type="primary" shape="circle" icon={<ArrowUp size={16} />} aria-label="发送附件并开始生成" data-testid="composer-submit-sources" onClick={startDynamicsWithSources} />
+                  : transcribing || !input.trim()
+                    ? <SpeechButton
+                        variant="solid"
+                        color="primary"
+                        shape="circle"
+                        aria-label={transcribing ? '停止语音输入' : '语音输入'}
+                        title={transcribing ? '停止语音输入' : '语音输入'}
+                        data-testid="composer-speech"
+                      />
+                    : <SendButton />}
               </>
             )}
             /* 最小 2 行 = 54px（用户 m01370 要求输入框再高一些；1 行只有 32px 显得太扁）。

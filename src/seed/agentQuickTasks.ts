@@ -20,6 +20,8 @@
  *   查询周边救援资源的可用状态                       → resource_query  同上
  *   生成救援方案                                   → proposal        精确匹配
  *   评估救援效果                                   → evaluation      精确匹配
+ *   生成应急救援周工作动态                          → （本地分流）    见 services/weeklyDynamicsWorkflow：先出上传门，
+ *                                                                    收到参考文档/附件后才开始生成（素材依赖型文书）
  *
  * 注意两点：
  * 1) 态势感知的 4 项、救援资源管理的 3 项目前**复用同一套模拟流程**，回复内容相同
@@ -37,6 +39,7 @@ export const AGENT_QUICK_TASKS = [
     tasks: [
       { label: '应急要情', task: '生成应急要情' },
       { label: '值班日报', task: '生成值班日报' },
+      { label: '周工作动态', task: '生成应急救援周工作动态' },
       { label: '工作总结', task: '生成工作总结' },
     ],
   },

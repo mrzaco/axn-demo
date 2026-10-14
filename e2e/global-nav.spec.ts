@@ -177,14 +177,20 @@ test('10. 折叠功能已按标注移除（无折叠按钮，侧栏固定宽度�
   expect(width).toBeGreaterThan(200);
 });
 
-test('10b. 「应急项目 / 智能体与 Skill / 定时任务 / 知识库」侧栏入口已隐藏', async ({ page }) => {
-  for (const label of ['应急项目', '智能体与 Skill', '定时任务', '知识库']) {
+test('10b. 「应急项目 / 智能体与 Skill / 定时任务」侧栏入口已隐藏；知识库入口恢复为可点击占位', async ({ page }) => {
+  for (const label of ['应急项目', '智能体与 Skill', '定时任务']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
-  // 保留的入口仍在
-  for (const label of ['文书库', '智能助理']) {
+  // 保留的入口仍在（含已恢复的「知识库」）
+  for (const label of ['文书库', '智能助理', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
+  // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转
+  const knowledgeNav = page.locator('.axn-gs-nav-item', { hasText: '知识库' });
+  await expect(knowledgeNav).toBeEnabled();
+  await knowledgeNav.click();
+  await expect(page.getByText('知识库功能建设中（模拟演示）')).toBeVisible();
+  await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 
 test('11. 智能体与 Skill / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {

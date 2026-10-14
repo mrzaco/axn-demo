@@ -60,7 +60,8 @@ function rehydrate(): SessionPersist {
     };
   }
   for (const session of Object.values(raw.sessions)) {
-    session.messages = session.messages.map(message => message.documentWorkflow && !['completed', 'interrupted', 'waiting_input'].includes(message.documentWorkflow.stage)
+    // waiting_upload 也算「等用户动手」的可持续状态：刷新后上传门还在，用户回来还能接着传件。
+    session.messages = session.messages.map(message => message.documentWorkflow && !['completed', 'interrupted', 'waiting_input', 'waiting_upload'].includes(message.documentWorkflow.stage)
       ? { ...message, documentWorkflow: { ...message.documentWorkflow, stage: 'interrupted' } }
       : message);
   }
