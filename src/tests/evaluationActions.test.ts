@@ -7,9 +7,9 @@ import { stageChipConfig, catalogAction } from '@/seed/quickActionCatalog';
 import { DEFAULT_EVENT_ID } from '@/seed/scenario';
 beforeEach(()=>{useDemoStore.getState().reset();useCustomerOperations.getState().reset();useKnowledgeCaseStore.getState().resetAll();});
 describe('评估功能按钮与正文复用',()=>{
- it('八项功能都有独立快捷入口',()=>{
+ it('招标功能保留独立快捷入口',()=>{
   const labels=stageChipConfig('待复盘').primary;
-  expect(labels).toHaveLength(8);
+  expect(labels).toHaveLength(6);
   expect(labels.every(label=>catalogAction(label)?.kind==='chat')).toBe(true);
  });
  it('缺少计划和实际凭证时提示缺口，保留时间轴与条款正文',()=>{

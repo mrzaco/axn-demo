@@ -20,11 +20,11 @@ describe('quickActionCatalog', () => {
   });
 
   it('研判/投送/救援中主推核心功能；待复盘主推复盘动作', () => {
-    expect(stageChipConfig('待研判').primary).toEqual(['多源数据汇聚', '现场智能勘察辅助', '态势研判预警', '生成态势报告', '核对道路天气', '资源建议']);
-    expect(primaryLabelsForStage('力量投送中')).toEqual(['查询周边救援资源', '智能编组推荐', '核对资源状态', '物资核验', '生成周边资源报告', '资源建议']);
+    expect(stageChipConfig('待研判').primary).toEqual(['多源数据汇聚', '现场智能勘察辅助', '态势研判预警', '生成态势报告', '资源建议']);
+    expect(primaryLabelsForStage('力量投送中')).toEqual(['查询周边救援资源', '智能编组推荐', '核对资源状态', '物资核验', '资源建议']);
     expect(primaryLabelsForStage('救援中')[0]).toBe('生成救援方案');
     expect(loopLabelsForStage('救援中')).toEqual([]);
-    expect(primaryLabelsForStage('待复盘')).toEqual(['评估救援效果', '资源投入偏差评估', '复盘总结', '七环节救援时间轴', '预案条款对照', '事件沉淀', '正式知识库审核发布', '正式知识检索']);
+    expect(primaryLabelsForStage('待复盘')).toEqual(['评估救援效果', '资源投入偏差评估', '复盘总结', '事件沉淀', '正式知识库审核发布', '正式知识检索']);
     expect(loopLabelsForStage('待复盘')).toEqual(['补充态势研判', '返回力量投送']);
     expect(QUICK_ACTION_CATALOG.moreMenu.appendOverallFlow).toBe(false);
     expect(chipCatalogActions().map(item => item.label)).toEqual(expect.arrayContaining(['生成值班日报', '生成会议纪要', '生成日常工作总结']));

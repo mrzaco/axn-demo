@@ -55,18 +55,20 @@ export function catalogAction(label: string): CatalogAction | undefined {
 }
 
 /** 对话快捷 chips / 更多动作中的 chat 类动作（顺序与 JSON 一致）。 */
+export const LEGACY_QUICK_ACTIONS = ['核对道路天气', '生成周边资源报告', '七环节救援时间轴', '预案条款对照'];
+
 export function chatCatalogActions(): CatalogAction[] {
-  return CATALOG_ACTIONS.filter((action) => action.kind === 'chat');
+  return CATALOG_ACTIONS.filter((action) => action.kind === 'chat' && !LEGACY_QUICK_ACTIONS.includes(action.label));
 }
 
 /** chips / 更多动作：chat + flow（不含 loop）。 */
 export function chipCatalogActions(): CatalogAction[] {
-  return CATALOG_ACTIONS.filter((action) => action.kind === 'chat');
+  return CATALOG_ACTIONS.filter((action) => action.kind === 'chat' && !LEGACY_QUICK_ACTIONS.includes(action.label));
 }
 
 export function stageChipConfig(stage: string | null | undefined): StageChipConfig {
-  if (!stage) return QUICK_ACTION_CATALOG.stageChips['待研判'];
-  return QUICK_ACTION_CATALOG.stageChips[stage] ?? { primary: [], loop: [] };
+  const config = QUICK_ACTION_CATALOG.stageChips[stage || '待研判'] ?? { primary: [], loop: [] };
+  return { ...config, primary: config.primary.filter(label => !LEGACY_QUICK_ACTIONS.includes(label)) };
 }
 
 export function catalogScenarioLabel(id: CatalogScenarioId): string {

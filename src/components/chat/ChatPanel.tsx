@@ -5,6 +5,7 @@ import { generateRescuePlanAlternatives, openRescuePlan } from '@/services/rescu
 import { useCustomerOperations } from '@/store/customerOperationsStore';
 import CustomerRequestPanel, { CUSTOMER_ACTIONS, type CustomerAction } from './CustomerRequestPanel';
 import {
+  LEGACY_QUICK_ACTIONS,
   catalogAction,
   catalogScenarioLabel,
   QUICK_ACTION_CATALOG,
@@ -305,6 +306,11 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
 
   const selectStageChoice = (id: string) => {
     if (!id || !session) { setChoicePicker(''); return; }
+    if (id.startsWith('legacy-quick:')) {
+      const label = id.slice('legacy-quick:'.length);
+      if (LEGACY_QUICK_ACTIONS.includes(label)) { handleQuickTask(label); setChoicePicker(''); }
+      return;
+    }
     const groups = stageChoices(eventStage ?? '待研判');
     const choice = groups.flatMap(g => g.options).find(c => c.id === id);
     if (!choice) { setChoicePicker(''); return; }
@@ -1231,7 +1237,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       {createPortal(
         <div style={{ position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 100 }}>
           <Popover
-            title="阶段提问／模拟文件"
+            title="模拟发送／阶段提问／模拟文件"
             trigger="click"
             placement="left"
             open={stagePromptOpen}
@@ -1246,10 +1252,10 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                   disabled={!session || busy || !eventStage}
                   aria-label="选择提问或模拟文件"
                   data-testid="stage-choice-picker"
-                  options={stageChoices(eventStage ?? '待研判').map(group => ({
+                  options={[{ label: '之前的快捷按钮（原型扩展）', options: LEGACY_QUICK_ACTIONS.map(label => ({ value: `legacy-quick:${label}`, label: `${tenderName(label)}（之前的快捷按钮）` })) }, ...stageChoices(eventStage ?? '待研判').map(group => ({
                     label: group.label,
                     options: group.options.map(opt => ({ value: opt.id, label: opt.label })),
-                  }))}
+                  }))]}
                   onChange={value => {
                     selectStageChoice(String(value ?? ''));
                     if (value) setStagePromptOpen(false);
@@ -1257,7 +1263,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                   style={{ width: '100%' }}
                 />
                 <div style={{ marginTop: 8, color: token.colorTextSecondary, fontSize: 12 }}>
-                  选择后填入输入框，由你点击发送。
+                  之前的快捷按钮选中后直接执行；提问和文件填入输入框，由你点击发送。
                 </div>
               </div>
             }
@@ -1268,7 +1274,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               icon={<MessageSquare size={18} />}
               aria-label="阶段提问／模拟文件"
               aria-expanded={stagePromptOpen}
-              title="阶段提问／模拟文件"
+              title="模拟发送／阶段提问／模拟文件"
               data-testid="stage-prompt-toggle"
               style={{ boxShadow: token.boxShadowSecondary }}
             />
