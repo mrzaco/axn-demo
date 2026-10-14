@@ -355,6 +355,8 @@ export interface TaskStep {
 }
 
 export interface SummaryArtifact {
+  /** 独立汇聚任务只呈现六源与授权域汇总，不生成灾情摘要或文书。 */
+  displayMode?: 'multi_source';
   multiSource?: MultiSourceSnapshot;
   kind: 'summary';
   eventId: string;

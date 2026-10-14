@@ -105,9 +105,9 @@ function fitViewBox(
   const padX = 160;
   const padY = 130;
   let minX = Math.min(...xs) - padX;
-  let maxX = Math.max(...xs) + padX;
+  const maxX = Math.max(...xs) + padX;
   let minY = Math.min(...ys) - padY;
-  let maxY = Math.max(...ys) + padY;
+  const maxY = Math.max(...ys) + padY;
   let width = Math.max(420, maxX - minX);
   let height = Math.max(300, maxY - minY);
   // 宽高比贴近面板，避免裁切过扁

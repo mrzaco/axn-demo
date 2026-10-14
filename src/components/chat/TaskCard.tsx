@@ -1,3 +1,4 @@
+import MultiSourceSummary from './MultiSourceSummary';
 import { tenderName } from '@/seed/tenderNames';
 /**
  * 任务执行卡（T-006）：渲染 assistant 任务消息的执行步骤、产物摘要、流式文本与操作。
@@ -435,7 +436,9 @@ function ArtifactBlock({
 }) {
   switch (payload.kind) {
     case 'summary':
-      return <SummaryBlock payload={payload} onOpenFlow={onOpenFlow} />;
+      return payload.displayMode === 'multi_source' && payload.multiSource
+        ? <MultiSourceSummary snapshot={payload.multiSource} />
+        : <SummaryBlock payload={payload} onOpenFlow={onOpenFlow} />;
     case 'resources':
       return <ResourceBlock payload={payload} onOpenDrawer={onOpenDrawer} onOpenFlow={onOpenFlow} />;
     case 'knowledge':
@@ -550,7 +553,7 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
 
       {/* 建设材料 / 处置建议已物化时，正文只在右侧或知识抽屉；聊天区不重复长摘要 */}
       {task.textAnswer
-        && !task.artifacts.some(a => a.payload.kind === 'scenario_sections' || a.payload.kind === 'proposal') && (
+        && !task.artifacts.some(a => (a.payload.kind === 'scenario_sections' && !['survey', 'group', 'deviation'].includes(a.payload.capability)) || a.payload.kind === 'proposal') && (
         <div className="axn-task-answer">
           <Typography.Paragraph className="axn-tc-pre" style={{ marginBottom: 0 }}>
             {task.textAnswer}

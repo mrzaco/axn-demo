@@ -8,7 +8,6 @@ import {
   evalCapabilitySupplement,
   planCapabilitySupplement,
   resourceCapabilitySupplement,
-  situationCapabilitySupplement,
 } from '@/services/tenderReportSupplements';
 import type { DisasterProfile } from './disasterScenarios';
 

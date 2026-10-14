@@ -1,3 +1,4 @@
+import { evaluationModuleTexts } from '@/services/evaluationActions';
 import { roadWeatherReply } from '../roadWeather';
 import { tenderTaskPrompt } from '@/seed/tenderNames';
 import { vueDemoResourceById } from '@/seed/vueDemoResources';
@@ -119,6 +120,15 @@ function teamByName(text: string, ids: string[]): string | null {
 
 export function recognize(rawText: string, ctx: { lastResourceResultIds: string[]; candidateResourceIds: string[] }): RecognizedIntent {
   const text = tenderTaskPrompt(rawText).trim();
+  if (/智能编组推荐|编组确认辅助|编组确认|推荐力量编组/.test(text)) {
+    return { intent: 'resource_query', params: { capability: 'group' }, displayTitle: '智能编组推荐' };
+  }
+  if (/现场智能勘察|智能勘察分析|(?:现场|勘察).*资料.*(?:预案|专业).*分析/.test(text)) {
+    return { intent: 'summary', params: { capability: 'survey' }, displayTitle: '现场智能勘察辅助' };
+  }
+  if (/多源.*汇聚|汇聚.*多源|自动整合.*(?:舆情|气象|水文)|全域灾情.*汇总/.test(text)) {
+    return { intent: 'summary', params: { capability: 'multiSource' }, displayTitle: '多源数据汇聚' };
+  }
   if (/(需要|找|查询|查找).*(装备|物资|队伍)/.test(text) && /破拆|特殊装备|底数台账|模糊查询/.test(text)) {
     return { intent: 'resource_query', params: { capability: 'search' }, displayTitle: '资源能力模糊查询' };
   }
@@ -367,7 +377,7 @@ function hasBoundEvent(eventId: string): boolean {
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
   const demo = useDemoStore.getState();
   const paceMs = demo.pace === 'fast' ? 130 : 620;
-  const summon = req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
+  const summon = req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在核对现场资料和专业指导依据，生成分析回复及报告' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
   if (EVENT_BOUND_INTENTS.has(req.intent) && !hasBoundEvent(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };
@@ -465,6 +475,8 @@ async function* runEvaluation(req: Ctx, signal: AbortSignal, paceMs: number): As
     body: `${evalExtra}\n\n预案编修依据（模拟）\n${revisionHints}`,
     tags: ['效果评估', '复盘', '演练参考'],
   });
+  const evaluationModules = evaluationModuleTexts(req.eventId, req.sessionId);
+  yield { type: 'text_delta', text: `${evaluationModules['救援效果评估']}\n\n资源投入偏差评估：\n${evaluationModules['资源投入偏差评估']}\n\n` };
   const withRevision = `${evalExtra}\n\n预案编修依据（模拟，供后续预案编修）：\n${revisionItems.map((item) => `·【${item.dimension}】${item.revisionHint}`).join('\n')}`;
   yield {
     type: 'text_delta',
@@ -487,6 +499,50 @@ async function* runEvaluation(req: Ctx, signal: AbortSignal, paceMs: number): As
 }
 
 async function* runSummary(req: Ctx, signal: AbortSignal, paceMs: number): AsyncIterable<TaskEvent> {
+  if (req.params.capability === 'survey') {
+    yield { type: 'step_started', stepId: 'sv1', name: '读取当前事件现场资料' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    const result = buildConstructionResult('survey', req.eventId, req.userInput);
+    yield { type: 'step_completed', stepId: 'sv1', outputSummary: '已核对本事件接报、影像目录和监测样例，缺失原件保留待补' };
+    yield { type: 'step_started', stepId: 'sv2', name: '结合预案与专业指导模拟分析' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    yield { type: 'step_completed', stepId: 'sv2', outputSummary: '形成风险线索、专业指导依据及补证建议；未进行真实CV识别' };
+    yield { type: 'text_delta', text: `${result.summary}\n\n专业指导依据：${result.sections.find(section => section.title === '预案与专业指导依据')?.text.split('\n')[0] ?? '待补充适用预案'}\n\n${result.sections.filter(section => ['现场资料综合分析', '勘察建议与补证事项'].includes(section.title)).map(section => `${section.title}：\n${section.text}`).join('\n\n')}` };
+    yield { type: 'step_started', stepId: 'sv3', name: '生成现场勘察分析报告与数据表' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    yield* publishScenarioMaterial(req, result);
+    yield { type: 'step_completed', stepId: 'sv3', outputSummary: '已生成勘察报告，包含资料来源、监测数据、风险指导三张表' };
+    yield { type: 'completed', summary: '现场勘察分析回复与报告已生成（模拟）' };
+    return;
+  }
+
+  if (req.params.capability === 'multiSource') {
+    yield { type: 'step_started', stepId: 'ms1', name: '确定授权汇聚范围', inputSummary: '当前事件及已有值班授权事件清单' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    const snapshot = buildMultiSourceSnapshot(req.eventId);
+    yield { type: 'step_completed', stepId: 'ms1', outputSummary: `${snapshot.scopeLabel}，共${snapshot.domainEvents.length}个事件；当前事件单独展示` };
+    yield { type: 'step_started', stepId: 'ms2', name: '整合六类数据来源', inputSummary: '舆情、气象、水文、地质、现场影像、接报记录；未接入来源保留缺项' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    const events = [...new Map([snapshot.event, ...snapshot.domainEvents].map(event => [event.eventId, event])).values()];
+    yield { type: 'step_completed', stepId: 'ms2', outputSummary: `已读取${events.length}个事件的本地来源记录，保留来源、时点、版本与核实状态`, sourceRefs: events.flatMap(event => event.sources.flatMap(source => source.records.flatMap(record => record.refs))) };
+    yield { type: 'step_started', stepId: 'ms3', name: '按事件归并并汇总灾情信息' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    const counts = aggregationCounts(snapshot.event.sources);
+    yield { type: 'step_completed', stepId: 'ms3', outputSummary: `当前事件覆盖${counts.covered}/6类，原始${counts.raw}条、归并${counts.merged}条、待核${counts.pending}条；跨事件不合并`, artifact: { payload: {
+      kind: 'summary', displayMode: 'multi_source', multiSource: snapshot,
+      eventId: req.eventId, rows: [], pendingKeys: [], waterLevelFactId: null,
+      dataTime: snapshot.gatheredAt, sourceUnavailable: null,
+    } } };
+    yield { type: 'completed', summary: '多源数据汇聚完成（本地模拟）' };
+    return;
+  }
+
   if (req.params.capability === 'roadWeather') {
     yield { type: 'step_started', stepId: 'rw1', name: '核对当前事件的道路与天气资料' };
     await sleep(paceMs, signal);
@@ -629,11 +685,29 @@ async function* runResourceQuery(req: Ctx, signal: AbortSignal, paceMs: number):
   const capability = resolveConstructionCapability(req.intent, req.userInput, req.params) ?? 'search';
   const construction = buildConstructionResult(capability, req.eventId, req.userInput);
 
+  if (capability === 'group') {
+    yield { type: 'step_started', stepId: 'cg1', name: '读取灾种、任务需求与通行条件' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    yield { type: 'step_completed', stepId: 'cg1', outputSummary: '已核对本事件需求和资源，未知通行条件保留待核' };
+    yield { type: 'step_started', stepId: 'cg2', name: '比较距离时效与人装物资组合' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    yield { type: 'step_completed', stepId: 'cg2', outputSummary: '按专业匹配、距离、时效和组合衔接评分比较；不可用与超时资源排除' };
+    yield { type: 'text_delta', text: `${construction.summary}\n\n${construction.sections.map(section=>`${section.title}：\n${section.text}`).join('\n\n')}` };
+    yield { type: 'step_started', stepId: 'cg3', name: '生成编组与装备物资搭配方案' };
+    await sleep(paceMs, signal);
+    assertActive(req);
+    yield* publishScenarioMaterial(req, construction);
+    yield { type: 'step_completed', stepId: 'cg3', outputSummary: '推荐组合、备选比较及缺口已整理，等待负责人复核' };
+    yield { type: 'completed', summary: '智能编组推荐已生成（模拟）' };
+    return;
+  }
+
   // 建设场景材料能力（编组 / 周边资源报告 / 状态核对）：对齐 Vue，不依赖授权台账 ETA。
-  if (capability === 'group' || capability === 'resourceReport' || capability === 'update') {
+  if (capability === 'resourceReport' || capability === 'update') {
     const stepName =
-      capability === 'group' ? '读取装备与编组模板'
-        : capability === 'resourceReport' ? '按一期结构整理周边资源报告'
+      capability === 'resourceReport' ? '按一期结构整理周边资源报告'
           : '核对队伍人员与装备更新状态';
     yield { type: 'step_started', stepId: 'g1', name: stepName, inputSummary: req.userInput || construction.title };
     await sleep(paceMs, signal);
@@ -647,12 +721,11 @@ async function* runResourceQuery(req: Ctx, signal: AbortSignal, paceMs: number):
     yield {
       type: 'step_completed',
       stepId: 'g2',
-      outputSummary: capability === 'group' ? '编组建议已生成（待负责人确认人数）' : `${construction.title}已生成`,
+      outputSummary: `${construction.title}已生成`,
     };
     yield {
       type: 'completed',
-      summary: capability === 'group' ? '编组建议已生成'
-        : capability === 'resourceReport' ? '周边资源报告已生成' : '资源状态待核清单已生成',
+      summary: capability === 'resourceReport' ? '周边资源报告已生成' : '资源状态待核清单已生成',
     };
     return;
   }

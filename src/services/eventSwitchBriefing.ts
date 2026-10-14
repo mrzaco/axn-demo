@@ -67,6 +67,7 @@ function actionFromLabel(label: string, stage: EventStage): EventNextStepAction 
     return action(label, '现场态势变化时补充灾情研判', 'task', '补充态势研判');
   }
   const hints: Record<string, string> = {
+    多源数据汇聚: '整合六类来源并查看授权范围内的跨事件汇总',
     生成灾情摘要: '核对现场资料、次生风险与待核实事项',
     生成态势报告: '补充安全区域、可出动队伍与医疗资源',
     查询周边救援资源: '核对可调动队伍、装备与预计到达（模拟）',

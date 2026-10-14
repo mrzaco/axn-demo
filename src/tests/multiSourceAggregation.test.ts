@@ -53,3 +53,10 @@ it('三类实战灾种态势报告均覆盖六类来源，保留事件独立引�
     expect(snapshot.event.sources.flatMap(group => group.records).every(record => record.refs.length > 0)).toBe(true);
   }
 });
+
+ it('当前有权查看但未在值班种子清单的事件也进入汇聚域', () => {
+  const profile = DISASTER_PROFILES[0];
+  const snapshot = buildMultiSourceSnapshot(profile.eventId);
+  expect(snapshot.domainEvents.some(event => event.eventId === profile.eventId)).toBe(true);
+  expect(new Set(snapshot.domainEvents.map(event => event.eventId)).size).toBe(snapshot.domainEvents.length);
+ });

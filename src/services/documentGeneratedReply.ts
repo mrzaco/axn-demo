@@ -30,15 +30,15 @@ export function sanitizeGlance(glance?: string): string {
 
 /** 从章节正文抽一两句业务要点（文书库生成等无 ConstructionResult 的路径）。 */
 export function glanceFromSections(
-  sections: Array<readonly [string, string] | { title: string; text?: string; body?: string }>,
+  sections: ReadonlyArray<readonly [string, string] | { title: string; text?: string; body?: string }>,
   maxSections = 2,
   maxEach = 40,
 ): string {
   const bits = sections.slice(0, maxSections).map((section) => {
-    const title = Array.isArray(section) ? section[0] : section.title;
-    const body = Array.isArray(section)
-      ? section[1]
-      : (section.text ?? section.body ?? '');
+    const title = 'title' in section ? section.title : section[0];
+    const body = 'title' in section
+      ? (section.text ?? section.body ?? '')
+      : section[1];
     const cleaned = sanitizeGlance(body.replace(/\s+/g, ' '));
     if (!cleaned) return title.replace(/^[\d一二三四五六七八九十]、/, '');
     const short = cleaned.length <= maxEach ? cleaned : `${cleaned.slice(0, maxEach - 1)}…`;

@@ -70,7 +70,9 @@ export function buildMultiSourceSnapshot(eventId: string): MultiSourceSnapshot {
   // 全域演示只覆盖已有值班授权清单，与事件详情严格分开，不把其他事件混入当前摘要。
   const orgId = incidentById.get(eventId)?.orgId;
   const domainIds = orgId === shift.orgId ? shiftEventIds(shift.shiftId) : [];
-  return { gatheredAt: disasterProfileById.get(eventId)?.capturedAt ?? DEMO_CLOCK, event, domainEvents: domainIds.map(sourceEvent), scopeLabel: '授权事件清单（模拟）' };
+  // 当前可读取事件也属于本次汇聚范围，不能因未进入值班种子清单而漏掉。
+  if (resolveFact(incidentById.get(eventId)?.factRefs.title ?? '', { kind: 'event', eventId }) && !domainIds.includes(eventId)) domainIds.unshift(eventId);
+  return { gatheredAt: disasterProfileById.get(eventId)?.capturedAt ?? DEMO_CLOCK, event, domainEvents: domainIds.map(sourceEvent), scopeLabel: '当前事件及值班授权事件清单（模拟）' };
 }
 export function aggregationCounts(sources: DisasterSourceGroup[]) {
   const records = sources.flatMap(s => s.records);

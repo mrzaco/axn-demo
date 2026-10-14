@@ -25,7 +25,7 @@
   ],
   "actions": [
     {
-      "label": "生成灾情摘要",
+      "label": "多源数据汇聚",
       "clause": "4.2.1",
       "scenarioId": "situation",
       "agentId": "agent-situation",
@@ -33,12 +33,12 @@
       "kind": "chat"
     },
     {
-      "label": "现场智能勘察",
+      "label": "现场智能勘察辅助",
       "clause": "4.2.2",
       "scenarioId": "situation",
       "agentId": "agent-situation",
       "agentName": "态势感知智能体",
-      "kind": "flow"
+      "kind": "chat"
     },
     {
       "label": "态势研判预警",
@@ -89,12 +89,12 @@
       "kind": "chat"
     },
     {
-      "label": "编组确认",
+      "label": "智能编组推荐",
       "clause": "4.3.2",
       "scenarioId": "forceDelivery",
       "agentId": "agent-resource",
       "agentName": "救援资源管理智能体",
-      "kind": "flow"
+      "kind": "chat"
     },
     {
       "label": "规划梯队投送",
@@ -296,12 +296,53 @@
       "agentId": "agent-resource",
       "agentName": "救援资源管理智能体",
       "kind": "chat"
+    },
+    {
+      "label": "资源投入偏差评估",
+      "clause": "4.5 / 救援效果评估智能体 / 1",
+      "scenarioId": "rescueOps",
+      "agentId": "agent-eval",
+      "agentName": "救援效果评估智能体",
+      "kind": "chat"
+    },
+    {
+      "label": "七环节救援时间轴",
+      "clause": "复盘功能细化",
+      "scenarioId": "rescueOps",
+      "agentId": "agent-eval",
+      "agentName": "救援效果评估智能体",
+      "kind": "chat"
+    },
+    {
+      "label": "预案条款对照",
+      "clause": "复盘功能细化",
+      "scenarioId": "rescueOps",
+      "agentId": "agent-eval",
+      "agentName": "救援效果评估智能体",
+      "kind": "chat"
+    },
+    {
+      "label": "正式知识库审核发布",
+      "clause": "复盘功能细化",
+      "scenarioId": "rescueOps",
+      "agentId": "agent-eval",
+      "agentName": "救援效果评估智能体",
+      "kind": "chat"
+    },
+    {
+      "label": "正式知识检索",
+      "clause": "复盘功能细化",
+      "scenarioId": "rescueOps",
+      "agentId": "agent-eval",
+      "agentName": "救援效果评估智能体",
+      "kind": "chat"
     }
   ],
   "stageChips": {
     "待研判": {
       "primary": [
-        "生成灾情摘要",
+        "多源数据汇聚",
+        "现场智能勘察辅助",
         "态势研判预警",
         "生成态势报告",
         "核对道路天气",
@@ -312,6 +353,7 @@
     "力量投送中": {
       "primary": [
         "查询周边救援资源",
+        "智能编组推荐",
         "核对资源状态",
         "物资核验",
         "生成周边资源报告",
@@ -325,14 +367,21 @@
         "生成态势报告",
         "查询周边救援资源",
         "物资核验",
-        "资源建议"
+        "资源建议",
+        "智能编组推荐"
       ],
       "loop": []
     },
     "待复盘": {
       "primary": [
+        "评估救援效果",
+        "资源投入偏差评估",
         "复盘总结",
-        "事件沉淀"
+        "七环节救援时间轴",
+        "预案条款对照",
+        "事件沉淀",
+        "正式知识库审核发布",
+        "正式知识检索"
       ],
       "loop": [
         "补充态势研判",
@@ -341,8 +390,10 @@
     },
     "已归档": {
       "primary": [
+        "复盘总结",
         "事件沉淀",
-        "救援复盘与知识"
+        "正式知识库审核发布",
+        "正式知识检索"
       ],
       "loop": []
     }

@@ -1,3 +1,4 @@
+import { EVALUATION_TEXT_ACTIONS, evaluationActionReply, type EvaluationTextAction } from '@/services/evaluationActions';
 import { resourceRecommendationReply } from '@/services/resourceRecommendation';
 import { monitorNoticeReply } from '@/services/monitorNoticeReply';
 import { generateRescuePlanAlternatives, openRescuePlan } from '@/services/rescuePlanAlternatives';
@@ -23,6 +24,7 @@ import { runEventPrecipitation } from '@/services/eventPrecipitation';
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 /** 与 App / global.css 的 768px 桌面断点一致。 */
@@ -49,7 +51,7 @@ import {
   PanelLeftOpen,
   X,
 } from 'lucide-react'
-import { Alert, App as AntdApp, Button, Dropdown, Input, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Dropdown, Input, Popover, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
@@ -140,6 +142,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
   const [queuedChoice, setQueuedChoice] = useState<StageChoice | null>(null);
   const [choicePicker, setChoicePicker] = useState<string>('');
+  const [stagePromptOpen, setStagePromptOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -242,6 +245,13 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     onOpenDrawer('knowledge');
   };
 
+  const replyEvaluationAction = (action: EvaluationTextAction) => {
+    if (!session || busy) return;
+    const store = useSessionStore.getState();
+    store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', text: action, taskId: null });
+    store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'assistant', kind: 'text', text: evaluationActionReply(action, session.eventId, session.sessionId), taskId: null });
+  };
+
   const handleSend = (raw: string, attachmentOverride?: ChatAttachment | null, sendOpts?: {
     skipAssess?: boolean;
     attachmentMode?: 'reference' | 'check' | null;
@@ -269,11 +279,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       replyEventPrecipitationInChat('事件沉淀');
       return;
     }
+    if (EVALUATION_TEXT_ACTIONS.includes(text as EvaluationTextAction)) { replyEvaluationAction(text as EvaluationTextAction); return; }
     if (text.includes('生成救援方案') || tenderTaskPrompt(text) === '生成救援方案' || normalizeCompletedAction(text) === '生成救援方案') { generateRescuePlanAlternatives(session.sessionId, session.eventId); return; }
     if (text.includes('资源建议')) { replyResourceRecommendation(); return; }
     const directAction = CUSTOMER_ACTIONS.find(action => text.includes(action) || tenderTaskPrompt(text) === action || normalizeCompletedAction(text) === action);
     if (directAction) { setCustomerAction(directAction); return; }
-    const requestedFlow = FLOW_TASKS.find(name => text === name || text === tenderName(name));
+    const requestedFlow = FLOW_TASKS.filter(name => name !== '现场智能勘察' && name !== '编组确认').find(name => text === name || text === tenderName(name));
     if (requestedFlow) { openFlowWorkspace(requestedFlow); return; }
     const waitingSummary = session.messages.find(message => message.documentWorkflow?.stage === 'waiting_input');
     if (waitingSummary && text) {
@@ -479,10 +490,11 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       replyEventPrecipitationInChat(text);
       return;
     }
+    if (EVALUATION_TEXT_ACTIONS.includes(text as EvaluationTextAction)) { replyEvaluationAction(text as EvaluationTextAction); return; }
     if (text === '生成救援方案' || tenderTaskPrompt(text) === '生成救援方案') { if (session && !busy) generateRescuePlanAlternatives(session.sessionId, session.eventId); return; }
     if (text === '资源建议') { replyResourceRecommendation(); return; }
     if (CUSTOMER_ACTIONS.includes(text as CustomerAction)) { setCustomerAction(text as CustomerAction); return; }
-    const flowLabel = FLOW_TASKS.find(
+    const flowLabel = FLOW_TASKS.filter(name => name !== '现场智能勘察' && name !== '编组确认').find(
       (name) => text === name || text === tenderName(name) || tenderTaskPrompt(text) === name,
     );
     const catalog = catalogAction(text) ?? (flowLabel ? catalogAction(flowLabel) : undefined);
@@ -1106,26 +1118,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       <div className={`axn-composer${compact ? ' axn-composer--compact' : ''}${isDesktopComposer ? ' axn-composer--desktop' : ''}`}>
         <div className="axn-composer-shell">
           <div className="axn-composer-toolbar">
-            <label className="axn-stage-prompt-picker">
-              <span>{compact ? '阶段提问' : '当前阶段提问／模拟文件'}</span>
-              <Select
-                size="small"
-                allowClear
-                placeholder={compact ? '选择提问或文件' : '选择后填入输入框，由你点击发送'}
-                value={choicePicker || undefined}
-                disabled={!session || busy || !eventStage}
-                aria-label="选择提问或模拟文件"
-                data-testid="stage-choice-picker"
-                popupMatchSelectWidth={compact ? false : true}
-                classNames={compact ? { popup: { root: 'axn-stage-prompt-popup--compact' } } : undefined}
-                options={stageChoices(eventStage ?? '待研判').map(group => ({
-                  label: group.label,
-                  options: group.options.map(opt => ({ value: opt.id, label: opt.label })),
-                }))}
-                onChange={value => selectStageChoice(String(value ?? ''))}
-                className="axn-stage-prompt-select"
-              />
-            </label>
             <Button
               type="link"
               size="small"
@@ -1236,6 +1228,54 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         eventId={session?.eventId ?? currentEventId}
         onClose={() => setMaterialsOpen(false)}
       />
+      {createPortal(
+        <div style={{ position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 100 }}>
+          <Popover
+            title="阶段提问／模拟文件"
+            trigger="click"
+            placement="left"
+            open={stagePromptOpen}
+            onOpenChange={setStagePromptOpen}
+            destroyOnHidden
+            content={
+              <div style={{ width: 'min(360px, calc(100vw - 100px))' }}>
+                <Select
+                  allowClear
+                  placeholder="选择提问或文件"
+                  value={choicePicker || undefined}
+                  disabled={!session || busy || !eventStage}
+                  aria-label="选择提问或模拟文件"
+                  data-testid="stage-choice-picker"
+                  options={stageChoices(eventStage ?? '待研判').map(group => ({
+                    label: group.label,
+                    options: group.options.map(opt => ({ value: opt.id, label: opt.label })),
+                  }))}
+                  onChange={value => {
+                    selectStageChoice(String(value ?? ''));
+                    if (value) setStagePromptOpen(false);
+                  }}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ marginTop: 8, color: token.colorTextSecondary, fontSize: 12 }}>
+                  选择后填入输入框，由你点击发送。
+                </div>
+              </div>
+            }
+          >
+            <Button
+              shape="circle"
+              size="large"
+              icon={<MessageSquare size={18} />}
+              aria-label="阶段提问／模拟文件"
+              aria-expanded={stagePromptOpen}
+              title="阶段提问／模拟文件"
+              data-testid="stage-prompt-toggle"
+              style={{ boxShadow: token.boxShadowSecondary }}
+            />
+          </Popover>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

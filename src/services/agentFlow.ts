@@ -108,6 +108,7 @@ export function normalizeCompletedAction(raw: string): string {
   const text = raw.replace(/\s+/g, '').trim();
   if (!text) return '';
   if (/^事件沉淀$|数据及知识沉淀/.test(text)) return '事件沉淀';
+  if (/多源.*汇聚|汇聚.*多源/.test(text)) return '多源数据汇聚';
   if (/复盘总结/.test(text)) return '复盘总结';
   if (/全面总结|抢险总结（全面）/.test(text)) return '生成全面总结';
   if (/日常.*总结/.test(text)) return '生成日常工作总结';
@@ -281,6 +282,7 @@ export function computeStageAdvance(
 
 /** 动作链路：完成后的候选下一步（再与阶段主推求交） */
 export const ACTION_FOLLOW_UP_LABELS: Record<string, string[]> = {
+  多源数据汇聚: ['态势研判预警', '生成态势报告'],
   生成灾情摘要: ['态势研判预警', '生成态势报告', '查询周边救援资源'],
   态势研判预警: ['生成态势报告', '生成灾情摘要', '查询周边救援资源'],
   生成态势报告: ['查询周边救援资源', '生成救援方案', '生成应急要情'],

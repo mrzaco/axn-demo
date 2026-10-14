@@ -41,6 +41,8 @@ export const DOCUMENT_CATEGORIES: readonly CategoryDef[] = [
   { code: 'MEETING_MINUTES', name: '会议纪要', prefix: '应急会纪', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '会 议 纪 要', showNumber: true, showTitle: true, tail: 'report' }, topics: ['应急协调会议纪要', '值班值守工作部署会议纪要'], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'MEETING_MINUTES') },
   { code: 'WORK_SUMMARY', name: '抢险总结', prefix: '应急综', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '抢 险 总 结', showNumber: true, showTitle: true, tail: 'report' }, topics: ['阶段性抢险总结', '应急值守保障工作总结'], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'WORK_SUMMARY') },
   // 四智能体建设材料（由对话任务物化到右侧红头文书）
+  { code: 'GROUP_RECOMMENDATION', name: '智能编组推荐', prefix: '应急编', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '编 组 推 荐 方 案', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: [['编组建议', '请关联事件并点击智能编组推荐生成方案。']] },
+  { code: 'SURVEY_ANALYSIS', name: '现场勘察分析', prefix: '应急勘', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '勘 察 分 析 报 告', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: [['勘察资料', '请选择事件并通过现场智能勘察辅助生成报告。']] },
   { code: 'SITUATION_REPORT', name: '态势报告', prefix: '应急态', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '灾 情 态 势 报 告', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'SITUATION_REPORT') },
   { code: 'RESOURCE_REPORT', name: '周边资源报告', prefix: '应急资', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '周 边 资 源 分 析 报 告', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'RESOURCE_REPORT') },
   // 查询 / 核对类材料：不当作一期「周边资源分析报告」红头，避免文种与正文结构错配。
@@ -52,12 +54,13 @@ export const DOCUMENT_CATEGORIES: readonly CategoryDef[] = [
 
 /** 四智能体可物化为右侧红头文书的能力 → 文书分类（文种须与正文结构一致）。 */
 export const AGENT_MATERIAL_CODES = {
+  survey: 'SURVEY_ANALYSIS',
   situation: 'SITUATION_REPORT',
   situationReport: 'SITUATION_REPORT',
   search: 'RESOURCE_QUERY',
   resourceReport: 'RESOURCE_REPORT',
   update: 'RESOURCE_STATUS',
-  group: 'RESCUE_PLAN',
+  group: 'GROUP_RECOMMENDATION',
   plan: 'RESCUE_PLAN',
   revise: 'RESCUE_PLAN',
   deviation: 'RESCUE_EVAL',

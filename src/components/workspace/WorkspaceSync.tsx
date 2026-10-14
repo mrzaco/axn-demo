@@ -1,3 +1,5 @@
+import { constructionToMockSections } from '@/services/agentMaterialDocument';
+import { EMPTY_LIBRARY } from '@/store/mockDocumentStore';
 import { useEffect, useRef } from 'react';
 import { ensureWorkSummaryDocument } from '@/services/workSummaryWorkflow';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
@@ -44,6 +46,7 @@ export default function WorkspaceSync() {
       // 优先跟踪「仍在跑」的任务；若无，则跟踪最近一份已物化文书的任务（避免被后续无文书任务抢走）。
       const agentTasks = Object.values(tasks)
         .filter((t) => t.sessionId === scope && t.eventId === session.eventId
+          && t.displayTitle !== '多源数据汇聚'
           && ['summary', 'proposal', 'evaluation', 'resource_query'].includes(t.intent))
         .sort((a, b) => b.seq - a.seq);
       const runningAgent = agentTasks.find((t) => ['queued', 'running', 'waiting_input'].includes(t.status));
@@ -54,8 +57,24 @@ export default function WorkspaceSync() {
         const base = `agent-material:${agentTask.taskId}:${agentTask.attemptId}`;
         const scenario = agentTask.artifacts.find((a) => a.payload.kind === 'scenario_sections');
         const mockId = scenario?.payload.kind === 'scenario_sections' ? scenario.payload.documentId ?? null : null;
+        // 勘察产物随任务持久化；刷新后从原产物恢复文书，保留原文书标识及分析依据。
+        if (scenario?.payload.kind === 'scenario_sections' && ['survey', 'group'].includes(scenario.payload.capability) && mockId
+          && !useMockDocumentStore.getState().libraries[scope]?.documents.some(d => d.id === mockId)) {
+          const payload = scenario.payload;
+          const now = new Date();
+          const restored = {
+            id: mockId, code: payload.capability === 'group' ? 'GROUP_RECOMMENDATION' : 'SURVEY_ANALYSIS', title: `${payload.title}（模拟）`,
+            date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+            number: `${payload.capability === 'group' ? '应急编' : '应急勘'}〔${now.getFullYear()}〕模拟草稿`,
+            sections: constructionToMockSections({ ...payload, capability: payload.capability === 'group' ? 'group' : 'survey' }),
+          };
+          useMockDocumentStore.setState(state => ({ libraries: { ...state.libraries, [scope]: {
+            ...(state.libraries[scope] ?? EMPTY_LIBRARY),
+            documents: [restored, ...(state.libraries[scope] ?? EMPTY_LIBRARY).documents],
+          } } }));
+        }
         const pending = ['queued', 'running', 'waiting_input'].includes(agentTask.status);
-        const hasDoc = !!mockId && !!libraries[scope]?.documents.some((d) => d.id === mockId);
+        const hasDoc = !!mockId && !!useMockDocumentStore.getState().libraries[scope]?.documents.some((d) => d.id === mockId);
         // 文书一旦写入库即用 done token 打开正文；勿在「仍 running 但已有 documentId」时停留在生成中壳层。
         const token = hasDoc && mockId
           ? `${base}:done:${mockId}`

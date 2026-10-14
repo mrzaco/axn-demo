@@ -1,3 +1,5 @@
+import { buildGroupRecommendation } from '@/services/groupRecommendation';
+import { buildSurveyAnalysis } from '@/services/surveyAnalysis';
 import { eventEssentials } from '@/services/eventEssentials';
 /**
  * 建设场景 · 四智能体演示内容
@@ -23,6 +25,7 @@ import {
 } from '@/services/tenderReportSupplements';
 
 export type ConstructionCapability =
+  | 'survey'
   | 'situation'
   | 'situationReport'
   | 'search'
@@ -388,6 +391,7 @@ function buildConstructionResultInternal(
   eventId: string,
   userInput = '',
 ): ConstructionResult {
+  if (capability === 'survey') return buildSurveyAnalysis(eventId);
   const profile = disasterProfileById.get(eventId);
   if (profile) {
     // 资源查询 / 状态核对：产出查询类材料（不当作一期七段报告）；正式报告走 resourceReport。
@@ -439,6 +443,7 @@ function buildConstructionResultInternal(
       };
     }
     const codes: Record<ConstructionCapability, string> = {
+      survey: 'SURVEY_ANALYSIS',
       situation: 'SITUATION_REPORT',
       situationReport: 'SITUATION_REPORT',
       search: 'RESOURCE_REPORT',
@@ -450,7 +455,7 @@ function buildConstructionResultInternal(
       deviation: 'RESCUE_EVAL',
       summary: 'WORK_SUMMARY_REFLECT',
     };
-    const labels: Record<ConstructionCapability, string> = { situation: '灾情研判', situationReport: '灾情态势报告初稿', search: '专业资源查询', resourceReport: '周边资源分析报告初稿', update: '专业资源状态核对', group: '专业力量编组建议', plan: '救援方案初稿', revise: '方案修订建议', deviation: '阶段目标与投入核对', summary: '反思式总结初稿' };
+    const labels: Record<ConstructionCapability, string> = { survey: '现场智能勘察分析', situation: '灾情研判', situationReport: '灾情态势报告初稿', search: '专业资源查询', resourceReport: '周边资源分析报告初稿', update: '专业资源状态核对', group: '专业力量编组建议', plan: '救援方案初稿', revise: '方案修订建议', deviation: '阶段目标与投入核对', summary: '反思式总结初稿' };
     const sections = (disasterDocumentSections(eventId, codes[capability]) ?? []).map(([title, text]) => ({ title, text }));
     const profileTender = {
       eventName: profile.name,
@@ -990,6 +995,7 @@ export function buildConstructionGlanceSummary(result: ConstructionResult): stri
     const nameBit = names.length ? `包括：${names.join('、')}。` : '';
     return `有 ${n} 项要核对。${nameBit}人数和能不能出动分开看，旧数不要当还能用。详情看右侧。`;
   }
+  if (capability === 'group' && result.title.includes('智能编组推荐方案')) return plainBizText(result.summary, 100);
   if (capability === 'group') {
     const names = (result.table?.rows ?? [])
       .slice(0, 3)
@@ -1095,7 +1101,7 @@ export function buildChatMaterialSummary(
 
 /** 总结与态势文稿统一列明六项事件要素，候选资源不冒充实际部署。 */
 export function buildConstructionResult(...args: Parameters<typeof buildConstructionResultInternal>): ConstructionResult {
-  const result = buildConstructionResultInternal(...args);
+  const result = args[0] === 'group' ? buildGroupRecommendation(args[1], args[2]) : buildConstructionResultInternal(...args);
   if (args[0] === 'situation' || args[0] === 'situationReport') {
     return { ...result, sections: [{ title: '事件关键要素', text: eventEssentials(args[1]) }, ...result.sections] };
   }

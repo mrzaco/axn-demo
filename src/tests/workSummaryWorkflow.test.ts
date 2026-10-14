@@ -43,6 +43,12 @@ describe('workSummaryWorkflow 文书落地', () => {
       .find((m) => m.documentWorkflow)?.documentWorkflow;
     expect(workflow?.stage).toBe('completed');
     expect(workflow?.collectedCount).toBe(6);
+    const module = workflow?.reportSections?.find(([title]) => title === '附：评估与证据模块（正文）');
+    expect(module?.[1]).toContain('救援效果评估');
+    expect(module?.[1]).toContain('资源投入偏差评估');
+    expect(module?.[1]).toContain('七环节救援时间轴');
+    expect(module?.[1]).toContain('预案条款对照');
+    expect(module?.[1]).toContain('事件沉淀');
     expect(workflow?.collection?.[5]?.answer).toBe(defaultWorkSummaryImprovement('evt-sim-landslide'));
     expect(workflow?.documentId).toBeTruthy();
     const doc = useMockDocumentStore.getState().libraries[sessionId]?.documents

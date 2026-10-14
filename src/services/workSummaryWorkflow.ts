@@ -1,3 +1,4 @@
+import { evaluationModuleTexts } from '@/services/evaluationActions';
 import { disasterDocumentSections, disasterProfileById } from '@/seed/disasterScenarios';
 import type { ChatMessage } from '@/domain/types';
 import { RESCUE_EVALUATION_MOCK } from '@/seed/rescueEvaluation';
@@ -153,6 +154,8 @@ export async function generateWorkSummary(sessionId: string, text = '生成工�
   if (sections[0] && !sections[0][1].includes('过程时间轴')) {
     sections = [[sections[0][0], `${sections[0][1]}\n\n${timeline}`], ...sections.slice(1)];
   }
+  const modules = evaluationModuleTexts(session.eventId, sessionId, sections.map(([h,b])=>`${h}：${b}`).join('\n'));
+  sections.push(['附：评估与证据模块（正文）', ['救援效果评估','资源投入偏差评估','七环节救援时间轴','预案条款对照','事件沉淀'].map(name=>`${name}：\n${modules[name]}`).join('\n\n')]);
   const elements = [{
     label: '报告结构',
     value: useFull

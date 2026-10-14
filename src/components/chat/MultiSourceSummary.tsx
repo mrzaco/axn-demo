@@ -28,7 +28,8 @@ export default function MultiSourceSummary({ snapshot }: { snapshot: MultiSource
         <Tag color="blue">自动汇总 · 模拟</Tag>
       </div>
 
-      <Typography.Title level={5} className="axn-ms-section-title">当前事件</Typography.Title>
+      <Typography.Paragraph type="secondary">自动整合舆情、气象、水文、地质、现场影像和接报记录。以下使用本地模拟资料，未连接真实全域采集接口；缺项不代表无灾情。</Typography.Paragraph>
+      <Typography.Title level={5} className="axn-ms-section-title">{snapshot.event.title} · 当前事件六源汇聚</Typography.Title>
       <div className="axn-ms-counts">
         覆盖 {counts.covered}/6 类 · 原始 {counts.raw} 条 · 归并后 {counts.merged} 条 · 待核 {counts.pending} 条
       </div>
@@ -64,7 +65,7 @@ export default function MultiSourceSummary({ snapshot }: { snapshot: MultiSource
           },
         ]}
       />
-      <Typography.Title level={5} className="axn-ms-section-title">授权数据域汇总</Typography.Title>
+      <Typography.Title level={5} className="axn-ms-section-title">全域灾情汇总（授权范围）</Typography.Title>
       <Typography.Paragraph type="secondary" className="axn-ms-counts">
         {snapshot.scopeLabel} · {snapshot.domainEvents.length} 个事件。按事件分别归并，跨事件不合并。真实全域采集服务待接入。
       </Typography.Paragraph>
@@ -90,6 +91,7 @@ export default function MultiSourceSummary({ snapshot }: { snapshot: MultiSource
             ),
           },
           { title: '位置', dataIndex: 'location' },
+          { title: '灾情线索', render: (_, event) => event.sources.flatMap(source => source.records.filter(record => !record.duplicateOf)).slice(0, 2).map(record => record.content).join('；') || '暂无可用记录' },
           {
             title: '六类来源覆盖',
             render: (_, event) => `${aggregationCounts(event.sources).covered}/6 类`,
@@ -118,11 +120,12 @@ export default function MultiSourceSummary({ snapshot }: { snapshot: MultiSource
             {domainEvent.sources.map((source) => (
               <Card className="axn-ms-record" size="small" key={source.kind} title={source.kind} extra={<Tag>{source.state}</Tag>}>
                 {source.records.length
-                  ? source.records.filter((r) => !r.duplicateOf).map((record) => (
+                  ? source.records.map((record) => (
                     <div key={record.id}>
                       <Typography.Paragraph>{record.content}</Typography.Paragraph>
+                      {record.duplicateOf && <Tag>重复转发 · 归并至 {record.duplicateOf}</Tag>}
                       <Typography.Paragraph type="secondary">
-                        {record.source} · {record.capturedAt} · {record.verification}
+                        {record.source} · {record.capturedAt} · {record.version} · {record.verification}
                         <br />
                         引用：{record.refs.join('、')}
                       </Typography.Paragraph>
