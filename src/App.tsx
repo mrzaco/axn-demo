@@ -30,6 +30,7 @@ import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import ChatPanel from '@/components/chat/ChatPanel';
 import GlobalSidebar from '@/components/nav/GlobalSidebar';
 import WorkspaceSync from '@/components/workspace/WorkspaceSync';
+import EmbeddedResourceReportBridge from '@/components/chat/EmbeddedResourceReportBridge';
 import { SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 
 // URL 路径 → NavPage 映射表与「URL → store」单向同步都放在 navRoutes.ts，
@@ -46,6 +47,7 @@ const PrintView = lazy(() => import('@/components/doc/PrintView'));
 const MobileAssistantPreview = lazy(() => import('@/components/mobile/MobileAssistantPreview'));
 const MobileWorkbenchHost = lazy(() => import('@/components/mobile/MobileWorkbenchHost'));
 const Phase1HostPage = lazy(() => import('@/components/phase1/Phase1HostPage'));
+const V2PrototypePage = lazy(() => import('@/pages/v2/V2PrototypePage'));
 const DesktopPortalHost = lazy(() => import('@/components/phase1/DesktopPortalHost'));
 
 /** 手机端预览页：独立全屏舞台，不走桌面侧栏外壳。 */
@@ -56,6 +58,8 @@ const MOBILE_WORKBENCH_PATH = '/mobile-workbench';
 const DESKTOP_PORTAL_PATH = '/portal';
 /** 一期系统嵌入页：原系统全屏背景 + 悬浮安小能，不走桌面侧栏外壳。 */
 const PHASE1_HOST_PREFIX = '/phase1';
+/** V2 独立原型：应急救援综合协调保障系统，不走安小能主壳。 */
+const V2_PROTOTYPE_PREFIX = '/v2';
 
 /** 工作区抽屉目标（资源/知识面板由对话任务卡触发的抽屉承载）。 */
 export type WorkspaceTab = 'resource' | 'knowledge';
@@ -201,6 +205,18 @@ export default function AppRoot() {
     );
   }
 
+  // V2 独立原型全屏展示，不套安小能侧栏。
+  if (location.pathname === V2_PROTOTYPE_PREFIX || location.pathname.startsWith(`${V2_PROTOTYPE_PREFIX}/`)) {
+    return (
+      <Suspense fallback={<div className="v2-app" />}>
+        <Routes>
+          <Route path="/v2" element={<Navigate to="/v2/resources" replace />} />
+          <Route path="/v2/:page" element={<V2PrototypePage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   // 一期系统嵌入：原系统为背景，右下角悬浮安小能（默认收起）。
   if (location.pathname === PHASE1_HOST_PREFIX || location.pathname.startsWith(`${PHASE1_HOST_PREFIX}/`)) {
     const phase1System = location.pathname.slice(PHASE1_HOST_PREFIX.length).replace(/^\//, '');
@@ -263,6 +279,7 @@ export default function AppRoot() {
           <Route path="/assistant" element={
             <div className={`axn-assistant${workspaceOpen ? ' axn-assistant--split' : ''}`}>
               <div className="axn-chat-pane">
+                <EmbeddedResourceReportBridge />
                 <ChatPanel compact={workspaceOpen} onOpenDrawer={openPanelDrawer} />
               </div>
               {workspaceOpen && (

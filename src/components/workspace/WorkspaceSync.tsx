@@ -1,5 +1,8 @@
+import { V2_AI_DOCUMENT_CODES } from '@/pages/v2/aiNodes';
 import { constructionToMockSections } from '@/services/agentMaterialDocument';
 import { EMPTY_LIBRARY } from '@/store/mockDocumentStore';
+import { AGENT_MATERIAL_CODES, DOCUMENT_CATEGORIES } from '@/seed/mockDocuments';
+import type { ConstructionCapability } from '@/seed/constructionScenarios';
 import { useEffect, useRef } from 'react';
 import { ensureWorkSummaryDocument } from '@/services/workSummaryWorkflow';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
@@ -58,21 +61,26 @@ export default function WorkspaceSync() {
         const base = `agent-material:${agentTask.taskId}:${agentTask.attemptId}`;
         const scenario = agentTask.artifacts.find((a) => a.payload.kind === 'scenario_sections');
         const mockId = scenario?.payload.kind === 'scenario_sections' ? scenario.payload.documentId ?? null : null;
-        // 勘察产物随任务持久化；刷新后从原产物恢复文书，保留原文书标识及分析依据。
-        if (scenario?.payload.kind === 'scenario_sections' && ['survey', 'group'].includes(scenario.payload.capability) && mockId
+        // 所有智能体产物均可恢复：任务落盘而mock库仅驻内存，不能只恢复勘察/编组。
+        if (scenario?.payload.kind === 'scenario_sections' && mockId
           && !useMockDocumentStore.getState().libraries[scope]?.documents.some(d => d.id === mockId)) {
           const payload = scenario.payload;
+          const capability = payload.capability as ConstructionCapability;
+          const code = AGENT_MATERIAL_CODES[capability];
+          const category = DOCUMENT_CATEGORIES.find(item => item.code === code);
           const now = new Date();
+          if (category && payload.sections.length) {
           const restored = {
-            id: mockId, code: payload.capability === 'group' ? 'GROUP_RECOMMENDATION' : 'SURVEY_ANALYSIS', title: `${payload.title}（模拟）`,
+            id: mockId, code, title: `${payload.title}（模拟）`,
             date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
-            number: `${payload.capability === 'group' ? '应急编' : '应急勘'}〔${now.getFullYear()}〕模拟草稿`,
-            sections: constructionToMockSections({ ...payload, capability: payload.capability === 'group' ? 'group' : 'survey' }),
+            number: `${category.prefix}〔${now.getFullYear()}〕模拟草稿`,
+            sections: constructionToMockSections({ ...payload, capability }),
           };
           useMockDocumentStore.setState(state => ({ libraries: { ...state.libraries, [scope]: {
             ...(state.libraries[scope] ?? EMPTY_LIBRARY),
             documents: [restored, ...(state.libraries[scope] ?? EMPTY_LIBRARY).documents],
           } } }));
+          }
         }
         const pending = ['queued', 'running', 'waiting_input'].includes(agentTask.status);
         const hasDoc = !!mockId && !!useMockDocumentStore.getState().libraries[scope]?.documents.some((d) => d.id === mockId);
@@ -87,10 +95,7 @@ export default function WorkspaceSync() {
           observed.current.set(`agent:${scope}`, signature);
           if (hasDoc && mockId) workspace.autoOpen(scope, token, { kind: 'mock', id: mockId });
           else if (pending) workspace.autoOpen(scope, token, { kind: 'generating' });
-          else if (mockId) {
-            // 产物已带 documentId、文书库尚未同步：保持生成中，勿 finish 以免错过打开。
-            workspace.autoOpen(scope, `${base}:pending`, { kind: 'generating' });
-          } else workspace.finish(scope, `${base}:pending`);
+          else workspace.finish(scope, `${base}:pending`);
         }
       }
 
@@ -122,7 +127,11 @@ export default function WorkspaceSync() {
         if (observed.current.get(`workflow:${scope}`) !== signature) {
           observed.current.set(`workflow:${scope}`, signature);
           if (inProgress) {
-            workspace.autoOpen(scope, token, { kind: 'generating' });
+            // 周边资源报告在对话中展示整理/调用/编排步骤，完成后才打开正文。
+            // 手机窄视口中提前打开工作区会把智能体进度卡整个隐藏。
+            if (!['救援资源管理智能体', '救援方案生成智能体', '态势感知智能体', '救援效果评估智能体'].includes(message.agentName ?? '') || !V2_AI_DOCUMENT_CODES.includes(workflow.documentCode ?? '')) {
+              workspace.autoOpen(scope, token, { kind: 'generating' });
+            }
           } else if (workflow.stage === 'completed' && documentId && libHas) {
             workspace.autoOpen(scope, token, { kind: 'mock', id: documentId });
           } else {

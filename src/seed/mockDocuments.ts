@@ -49,6 +49,7 @@ export const DOCUMENT_CATEGORIES: readonly CategoryDef[] = [
   { code: 'RESOURCE_QUERY', name: '资源查询', prefix: '应急查', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '资 源 查 询 结 果', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'RESOURCE_QUERY') },
   { code: 'RESOURCE_STATUS', name: '资源状态核对', prefix: '应急核', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '资 源 状 态 核 对', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'RESOURCE_STATUS') },
   { code: 'RESCUE_PLAN', name: '现场处置行动方案', prefix: '应急案', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '现 场 处 置 行 动 方 案', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'RESCUE_PLAN') },
+  { code: 'TRANSPORT_PLAN', name: '力量投送方案', prefix: '应急投', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '力 量 投 送 方 案', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: [['投送依据', '请从投送页面生成并核对力量与通行条件。']] },
   { code: 'RESCUE_EVAL', name: '效果评估', prefix: '应急评', redhead: { platform: '', org: '中国安能建设集团有限公司', type: '救 援 效 果 评 估', showNumber: true, showTitle: true, tail: 'report' }, topics: [], sections: resolveDocumentSections(MOCK_SAMPLE_EVENT_ID, 'RESCUE_EVAL') },
 ];
 

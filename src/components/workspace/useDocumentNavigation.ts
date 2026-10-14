@@ -1,3 +1,4 @@
+import { V2_AI_MODES } from '@/pages/v2/aiNodes';
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { App } from 'antd';
@@ -10,7 +11,8 @@ export function useDocumentNavigation() {
   const { modal } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
-  const embedded = location.pathname.startsWith('/phase1');
+  const embedded = location.pathname.startsWith('/phase1')
+    || V2_AI_MODES.includes(new URLSearchParams(location.search).get('embedded') ?? '');
   return useCallback((targetScope: string, selection: WorkspaceSelection) => {
     const workspace = useWorkspaceStore.getState();
     const current = workspace.selectionOf(scope);

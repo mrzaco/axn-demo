@@ -1,3 +1,6 @@
+import type { ComponentRef } from 'react';
+import { replyEmbeddedQa } from '@/services/embeddedQa';
+import { V2_AI_MODES, V2_AI_DOCUMENT_CODES } from '@/pages/v2/aiNodes';
 import { EVALUATION_TEXT_ACTIONS, evaluationActionReply, type EvaluationTextAction } from '@/services/evaluationActions';
 import { resourceRecommendationReply } from '@/services/resourceRecommendation';
 import { monitorNoticeReply } from '@/services/monitorNoticeReply';
@@ -186,6 +189,8 @@ const noopOpenDrawer: NonNullable<ChatPanelProps['onOpenDrawer']> = () => {};
 export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: ChatPanelProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const embeddedMessageList = useRef<ComponentRef<typeof Bubble.List>>(null);
+  const isEmbeddedAssistant = typeof window !== 'undefined' && window.parent !== window;
   const { token } = theme.useToken();
   const { modal, message: notice } = AntdApp.useApp();
   const currentEventId = useDemoStore((s) => s.currentEventId);
@@ -240,11 +245,17 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     : null;
   const incident = incidentById.get(currentEventId);
   const isBlankEvent = currentEventId.startsWith('evt-blank-');
-  const eventTitle = incident
+  const embeddedEventTitle = V2_AI_MODES.includes(new URLSearchParams(location.search).get('embedded') ?? '')
+    ? session?.messages.find(m => V2_AI_DOCUMENT_CODES.includes(m.documentWorkflow?.documentCode ?? ''))
+      ?.documentWorkflow?.elements.find(item => item.label === '当前事件')?.value
+    : undefined;
+  const suppliesEventTitle = new URLSearchParams(location.search).get('embedded') === 'v2-supplies'
+    ? session?.messages.find(message => message.agentRole === 'v2-supplies')?.text?.split('\n')[0]?.replace('当前事件：', '') : undefined;
+  const eventTitle = suppliesEventTitle ?? embeddedEventTitle ?? (incident
     ? factText(incident.factRefs.title) || currentEventId
     : isBlankEvent
       ? '空白对话（未关联事件）'
-      : currentEventId;
+      : currentEventId);
 
   const clearPending = () => {
     if (queuedChoice && input === queuedChoice.prompt) setInput('');
@@ -328,6 +339,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     const attachment = attachmentOverride !== undefined ? attachmentOverride : pendingAttachment;
     if (!session || busy) return;
     if (!text && !attachment) return;
+    if (isEmbeddedAssistant && replyEmbeddedQa(session.sessionId, new URLSearchParams(location.search).get('embedded'), text, attachment)) {
+      requestAnimationFrame(() => embeddedMessageList.current?.scrollTo({ top: 'bottom' }));
+      setInput('');
+      clearPending();
+      return;
+    }
     if (text && isDutyContent(text)) { notice.info('值班相关内容暂时隐藏'); return; }
     setInput('');
     clearPending();
@@ -737,15 +754,16 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       size="small"
       className={`axn-cp-select${compact || isDesktopComposer ? ' axn-cp-select--compact' : ''}${isDesktopComposer ? ' axn-cp-select--inline' : ''}`}
       classNames={{ popup: { root: compact || isDesktopComposer ? 'axn-cp-select-popup axn-cp-select-popup--compact' : 'axn-cp-select-popup' } }}
-      value={linkValue}
+      value={embeddedEventTitle ? 'embedded-current-page' : linkValue}
+      disabled={!!embeddedEventTitle}
       onChange={handleLinkChange}
-      options={linkOptions}
+      options={embeddedEventTitle ? [{ value: 'embedded-current-page', label: embeddedEventTitle, title: '' }] : linkOptions}
       popupMatchSelectWidth={compact || isDesktopComposer ? false : true}
       labelRender={(props) => (
         <span className="axn-cp-select-option-label">
-          {props.value === BLANK_LINK
+          {embeddedEventTitle ?? (props.value === BLANK_LINK
             ? '未关联事件（空白对话）'
-            : incidentOptionLabel(String(props.value ?? ''))}
+            : incidentOptionLabel(String(props.value ?? '')))}
         </span>
       )}
       optionRender={(option) => (
@@ -997,6 +1015,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       {/* 消息流 / 首页 */}
       {hasMessages ? (
         <Bubble.List
+          ref={embeddedMessageList}
           className="axn-message-list"
           autoScroll
           items={items}
@@ -1093,7 +1112,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       )}
 
       {/* 快捷任务：5 能力块内联展开；一期嵌入页可用 pageChipOverride 覆盖 */}
-      <div className="axn-cp-chips-wrap">
+      {!isEmbeddedAssistant && <div className="axn-cp-chips-wrap">
         <div className="axn-chips" data-testid="quick-task-chips">
           {pageChipOverride ? (
             pageChipOverride.primary.map(({ label, agentName, agentId, action, title }) => (
@@ -1131,12 +1150,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           )}
           <Button size="small" danger={unreadMonitorCount > 0} disabled={!session} onClick={replyMonitorNoticesInChat}>监测通知（{unreadMonitorCount}）</Button>
         </div>
-      </div>
+      </div>}
       {/* 圆角输入区：电脑端关联灾情在发送钮左侧；手机端独立成行避免挤爆 */}
       <div className={`axn-composer${compact ? ' axn-composer--compact' : ''}${isDesktopComposer ? ' axn-composer--desktop' : ''}`}>
         <div className="axn-composer-shell">
           {/* 「资料」入口暂时隐藏；SessionMaterialsDrawer 仍保留，便于后续恢复 */}
-          {!isDesktopComposer ? (
+          {!isEmbeddedAssistant && !isDesktopComposer ? (
             <div className="axn-composer-event-row">
               <span className="axn-composer-event-label">关联灾情</span>
               {incidentSelect}
@@ -1189,7 +1208,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
               <span className="axn-composer-suffix">
-                {isDesktopComposer ? (
+                {!isEmbeddedAssistant && isDesktopComposer ? (
                   <span className="axn-composer-incident-inline" data-testid="composer-incident-inline" title="关联灾情">
                     {incidentSelect}
                   </span>

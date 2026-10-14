@@ -68,7 +68,7 @@ export default function DocumentGenerationCard({
     <div className="axn-document-workflow" data-testid="document-generation-card" aria-live="polite">
       <Space wrap className="axn-document-workflow-head">
         <Bot />
-        <Typography.Text strong>文书生成智能体</Typography.Text>
+        <Typography.Text strong>{message.agentName || '文书生成智能体'}</Typography.Text>
         <Tag color={completed ? 'blue' : 'processing'}>
           {completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : '执行中'}
         </Tag>

@@ -4,7 +4,7 @@ import type { ChatMessage } from '@/domain/types';
 import { DOCUMENT_CATEGORIES, MOCK_DOCUMENTS, type MockDocument } from '@/seed/mockDocuments';
 import { resolveDocumentSections, resolveDocumentTitle } from '@/seed/resolveDocumentSections';
 
-type GenerationOptions = { collect?: () => Promise<void | false>; sections?: MockDocument['sections']; elements: NonNullable<ChatMessage['documentWorkflow']>['elements']; onStage: (stage: 'calling' | 'generating') => void };
+type GenerationOptions = { title?: string; collect?: () => Promise<void | false>; sections?: MockDocument['sections']; elements: NonNullable<ChatMessage['documentWorkflow']>['elements']; onStage: (stage: 'calling' | 'generating') => void };
 /** 编辑中的工作副本（未保存）按文档 id 存放，离开详情页也不丢；保存或放弃才清除。 */
 type Library = { documents: MockDocument[]; selected: MockDocument | null; generatingCode: string | null; working: Record<string, MockDocument> };
 export const EMPTY_LIBRARY: Library = { documents: MOCK_DOCUMENTS, selected: null, generatingCode: null, working: {} };
@@ -53,6 +53,7 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
     set(state => ({ libraries: { ...state.libraries, [scope]: {
       ...(state.libraries[scope] ?? EMPTY_LIBRARY), selected: null, generatingCode: code,
     } } }));
+    try {
     if (options) {
       if (await options.collect?.() === false) {
         set(state => ({ libraries: { ...state.libraries, [scope]: { ...state.libraries[scope], generatingCode: null } } }));
@@ -68,7 +69,7 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
     const eventId = useSessionStore.getState().sessions[scope]?.eventId ?? '';
     const document: MockDocument = {
       id: `generated-${code}-${now.getTime()}`, code,
-      title: resolveDocumentTitle(eventId, category.name, category.topics[0]),
+      title: options?.title ?? resolveDocumentTitle(eventId, category.name, category.topics[0]),
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
       number: `${category.prefix}〔${now.getFullYear()}〕模拟草稿`,
       sections: options?.sections ?? resolveDocumentSections(eventId, code),
@@ -79,6 +80,12 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
       selected: document, generatingCode: null,
     } } }));
     return document;
+    } finally {
+      // collect、阶段回调或正文生成失败时，也必须释放生成锁。
+      if (get().libraries[scope]?.generatingCode === code) {
+        set(state => ({ libraries: { ...state.libraries, [scope]: { ...state.libraries[scope], generatingCode: null } } }));
+      }
+    }
   },
   publishAgentMaterial: (scope, input) => {
     const category = DOCUMENT_CATEGORIES.find((item) => item.code === input.code);
