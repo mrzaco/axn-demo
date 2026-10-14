@@ -242,6 +242,9 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
   if (/(依据|来源|为什么|根据什么|出处)/.test(text)) {
     return { intent: 'knowledge', params: { chunkId: 'kb-demo-status-terms' }, displayTitle: '解释依据与术语' };
   }
+  if (/生成灾情摘要|汇总灾情摘要/.test(text)) {
+    return { intent: 'summary', params: { capability: 'disasterSummary' }, displayTitle: '汇总灾情摘要' };
+  }
   if (/(摘要|灾情|态势|概况|什么情况|发生了什么|情况怎么样)/.test(text)) {
     return { intent: 'summary', params: { capability: 'situation' }, displayTitle: '汇总灾情摘要' };
   }
@@ -377,7 +380,7 @@ function hasBoundEvent(eventId: string): boolean {
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
   const demo = useDemoStore.getState();
   const paceMs = demo.pace === 'fast' ? 130 : 620;
-  const summon = req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在核对现场资料和专业指导依据，生成分析回复及报告' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
+  const summon = req.params.capability === 'disasterSummary' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '汇总事件事实与监测数据', action: '正在读取当前事件事实并生成灾情摘要' } : req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在核对现场资料和专业指导依据，生成分析回复及报告' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
   if (EVENT_BOUND_INTENTS.has(req.intent) && !hasBoundEvent(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };
@@ -586,6 +589,20 @@ async function* runSummary(req: Ctx, signal: AbortSignal, paceMs: number): Async
     },
   ].filter((row) => resolveFact(row.factId, scope)) as typeof rows;
 
+  if (req.params.capability === 'disasterSummary') {
+    yield { type: 'step_started', stepId: 's1', name: '读取事件上下文' };
+    await sleep(paceMs, signal); assertActive(req);
+    yield { type: 'step_completed', stepId: 's1', outputSummary: factDisplay(refs.title, scope), sourceRefs: [refs.title] };
+    yield { type: 'step_started', stepId: 's2', name: '汇总结构化事实' };
+    await sleep(paceMs, signal); assertActive(req);
+    yield { type: 'step_completed', stepId: 's2', outputSummary: `共 ${rows.length} 项事件事实`, sourceRefs: rows.map(row => row.factId) };
+    yield { type: 'step_started', stepId: 's3', name: '生成灾情摘要卡片' };
+    await sleep(paceMs, signal); assertActive(req);
+    yield { type: 'step_completed', stepId: 's3', outputSummary: '摘要卡片已生成', artifact: { payload: { kind: 'summary', displayMode: 'disaster_summary', eventId: req.eventId, rows, pendingKeys: rows.filter(row => row.emphasize === 'pending').map(row => row.factId), waterLevelFactId: waterFactId, dataTime: buildMultiSourceSnapshot(req.eventId).gatheredAt, sourceUnavailable: null } } };
+    yield { type: 'text_delta', text: '已汇总当前事件事实与监测数据，详见下方灾情摘要。建议值、待核事项和模拟数据已标明。' };
+    yield { type: 'completed', summary: '灾情摘要已生成' };
+    return;
+  }
   yield { type: 'step_started', stepId: 's1', name: '读取事件上下文', inputSummary: `事件 ${req.eventId}` };
   await sleep(paceMs, signal);
   assertActive(req);

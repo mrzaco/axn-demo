@@ -31,6 +31,7 @@ export default function AgentSummonCard({
   agentRole,
   action,
   status = 'running',
+  bodyExtra,
   children,
 }: {
   agentId?: string;
@@ -38,6 +39,8 @@ export default function AgentSummonCard({
   agentRole: string;
   action: string;
   status?: TaskStatus;
+  /** 文书邀请等：放在正文列末尾的选项区 */
+  bodyExtra?: ReactNode;
   children?: ReactNode;
 }) {
   const active = status === 'running' || status === 'queued';
@@ -78,6 +81,7 @@ export default function AgentSummonCard({
                         : '已完成部分任务，详情如下'}
             </Typography.Text>
           </div>
+          {bodyExtra}
         </div>
       </div>
       {children}

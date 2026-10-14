@@ -54,16 +54,18 @@ export function catalogAction(label: string): CatalogAction | undefined {
   return actionByLabel.get(label);
 }
 
-/** 对话快捷 chips / 更多动作中的 chat 类动作（顺序与 JSON 一致）。 */
+/** 已从能力块清单隐藏的历史动作（仍可出现在 stageChips 配置校验中）。 */
 export const LEGACY_QUICK_ACTIONS = ['核对道路天气', '生成周边资源报告', '七环节救援时间轴', '预案条款对照'];
 
 export function chatCatalogActions(): CatalogAction[] {
   return CATALOG_ACTIONS.filter((action) => action.kind === 'chat' && !LEGACY_QUICK_ACTIONS.includes(action.label));
 }
 
-/** chips / 更多动作：chat + flow（不含 loop）。 */
+/** 能力块子项 / 扁平对照：chat + flow（不含 loop、不含 LEGACY）。 */
 export function chipCatalogActions(): CatalogAction[] {
-  return CATALOG_ACTIONS.filter((action) => action.kind === 'chat' && !LEGACY_QUICK_ACTIONS.includes(action.label));
+  return CATALOG_ACTIONS.filter(
+    (action) => (action.kind === 'chat' || action.kind === 'flow') && !LEGACY_QUICK_ACTIONS.includes(action.label),
+  );
 }
 
 export function stageChipConfig(stage: string | null | undefined): StageChipConfig {

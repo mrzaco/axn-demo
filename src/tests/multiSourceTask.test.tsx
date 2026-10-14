@@ -30,7 +30,7 @@ describe('独立多源数据汇聚快捷任务', () => {
     expect(stageChipConfig('待研判').primary).toContain('多源数据汇聚');
     expect(recognize('多源数据汇聚', ctx).params.capability).toBe('multiSource');
     expect(recognize('自动整合舆情、气象、水文等多源数据，实现全域灾情信息自动汇总', ctx).params.capability).toBe('multiSource');
-    expect(recognize('生成灾情摘要', ctx).params.capability).toBe('situation');
+    expect(recognize('生成灾情摘要', ctx).params.capability).toBe('disasterSummary');
     expect(recognize('生成态势报告', ctx).params.capability).toBe('situationReport');
   });
   it('直接展示六源与授权域两张表，不生成文书或切换工作区', async () => {

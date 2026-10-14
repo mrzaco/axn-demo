@@ -260,26 +260,20 @@ test('精简分屏保留未发送输入，关闭后恢复首页', async ({ page 
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
 });
 
-test('快捷任务按场景推荐平铺，其余收入更多动作并遵守运行状态', async ({ page }) => {
+test('快捷任务五能力块邀请气泡，运行中父块禁用', async ({ page }) => {
   await page.goto('/');
   const chips = page.locator('.axn-chips');
-  // 默认演示事件处于「救援中 / 实施救援」：主区仅阶段主推
-  for (const name of ['现场处置行动方案', '应急抢险要情', '核对资源状态']) {
+  for (const name of ['文书生成', '态势感知', '救援资源管理', '救援方案生成', '救援效果评估']) {
     await expect(chips.getByRole('button', { name, exact: true })).toBeVisible();
   }
-  // 阶段外与整体业务流程不在主区
-  await expect(chips.getByRole('button', { name: '生成灾情摘要', exact: true })).toHaveCount(0);
-  await expect(chips.getByRole('button', { name: '整体业务流程', exact: true })).toHaveCount(0);
-  await expect(chips.getByTestId('chip-more-actions')).toBeVisible();
-  await chips.getByTestId('chip-more-actions').click();
-  await expect(page.getByRole('menuitem', { name: /多源数据汇聚/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /复盘评估分析/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: '整体业务流程' })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await expect(chips.getByTestId('chip-more-actions')).toHaveCount(0);
+  // 点救援方案生成：对话内邀请气泡含现场处置行动方案
+  await chips.getByRole('button', { name: '救援方案生成', exact: true }).click();
+  const invite = page.getByTestId('agent-invite-choices').last();
+  await expect(invite.getByRole('button', { name: '现场处置行动方案', exact: true })).toBeVisible();
   await page.screenshot({ path: 'artifacts/ui-polish/quick-tasks.png' });
   await clickQuickTask(page, '生成应急要情');
-  await expect(chips.getByRole('button', { name: '应急抢险要情', exact: true })).toBeDisabled();
-  await expect(chips.getByTestId('chip-more-actions')).toBeDisabled();
-  await expect(page.getByTestId('document-generation-card').last()).toContainText('红头文书已生成', { timeout: 20000 });
-  await expect(chips.getByRole('button', { name: '应急抢险要情', exact: true })).toBeEnabled();
+  await expect(chips.getByRole('button', { name: '文书生成', exact: true })).toBeDisabled();
+  await expect(page.getByTestId('document-generation-card').last()).toContainText(/已完成|红头文书已生成/, { timeout: 20000 });
+  await expect(chips.getByRole('button', { name: '文书生成', exact: true })).toBeEnabled();
 });

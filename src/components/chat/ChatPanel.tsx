@@ -4,13 +4,8 @@ import { monitorNoticeReply } from '@/services/monitorNoticeReply';
 import { generateRescuePlanAlternatives, openRescuePlan } from '@/services/rescuePlanAlternatives';
 import { useCustomerOperations } from '@/store/customerOperationsStore';
 import CustomerRequestPanel, { CUSTOMER_ACTIONS, type CustomerAction } from './CustomerRequestPanel';
-import {
-  LEGACY_QUICK_ACTIONS,
-  catalogAction,
-  catalogScenarioLabel,
-  QUICK_ACTION_CATALOG,
-  type CatalogScenarioId,
-} from '@/seed/quickActionCatalog';
+import { catalogAction, LEGACY_QUICK_ACTIONS } from '@/seed/quickActionCatalog';
+import { AGENT_QUICK_TASKS } from '@/seed/agentQuickTasks';
 import { tenderName, tenderTaskPrompt } from '@/seed/tenderNames';
 import { isDutyContent, isMeetingMinutesContent, isResourceDataAlertContent, SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 import { FLOW_TASKS } from './OperationalFlows';
@@ -20,7 +15,7 @@ import { resourceAuditSample } from '@/services/resourceAudit';
 import { runEventPrecipitation } from '@/services/eventPrecipitation';
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
- * + 圆角一体化输入区（快捷任务 chips：场景关键推荐 + 更多动作折叠）+ 补录表单。
+ * + 圆角一体化输入区（快捷任务：5 个能力块点击后对话邀请选功能）+ 补录表单。
  * 首页含建设三场景入口与知识库引导问题；会话跟随演示事件切换。
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
@@ -45,15 +40,20 @@ function useMediaQuery(query: string): boolean {
 import { hostPageChipOverride } from '@/seed/hostPageChips';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
+  FileCheck,
   FileText,
+  Flame,
+  Lightbulb,
   MessageSquare,
   Paperclip,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldCheck,
+  Wrench,
   X,
-} from 'lucide-react'
-import { Alert, App as AntdApp, Button, Dropdown, Input, Popover, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
-import type { MenuProps } from 'antd';
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Alert, App as AntdApp, Button, Input, Popover, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import type { AttachmentWorkflow, ChatAttachment, ChatMessage } from '@/domain/types';
@@ -66,7 +66,6 @@ import { sendMessage, cancelTask } from '@/services/taskRunner';
 import {
   normalizeCompletedAction,
   resolveActionPrompt,
-  splitQuickTasksByStage,
 } from '@/services/agentFlow';
 import {
   buildStageEventContext,
@@ -107,6 +106,74 @@ export interface ChatPanelProps {
 const AVATAR = <div className="axn-chat-avatar">安</div>;
 
 const BLANK_LINK = '__blank__';
+
+const AGENT_CHIP_ICONS: Record<string, LucideIcon> = {
+  'agent-doc': FileCheck,
+  'agent-situation': Flame,
+  'agent-resource': Wrench,
+  'agent-plan': Lightbulb,
+  'agent-eval': ShieldCheck,
+};
+
+/** 五个能力块统一：点 chip → 对话里召唤智能体 + 功能选项（对齐文书生成）。 */
+const AGENT_INVITES: Record<string, {
+  name: string;
+  role: string;
+  intro: string;
+  hint: string;
+}> = {
+  'agent-doc': {
+    name: '文书生成智能体',
+    role: '文书撰写',
+    intro: '您好，我是文书生成智能体，可以帮您撰写各类文书。请选择您要生成的文书类型：',
+    hint: '您也可以直接把生成要求告诉我；需要参考的文件、要写进文书的图片，都可以上传给我。',
+  },
+  'agent-situation': {
+    name: '态势感知智能体',
+    role: '灾情研判',
+    intro: '您好，我是态势感知智能体，可以帮您汇聚多源数据、生成灾情摘要、研判态势并生成报告。请选择要执行的功能：',
+    hint: '您也可以直接描述研判需求；相关监测、影像与接报材料可上传给我。',
+  },
+  'agent-resource': {
+    name: '救援资源管理智能体',
+    role: '力量投送',
+    intro: '您好，我是救援资源管理智能体，可以帮您检索周边资源、编组投送与核验物资。请选择要执行的功能：',
+    hint: '您也可以直接说明需要的人装与投送条件；台账或清单材料可上传给我。',
+  },
+  'agent-plan': {
+    name: '救援方案生成智能体',
+    role: '方案编制',
+    intro: '您好，我是救援方案生成智能体，可以帮您生成现场处置行动方案并做过程调控。请选择要执行的功能：',
+    hint: '您也可以直接说明方案边界与约束；相关预案与现场反馈可上传给我。',
+  },
+  'agent-eval': {
+    name: '救援效果评估智能体',
+    role: '复盘评估',
+    intro: '您好，我是救援效果评估智能体，可以帮您评估救援效果、复盘总结与知识沉淀。请选择要执行的功能：',
+    hint: '您也可以直接说明复盘范围与关注点；过程材料可上传给我。',
+  },
+};
+
+/** 智能体邀请气泡里的功能选项（文书 / 态势 / 资源 / 方案 / 评估共用）。 */
+function AgentInviteChoices({ options, hint, disabled, onPick }: {
+  options: { label: string; task: string }[];
+  hint: string;
+  disabled: boolean;
+  onPick: (task: string) => void;
+}) {
+  return (
+    <div className="axn-doc-choices" data-testid="agent-invite-choices">
+      <div className="axn-doc-choice-row">
+        {options.map(({ label, task }) => (
+          <Button key={task} size="small" className="axn-doc-choice" data-choice-task={task} disabled={disabled} onClick={() => onPick(task)}>
+            {label}
+          </Button>
+        ))}
+      </div>
+      <Text type="secondary" className="axn-doc-hint">{hint}</Text>
+    </div>
+  );
+}
 
 function incidentOptionLabel(eventId: string): string {
   const name = eventDisplayName(eventId);
@@ -553,6 +620,27 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     }
   };
 
+  /** 点能力块：对话里召唤对应智能体 + 功能选项（五块统一，不就地展开）。 */
+  const handleAgentInvite = (agentId: string) => {
+    if (!session || busy) return;
+    const invite = AGENT_INVITES[agentId];
+    const group = AGENT_QUICK_TASKS.find((item) => item.agentId === agentId);
+    if (!invite || !group) return;
+    const { sessionId } = session;
+    useSessionStore.getState().appendMessage(sessionId, {
+      sessionId,
+      role: 'assistant',
+      kind: 'agent',
+      taskId: null,
+      agentId,
+      agentName: invite.name,
+      agentRole: invite.role,
+      text: invite.intro,
+      choices: group.tasks.map(({ label, task }) => ({ label, task })),
+      hint: invite.hint,
+    });
+  };
+
   // 右侧内嵌业务流程发出的快捷任务：关闭工作区后在对话中执行
   const quickTaskRef = useRef(handleQuickTask);
   quickTaskRef.current = handleQuickTask;
@@ -566,94 +654,11 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     return () => window.removeEventListener('axn:flow-task', onFlowTask);
   }, []);
 
+  /** 一期嵌入页（如 W02）可覆盖底部 chips；其余走 5 能力块。 */
   const pageChipOverride = useMemo(
     () => hostPageChipOverride(location.pathname, location.search),
     [location.pathname, location.search],
   );
-  const chipSplit = useMemo(() => {
-    if (pageChipOverride) {
-      return {
-        primary: pageChipOverride.primary.map((item) => ({
-          label: item.label,
-          agentId: item.agentId,
-          agentName: item.agentName,
-          action: item.action,
-          title: item.title,
-          scenarioId: 'forceDelivery',
-          clause: '',
-          kind: 'chat' as const,
-        })),
-        secondary: [] as ReturnType<typeof splitQuickTasksByStage>['secondary'],
-        loopLabels: [] as string[],
-        scenarioLabel: null as string | null,
-        agentLabel: null as string | null,
-      };
-    }
-    const staged = splitQuickTasksByStage(eventStage);
-    return {
-      ...staged,
-      primary: staged.primary.map((item) => ({
-        ...item,
-        action: item.label,
-        title: undefined as string | undefined,
-      })),
-    };
-  }, [eventStage, pageChipOverride]);
-  // 主区推荐当前阶段操作；更多动作保留全部智能体入口（PC/手机同一套）
-  const moreActionItems: MenuProps['items'] = useMemo(() => {
-    if (pageChipOverride?.hideMoreActions) return [];
-    const moreMenu = QUICK_ACTION_CATALOG.moreMenu;
-    const order = moreMenu.scenarioOrder;
-    const groups = new Map<CatalogScenarioId, typeof chipSplit.secondary>();
-    for (const id of order) groups.set(id, []);
-    for (const item of [...chipSplit.primary, ...chipSplit.secondary]) {
-      const scenarioId = (item.scenarioId ?? 'assistant') as CatalogScenarioId;
-      const bucket = groups.get(scenarioId) ?? [];
-      bucket.push(item);
-      groups.set(scenarioId, bucket);
-    }
-    const items: MenuProps['items'] = [];
-    for (const id of order) {
-      const bucket = groups.get(id) ?? [];
-      if (bucket.length === 0) continue;
-      items.push({
-        type: 'group',
-        key: `group:${id}`,
-        label: catalogScenarioLabel(id),
-        children: bucket.map((item) => ({
-          key: item.label,
-          label: `${tenderName(item.label)}（${tenderName(item.agentName)}）`,
-          disabled: !session || busy,
-          onClick: () => { void handleQuickTask(item.label); },
-        })),
-      });
-    }
-    if (chipSplit.loopLabels.length > 0) {
-      items.push({
-        type: 'group',
-        key: 'group:loop',
-        label: '阶段回环',
-        children: chipSplit.loopLabels.map((label) => ({
-          key: `loop:${label}`,
-          label: tenderName(label),
-          disabled: !session || busy,
-          onClick: () => { void handleQuickTask(label); },
-        })),
-      });
-    }
-    if (moreMenu.appendOverallFlow) {
-      items.push(
-        { type: 'divider' },
-        {
-          key: '__overall-flow__',
-          label: moreMenu.overallFlowEntryLabel,
-          disabled: !session || busy,
-          onClick: () => openFlowWorkspace(moreMenu.overallFlowDefaultTab as typeof FLOW_TASKS[number]),
-        },
-      );
-    }
-    return items;
-  }, [pageChipOverride?.hideMoreActions, chipSplit.primary, chipSplit.secondary, chipSplit.loopLabels, session?.sessionId, busy]);
 
   const pending = session?.pendingClarification && tasks[session.pendingClarification.taskId]?.intent !== 'doc_daily' ? session.pendingClarification : null;
   const submitClarification = () => {
@@ -807,7 +812,15 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               agentName={m.agentName ?? '智能体协同'}
               agentRole={m.agentRole ?? ''}
               action={m.text ?? ''}
-              status={m.taskId ? tasks[m.taskId]?.status : undefined}
+              status={m.choices ? 'queued' : m.taskId ? tasks[m.taskId]?.status : undefined}
+              bodyExtra={m.choices ? (
+                <AgentInviteChoices
+                  options={m.choices}
+                  hint={m.hint ?? ''}
+                  disabled={!session || busy}
+                  onPick={(task) => { void handleQuickTask(task); }}
+                />
+              ) : null}
             >
               {m.taskId && tasks[m.taskId] && (
                 <TaskCard
@@ -1079,64 +1092,50 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         </div>
       )}
 
-      {/* 快捷任务：仅平铺当前事件阶段主推；其余进「更多动作」 */}
+      {/* 快捷任务：5 能力块内联展开；一期嵌入页可用 pageChipOverride 覆盖 */}
       <div className="axn-cp-chips-wrap">
         <div className="axn-chips" data-testid="quick-task-chips">
-          {chipSplit.scenarioLabel ? (
-            <>
-              <span className="axn-scenario-name" title="当前场景（非操作按钮）" data-testid="chip-scenario-label">
-                <span className="axn-scenario-name__kicker">当前场景</span>
-                <span className="axn-scenario-name__text">{tenderName(chipSplit.scenarioLabel)}</span>
-              </span>
-              <span className="axn-chips-divider" aria-hidden />
-            </>
-          ) : null}
-          {chipSplit.primary.map(({ label, agentName, agentId, action, title }) => (
-            <Button
-              key={label}
-              size="small"
-              className="axn-chip axn-chip--primary"
-              title={title ?? `${tenderName(agentName)} · 独立调用`}
-              data-agent-id={agentId}
-              data-testid={`chip-primary-${label}`}
-              disabled={!session || busy}
-              onClick={() => { void handleQuickTask(action); }}
-            >
-              {tenderName(label)}
-            </Button>
-          ))}
-          <Button size="small" danger={unreadMonitorCount > 0} disabled={!session} onClick={replyMonitorNoticesInChat}>监测通知（{unreadMonitorCount}）</Button>
-          {(moreActionItems?.length ?? 0) > 0 ? (
-            <Dropdown menu={{ items: moreActionItems }} trigger={['click']} placement="topLeft">
+          {pageChipOverride ? (
+            pageChipOverride.primary.map(({ label, agentName, agentId, action, title }) => (
               <Button
+                key={label}
                 size="small"
-                className="axn-chip axn-chip--more"
+                className="axn-chip"
+                title={title ?? `${tenderName(agentName)} · 独立调用`}
+                data-agent-id={agentId}
+                data-testid={`chip-primary-${label}`}
                 disabled={!session || busy}
-                data-testid="chip-more-actions"
+                onClick={() => { void handleQuickTask(action); }}
               >
-                更多动作
+                {tenderName(label)}
               </Button>
-            </Dropdown>
-          ) : null}
+            ))
+          ) : (
+            AGENT_QUICK_TASKS.map(({ label, agentName, agentId }) => {
+              const ChipIcon = AGENT_CHIP_ICONS[agentId];
+              return (
+                <Button
+                  key={agentId}
+                  size="small"
+                  className="axn-chip"
+                  title={agentName}
+                  data-agent-id={agentId}
+                  disabled={!session || busy}
+                  onClick={() => { handleAgentInvite(agentId); }}
+                >
+                  {ChipIcon && <ChipIcon className="axn-chip-icon" size={13} aria-hidden />}
+                  {label}
+                </Button>
+              );
+            })
+          )}
+          <Button size="small" danger={unreadMonitorCount > 0} disabled={!session} onClick={replyMonitorNoticesInChat}>监测通知（{unreadMonitorCount}）</Button>
         </div>
       </div>
       {/* 圆角输入区：电脑端关联灾情在发送钮左侧；手机端独立成行避免挤爆 */}
       <div className={`axn-composer${compact ? ' axn-composer--compact' : ''}${isDesktopComposer ? ' axn-composer--desktop' : ''}`}>
         <div className="axn-composer-shell">
-          <div className="axn-composer-toolbar">
-            <Button
-              type="link"
-              size="small"
-              className="axn-composer-materials-btn"
-              disabled={!session}
-              data-testid="open-session-materials"
-              onClick={() => setMaterialsOpen(true)}
-            >
-              {compact
-                ? `资料${session?.materials?.length ? ` ${session.materials.length}` : ''}`
-                : `资料${session?.materials?.length ? `（${session.materials.length}）` : ''}`}
-            </Button>
-          </div>
+          {/* 「资料」入口暂时隐藏；SessionMaterialsDrawer 仍保留，便于后续恢复 */}
           {!isDesktopComposer ? (
             <div className="axn-composer-event-row">
               <span className="axn-composer-event-label">关联灾情</span>

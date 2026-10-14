@@ -47,6 +47,7 @@ export default function WorkspaceSync() {
       const agentTasks = Object.values(tasks)
         .filter((t) => t.sessionId === scope && t.eventId === session.eventId
           && t.displayTitle !== '多源数据汇聚'
+          && t.displayTitle !== '汇总灾情摘要'
           && ['summary', 'proposal', 'evaluation', 'resource_query'].includes(t.intent))
         .sort((a, b) => b.seq - a.seq);
       const runningAgent = agentTasks.find((t) => ['queued', 'running', 'waiting_input'].includes(t.status));

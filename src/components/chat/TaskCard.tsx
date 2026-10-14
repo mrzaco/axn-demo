@@ -1,3 +1,4 @@
+import { Descriptions } from 'antd';
 import MultiSourceSummary from './MultiSourceSummary';
 import { tenderName } from '@/seed/tenderNames';
 /**
@@ -103,7 +104,7 @@ function SummaryBlock({
   const isPending = (id: string) => resolveFact(id, { kind: 'event', eventId: payload.eventId })?.verification !== 'confirmed';
   return (
     <div className="axn-text-result" data-testid="event-summary-text">
-      {payload.rows.map(row => {
+      {payload.displayMode === 'disaster_summary' ? <Descriptions bordered column={1} size="small" items={payload.rows.map(row => ({ key: row.label, label: row.label, children: factValueText(row.factId, row.displayOverride) }))} /> : payload.rows.map(row => {
         const value = factValueText(row.factId, row.displayOverride).replace(/待核实[（(]待核实[）)]/g, '待核实');
         const note = row.emphasize === 'suggested' ? '（建议值）'
           : row.emphasize === 'pending' && isPending(row.factId) && !/待核|待确认/.test(value) ? '（待确认）' : '';

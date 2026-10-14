@@ -2,9 +2,8 @@
  * 三场景串联配置：灾情研判 → 力量投送 → 实施救援。
  * 驱动快捷 chips 推荐/折叠、阶段推进与场景交接包（演示级，不改原系统状态）。
  */
-import { AGENT_QUICK_TASKS } from '@/seed/agentQuickTasks';
 import { isHiddenPrototypeAction } from '@/seed/prototypeVisibility';
-import { stageChipConfig } from '@/seed/quickActionCatalog';
+import { chipCatalogActions, stageChipConfig, type CatalogAction } from '@/seed/quickActionCatalog';
 import { factText, incidentById } from '@/seed/scenario';
 import { tenderName } from '@/seed/tenderNames';
 import { vueWorkspaceEventById, type VueWorkspaceEventMeta } from '@/seed/vueWorkspaceEvents';
@@ -37,7 +36,8 @@ export type HandoffBundle = {
   verified: 'draft' | 'user_confirmed';
 };
 
-export type QuickTaskItem = (typeof AGENT_QUICK_TASKS)[number];
+/** 扁平快捷项（阶段主推 / NextStep 等仍用 catalog 扁平列表；输入区能力块用嵌套 AGENT_QUICK_TASKS）。 */
+export type QuickTaskItem = CatalogAction;
 
 export type ScenarioMeta = {
   id: ScenarioId;
@@ -175,7 +175,7 @@ export function splitQuickTasksByStage(stage: EventStage | null): {
   scenarioLabel: string | null;
   agentLabel: string | null;
 } {
-  const visibleTasks = AGENT_QUICK_TASKS.filter((t) => !isHiddenPrototypeAction(t.label));
+  const visibleTasks = chipCatalogActions().filter((t) => !isHiddenPrototypeAction(t.label));
   if (!stage) {
     return {
       primary: primaryLabelsForStage('待研判').flatMap(label => visibleTasks.filter(t => t.label === label)),

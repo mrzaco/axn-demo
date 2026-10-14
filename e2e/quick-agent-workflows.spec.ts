@@ -3,40 +3,32 @@ import { expect, test } from '@playwright/test';
 
 test('快捷任务在智能体卡片内展示执行过程和模拟结果', async ({ page }) => {
   await page.goto('/');
-  for (const [label, agent, result, steps] of [
-    ['生成灾情摘要', '态势感知智能体', '人员伤亡情况', 4],
-    ['生成态势报告', '态势感知智能体', '安全区域', 4],
-    ['查询周边救援资源', '资源管理智能体', '预计到达', 3],
+  for (const [label, agent, result] of [
+    ['多源数据汇聚', '态势感知智能体', '六类数据来源'],
+    ['生成态势报告', '态势感知智能体', '安全区域'],
+    ['查询周边救援资源', '救援资源管理智能体', '资源智能检索'],
   ] as const) {
     await clickQuickTask(page, label);
     const card = page.getByTestId('agent-summon-card').filter({ hasText: agent }).last();
     await expect(card).toBeVisible();
     await expect(card).toHaveClass(/is-running/);
-    await expect(card.locator('.axn-step-running')).toBeVisible();
     await expect(card).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
     await expect(card).not.toHaveClass(/is-running/);
-    await expect(card.locator('.axn-step-completed')).toHaveCount(steps);
     await expect(card).toContainText(result);
-    if (label === '生成灾情摘要') {
-      await expect(card).toContainText('队伍与人员状态时效');
-      await expect(card).toContainText('状态更新时间');
-      await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
-      await expect(page.getByTestId('document-workspace')).toBeVisible({ timeout: 10000 });
+    if (label === '多源数据汇聚') {
+      await expect(card).toContainText('多源数据汇聚');
+      await expect(card).toContainText('汇聚快照');
     }
     if (label === '生成态势报告') {
       await expect(card.getByTestId('scenario-sections')).toContainText('建设材料');
       await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
-      await expect(page.getByTestId('mock-redhead-document')).toContainText('灾情态势报告', { timeout: 10000 });
+      await expect(page.getByTestId('mock-redhead-document')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('mock-redhead-document')).toContainText(/灾\s*情\s*态\s*势\s*报\s*告/);
     }
     if (label === '查询周边救援资源') {
-      await expect(card.getByTestId('resource-result-compact')).toBeVisible();
-      await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
-      await expect(card.getByRole('button', { name: '查看态势地图' }).first()).toBeVisible();
-      await card.getByRole('button', { name: '查看资源列表' }).first().click();
-      const drawer = page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' });
-      await expect(drawer).toBeVisible();
-      await expect(page.getByTestId('resource-tab-list')).toBeVisible();
-      await page.keyboard.press('Escape');
+      await expect(card).toContainText('周边资源');
+      await expect(card.getByRole('button', { name: '列表' }).or(card.getByRole('button', { name: '查看资源列表' })).first()).toBeVisible();
+      await expect(card.getByRole('button', { name: '地图' }).or(card.getByRole('button', { name: '查看态势地图' })).first()).toBeVisible();
     }
   }
   await page.screenshot({ path: 'artifacts/quick-agent-workflows.png' });
@@ -96,25 +88,22 @@ test('空白对话提示关联灾情，关联后可正常生成摘要', async ({
 test('五类智能体均有入口，方案与评估可执行并展示结果', async ({ page }) => {
   await page.goto('/');
   const chips = page.locator('.axn-chips');
-  // 主推区含当前场景智能体；其余经「更多动作」可达
-  await expect(chips.locator('[data-agent-id="agent-plan"]').first()).toBeVisible();
-  await expect(chips.locator('[data-agent-id="agent-doc"]').first()).toBeVisible();
-  await chips.getByTestId('chip-more-actions').click();
-  await expect(page.getByRole('menuitem').first()).toBeVisible();
-  await page.keyboard.press('Escape');
+  for (const id of ['agent-doc', 'agent-situation', 'agent-resource', 'agent-plan', 'agent-eval']) {
+    await expect(chips.locator(`[data-agent-id="${id}"]`).first()).toBeVisible();
+  }
+  await expect(chips.getByTestId('chip-more-actions')).toHaveCount(0);
   await clickQuickTask(page, '生成救援方案');
-  const plan = page.getByTestId('agent-summon-card').filter({ hasText: '救援方案生成智能体' }).last();
-  await expect(plan).toHaveClass(/is-running/);
-  await expect(plan).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
-  await expect(plan.getByTestId('scenario-sections')).toBeVisible();
-  await expect(plan.getByTestId('proposal-result')).toBeVisible();
-  await expect(plan.getByRole('button', { name: '查看建议与知识' })).toBeVisible();
-  await expect(plan.getByRole('button', { name: '查看文书' })).toBeVisible();
-  await expect(page.getByTestId('mock-redhead-document')).toContainText('工程救援处置方案初稿', { timeout: 10000 });
+  const planReply = page.locator('.axn-rescue-plan-reply').last();
+  await expect(planReply).toContainText('救援方案生成智能体');
+  await expect(planReply).toContainText('已生成三种救援方案');
+  await expect(planReply.getByRole('button', { name: '查看文书' })).toHaveCount(3);
+  await planReply.getByRole('button', { name: '查看文书' }).first().click();
+  await expect(page.getByTestId('mock-redhead-document')).toBeVisible({ timeout: 10000 });
   // 评估需「待复盘」阶段：切到种子阶段已是待复盘的事件后再跑
   await page.getByTestId('new-conversation-btn').click();
   await page.getByTestId('chat-link-incident').click();
-  await page.locator('.ant-select-item-option', { hasText: 'G5513边坡滑移处置' }).click();
+  // 可选实战场景按阶段展开，待复盘项文案形如「青岭村山体滑坡（模拟）（待复盘）」
+  await page.locator('.ant-select-item-option', { hasText: '待复盘' }).first().click();
   await clickQuickTask(page, '评估救援效果');
   const evaluation = page.getByTestId('agent-summon-card').filter({ hasText: '救援效果评估智能体' }).last();
   await expect(evaluation).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });

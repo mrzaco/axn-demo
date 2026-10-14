@@ -92,117 +92,94 @@
 .axn-question-item:hover:not(:disabled) { background: var(--axn-primary-bg); border-color: color-mix(in srgb, var(--axn-primary) 24%, var(--axn-border)); color: var(--axn-primary); }
 .axn-question-item:disabled { color: var(--axn-muted); cursor: not-allowed; opacity: .6; }
 .axn-question-item:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+/* 能力块：单行横向滚动；展开子项时父按钮右移不折行（对齐 main）。 */
 .axn-chips {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
-  padding: 2px 2px 6px;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
   border: 0;
   background: transparent;
   flex: 0 0 auto;
   min-width: 0;
   max-width: var(--measure-chat);
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-2);
   width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
   overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--axn-border) transparent;
+  scrollbar-width: none;
 }
-.axn-chips::-webkit-scrollbar { height: 3px; }
-.axn-chips::-webkit-scrollbar-thumb { background: var(--axn-border); border-radius: 999px; }
-/* 统一 chip 外观：标签 / 推荐 / 更多 / 流程同一套尺寸与间距 */
+.axn-chips::-webkit-scrollbar { display: none; }
+/* 父能力块：蓝底白字 */
 .axn-chip,
 .axn-chip.ant-btn {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  padding: 0 10px;
+  height: 27px;
+  padding: 0 var(--space-2);
   margin: 0;
-  border: 1px solid color-mix(in srgb, var(--axn-primary) 28%, var(--axn-border));
-  background: color-mix(in srgb, var(--axn-primary) 8%, var(--axn-surface));
-  color: var(--axn-primary-text, #426b94);
-  border-radius: 999px;
-  font-size: 12px;
+  border: 1px solid var(--axn-primary);
+  background: var(--axn-primary);
+  color: #fff;
+  border-radius: 7px;
+  font-size: var(--fs-meta);
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
   box-shadow: none;
+  scroll-snap-align: start;
   transition: background .16s, border-color .16s, color .16s;
 }
 .axn-chip.ant-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--axn-primary) 14%, var(--axn-surface));
-  color: var(--axn-primary-text, #426b94);
-  border-color: color-mix(in srgb, var(--axn-primary) 48%, var(--axn-border));
+  background: color-mix(in srgb, var(--axn-primary) 86%, #000);
+  border-color: color-mix(in srgb, var(--axn-primary) 86%, #000);
+  color: #fff;
 }
-/* 场景名：纯文案标签，不做成可点 chip */
-.axn-scenario-name {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  max-width: min(220px, 42vw);
-  padding: 0 2px;
-  margin: 0;
-  border: 0;
-  background: transparent;
-  color: var(--axn-text-secondary, #667085);
-  font-size: 12px;
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: default;
-  user-select: none;
-  pointer-events: none;
+/* 子任务：白底蓝字，与父块反色分层 */
+.axn-chips [data-subtask].ant-btn {
+  background: var(--axn-primary-bg);
+  border-color: color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface));
+  color: var(--axn-primary-text);
 }
-.axn-scenario-name__kicker {
-  color: var(--axn-muted, #98a2b3);
-  font-weight: 400;
-  font-size: 11px;
+.axn-chips [data-subtask].ant-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface));
+  border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface));
+  color: var(--axn-primary-text);
 }
-.axn-scenario-name__text {
-  color: var(--axn-text, #1f2937);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.axn-chips-divider {
-  flex: 0 0 auto;
-  align-self: stretch;
-  width: 1px;
-  min-height: 16px;
-  margin: 4px 2px;
-  background: var(--axn-border);
-}
-.axn-chip--label {
-  /* 兼容旧类名：与场景名同为非交互文案 */
-  border: 0;
-  background: transparent;
-  border-radius: 0;
-  color: var(--axn-text-secondary, #667085);
-  font-weight: 600;
-  cursor: default;
-  user-select: none;
-  pointer-events: none;
-}
-.axn-chip--primary.ant-btn { font-weight: 600; }
-.axn-chip--more.ant-btn {
-  background: var(--axn-surface);
-  color: var(--axn-text-secondary, #667085);
-  border-color: var(--axn-border);
-  border-style: solid;
-}
-.axn-chip--more.ant-btn:hover:not(:disabled) {
-  background: var(--axn-soft, #f5f7fa);
-  color: var(--axn-text);
-  border-color: color-mix(in srgb, var(--axn-primary) 28%, var(--axn-border));
-}
+.axn-chip.ant-btn .axn-chip-icon { flex: none; margin-inline-end: var(--space-1); }
+.axn-chip.ant-btn .axn-chip-arrow { flex: none; margin-inline-start: var(--space-1); }
 .axn-chip:disabled,
 .axn-chip.ant-btn:disabled { opacity: .5; }
+/* 文书邀请选项 */
+.axn-doc-choices { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-1); }
+.axn-doc-choice-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.axn-doc-choices .axn-doc-choice.ant-btn {
+  height: 27px;
+  padding: 0 var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface));
+  background: var(--axn-primary-bg);
+  color: var(--axn-primary-text);
+  border-radius: 7px;
+  font-size: var(--fs-meta);
+  box-shadow: none;
+}
+.axn-doc-choices .axn-doc-choice.ant-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--axn-primary) 16%, var(--axn-surface));
+  border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface));
+  color: var(--axn-primary-text);
+}
+.axn-doc-hint { font-size: var(--fs-meta); }
+@media (hover: none) {
+  .axn-chip.ant-btn { height: 40px; padding: 0 var(--space-3); }
+  .axn-doc-choices .axn-doc-choice.ant-btn { height: 40px; }
+}
 /* 会话头：默认空白，收起侧边栏按钮居左。
    圆角一体化输入区：快捷 chips 在输入框下方，发送按钮在右下角，与 Sender 共享一层外框；宽屏下限制正文宽度保持留白。 */
 .axn-composer { padding: var(--space-3) var(--space-4) var(--space-4); display: flex; justify-content: center; }
@@ -440,20 +417,6 @@
   height: 26px;
   font-size: 11px;
   padding-inline: 9px;
-}
-.axn-assistant--split .axn-scenario-name {
-  font-size: 11px;
-  max-width: min(180px, 38vw);
-}
-.axn-assistant--split .axn-scenario-name__kicker {
-  font-size: 10px;
-}
-@media (min-width: 720px) {
-  .axn-chips {
-    flex-wrap: wrap;
-    overflow-x: visible;
-    row-gap: 8px;
-  }
 }
 .axn-file-input-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 .axn-pending-file, .axn-sent-file { display: flex; align-items: center; gap: 10px; border: 1px solid color-mix(in srgb, var(--axn-primary) 28%, var(--axn-border)); border-radius: 6px; padding: 9px 11px; background: color-mix(in srgb, var(--axn-primary) 6%, var(--axn-surface)); color: var(--axn-primary-text, #426b94); font-size: 12px; overflow-wrap: anywhere; }

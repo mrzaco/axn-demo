@@ -230,6 +230,9 @@ export interface ChatMessage {
   agentId?: string;
   agentName?: string;
   agentRole?: string;
+  /** 文书生成邀请：候选任务（点选即发起对应 task）与下方提示文案。 */
+  choices?: { label: string; task: string }[];
+  hint?: string;
   /** 物资核验消息正文：保存本次台账快照和核验时点。 */
   rescuePlans?: { documentId: string; title: string; sections: readonly (readonly [string, string])[]; date: string; number: string }[];
   resourceAudit?: { rows: ResourceLedgerRow[]; checkedAt: string };
@@ -356,7 +359,7 @@ export interface TaskStep {
 
 export interface SummaryArtifact {
   /** 独立汇聚任务只呈现六源与授权域汇总，不生成灾情摘要或文书。 */
-  displayMode?: 'multi_source';
+  displayMode?: 'multi_source' | 'disaster_summary';
   multiSource?: MultiSourceSnapshot;
   kind: 'summary';
   eventId: string;

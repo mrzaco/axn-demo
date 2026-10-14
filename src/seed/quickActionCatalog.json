@@ -33,6 +33,14 @@
       "kind": "chat"
     },
     {
+      "label": "生成灾情摘要",
+      "clause": "4.1.2",
+      "scenarioId": "situation",
+      "agentId": "agent-situation",
+      "agentName": "态势感知智能体",
+      "kind": "chat"
+    },
+    {
       "label": "现场智能勘察辅助",
       "clause": "4.2.2",
       "scenarioId": "situation",
@@ -342,6 +350,7 @@
     "待研判": {
       "primary": [
         "多源数据汇聚",
+        "生成灾情摘要",
         "现场智能勘察辅助",
         "态势研判预警",
         "生成态势报告",
