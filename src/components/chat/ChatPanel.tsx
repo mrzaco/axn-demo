@@ -92,7 +92,7 @@ function AgentInviteChoices({ agentId, options, hint, disabled, onPick }: {
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
   const { token } = theme.useToken();
-  const { modal } = AntdApp.useApp();
+  const { modal, message } = AntdApp.useApp();
   const currentEventId = useDemoStore((s) => s.currentEventId);
   const sidebarCollapsed = useDemoStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useDemoStore((s) => s.toggleSidebar);
@@ -644,11 +644,22 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                 />
               </Upload>
               </span>
-              <Tooltip title="当前为原型演示，暂未接入真实联网检索">
+              <Tooltip classNames={{ root: 'axn-composer-web-search-tooltip' }} title="当前为原型演示，暂未接入真实联网检索">
                 <label className={`axn-composer-web-search${webSearchEnabled ? ' is-on' : ''}`}>
                   <Globe size={14} aria-hidden />
-                  <span>联网搜索</span>
-                  <Switch size="small" checked={webSearchEnabled} onChange={setWebSearchEnabled} aria-label="联网搜索" />
+                  <span className="axn-composer-web-search-label">联网<span className="axn-composer-web-search-full">搜索</span></span>
+                  <Switch
+                    size="small"
+                    checked={webSearchEnabled}
+                    onChange={(on) => {
+                      setWebSearchEnabled(on);
+                      // 触屏上看不到悬停提示：开 / 关时用一句轻提示交代状态与演示边界
+                      if (window.matchMedia?.('(hover: none)').matches) {
+                        message.open({ key: 'web-search', type: 'info', content: on ? '已开启联网搜索（演示环境暂未接入真实检索）' : '已关闭联网搜索' });
+                      }
+                    }}
+                    aria-label="联网搜索"
+                  />
                 </label>
               </Tooltip>
               </div>
@@ -688,7 +699,10 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                原 minRows: 3 时输入框恒为 76px 且控件与文字同一行（备注 m01301、m01342）。 */
             autoSize={{ minRows: 2, maxRows: 6 }}
             placeholder={
-              session ? '向安小能发送指令，Enter 发送' : '会话初始化中…'
+              session
+                // 触屏没有实体 Enter 键，提示只留前半句
+                ? (window.matchMedia?.('(hover: none)').matches ? '向安小能发送指令' : '向安小能发送指令，Enter 发送')
+                : '会话初始化中…'
             }
             disabled={!session || !!generatingDocument}
           />

@@ -146,9 +146,57 @@
 .axn-composer-web-search:hover { border-color: var(--axn-primary); }
 .axn-composer-web-search.is-on { color: var(--axn-primary-text); border-color: var(--axn-primary); background: var(--axn-primary-bg); }
 .axn-composer-web-search:focus-within { outline: 2px solid var(--axn-primary); outline-offset: 2px; }
+/* 窄输入区（手机 / 分栏）：两层 ——
+   ① 输入框独占一行；
+   ② 一条工具栏：左侧「📎 上传 · 🌐 联网」两个图标钮 + 关联灾情胶囊（可截断），右侧「🎤 语音 · ↑ 发送」。
+   所有可点目标统一 36px 高、6px 间距，图标钮同形；联网搜索收成图标开关（开启 = 主色浅底），
+   不再是「文字 + 开关」的大块。关联灾情是上下文而不是操作，用中性胶囊，避免和发送键争主色。 */
+@media (max-width: 767px) {
+  .axn-composer { padding: var(--space-2) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); }
+  .axn-composer-shell { padding: var(--space-1) var(--space-1-5) var(--space-1-5); border-radius: var(--radius-lg); }
+}
 @container (max-width: 460px) {
-  .axn-composer-shell .ant-sender-prefix { flex-basis: 100%; }
-  .axn-composer-shell .ant-sender-actions-list { flex-basis: 100%; justify-content: flex-end; }
+  .axn-composer-shell .ant-sender-content {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "input input" "tools actions";
+    row-gap: var(--space-1-5); column-gap: var(--space-1-5); align-items: center; padding: var(--space-1) var(--space-1-5) var(--space-1);
+  }
+  .axn-composer-shell .ant-sender-input { grid-area: input; width: 100%; min-width: 0; padding-inline: var(--space-1); }
+  .axn-composer-shell .ant-sender-prefix { grid-area: tools; min-width: 0; margin: 0; }
+  .axn-composer-shell .ant-sender-actions-list { grid-area: actions; min-width: 0; width: 100%; margin: 0; }
+  .axn-composer-tools { gap: var(--space-1-5); }
+
+  /* 图标钮：上传 / 语音同形 36px 圆 */
+  .axn-composer-upload.ant-btn, .axn-composer-speech.ant-btn { width: 36px; min-width: 36px; height: 36px; }
+  /* 联网搜索：带字的开关胶囊「🌐 联网」—— 只放图标用户认不出是联网（用户反馈）。
+     关 = 白底描边；开 = 主色浅底 + 主色字，和右侧灰底的灾情胶囊一眼区分。 */
+  .axn-composer-web-search { position: relative; height: 36px; gap: var(--space-1); padding: 0 var(--space-2-5) 0 var(--space-2); border-radius: 999px; font-size: var(--fs-caption); }
+  .axn-composer-web-search > svg { width: 16px; height: 16px; }
+  .axn-composer-web-search-full { display: none; }
+  /* 开关本体留在无障碍树里（点胶囊即切换它），只是视觉上收起 */
+  .axn-composer-web-search > .ant-switch { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; margin: 0; opacity: 0; }
+  .axn-composer-web-search.is-on { font-weight: 600; }
+  .axn-composer-web-search:focus-within { outline-offset: 0; }
+
+  /* 右侧：灾情胶囊吃掉剩余宽度（靠左），语音 + 发送固定在最右 */
+  .axn-composer-actions { display: flex; align-items: center; gap: var(--space-1-5); width: 100%; padding: 0; }
+  .axn-composer-actions .axn-cp-select {
+    flex: 0 1 auto; max-width: none; margin-right: auto; height: 36px; padding: 0 var(--space-2-5) 0 var(--space-2);
+    border-color: var(--axn-border); border-radius: 999px; background: var(--axn-sunken); color: var(--axn-text); font-size: var(--fs-caption);
+  }
+  .axn-composer-actions .axn-cp-select:hover { background: var(--axn-soft); border-color: var(--axn-control); }
+  .axn-composer-actions .axn-cp-select.is-empty { color: var(--axn-muted); }
+  .axn-composer-actions .axn-cp-select-caret { color: var(--axn-faint); }
+  .axn-composer-actions > .ant-btn { flex: 0 0 36px; width: 36px; min-width: 36px; height: 36px; }
+
+  .axn-attach-list { min-width: 0; }
+  .axn-attach-tag.ant-tag { max-width: 100%; }
+  .axn-attach-size, .axn-attach-tag .ant-tag-close-icon { flex-shrink: 0; }
+}
+
+/* 360 宽级别的小屏：灾情胶囊去掉下拉箭头（胶囊本身已可点），把位置让给事件名 */
+@container (max-width: 340px) {
+  .axn-composer-actions .axn-cp-select-caret { display: none; }
+  .axn-composer-actions .axn-cp-select { padding-right: var(--space-2-5); }
 }
 
 /* 已选附件：输入框上方的可移除 chip */
@@ -451,9 +499,6 @@
 .axn-cp-select.is-empty .axn-cp-select-text { color: inherit; }
 .axn-cp-select-caret { flex-shrink: 0; color: var(--axn-primary); }
 
-@media (max-width: 767px) {
-  .axn-composer-actions .axn-cp-select { max-width: min(220px, calc(100vw - 180px)); }
-}
 
 /* ===== 关联灾情选择弹窗 ===== */
 .axn-incident-modal .ant-modal-container, .axn-incident-modal .ant-modal-content { padding: 0; overflow: hidden; border-radius: var(--radius-lg); }
@@ -515,4 +560,9 @@
   .axn-question-head { font-size: var(--fs-caption); gap: var(--space-1); }
   .axn-question-head svg.lucide { width: 13px; height: 13px; }
   .axn-question-text { display: block; overflow: visible; -webkit-line-clamp: unset; }
+}
+
+/* 触屏不会自然离开 hover 状态，避免工具提示停留并盖住输入文字。 */
+@media (hover: none) {
+  .axn-composer-web-search-tooltip { display: none; }
 }
