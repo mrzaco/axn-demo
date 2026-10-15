@@ -1,6 +1,6 @@
 /**
  * 全局导航 + 对话历史管理侧栏（UI 改版）：
- * 区域：品牌 / 新建 / 一级导航 / 建设四智能体（点选后直接开对话并提示先关联灾情）/
+ * 区域：品牌 / 新建 / 一级导航 /
  * 搜索 / 历史会话 / 底部账户区。
  * 全部数据为模拟数据。
  */
@@ -9,17 +9,11 @@ import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from './navRoutes';
 import {
   Bot,
-  ClipboardCheck,
   // Clock, // 恢复「定时任务」侧栏入口时一并取回
   // FilePlus, // 恢复「新建任务」按钮时一并取回
   // FlaskConical, // 恢复「知识库」侧栏入口时一并取回
-  Flame,
   FolderOpen,
   // LayoutGrid, // 恢复「应急项目」侧栏入口时一并取回
-  LayoutGrid,
-  Lightbulb,
-  MonitorSmartphone,
-  Smartphone,
   Pin,
   Plus,
   RotateCcw,
@@ -27,7 +21,6 @@ import {
   Settings,
   Sparkles,
   Trash2,
-  Wrench,
 } from 'lucide-react'
 import { App as AntdApp, Avatar, Button, Divider, Drawer, Dropdown, Empty, Input, Popconfirm, Radio, Tooltip } from 'antd';
 import type { Conversation, ConversationSettings, NavPage } from '@/domain/types';
@@ -43,19 +36,7 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore, type WorkMode } from '@/store/workspaceStore';
 import { resetDemoData } from '@/store/resetDemo';
 import { actors } from '@/seed/scenario';
-import {
-  SIDEBAR_AGENTS,
-  type SidebarAgent,
-  type SidebarAgentId,
-} from '@/services/sidebarAgentFilter';
 import './sidebar.css';
-
-const SIDEBAR_AGENT_ICONS: Record<SidebarAgentId, ReactNode> = {
-  situation: <Flame size={16} />,
-  resource: <Wrench size={16} />,
-  plan: <Lightbulb size={16} />,
-  evaluation: <ClipboardCheck size={16} />,
-};
 
 type NavKey = NavPage;
 
@@ -68,28 +49,6 @@ const NAV: { key: NavKey; label: string; icon: ReactNode }[] = [
   { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
   // { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
-];
-
-/** 非 NavPage 的侧栏快捷入口（门户 / 一期嵌入 / 手机工作台等独立全屏页）。 */
-const EXTRA_NAV: { path: string; label: string; icon: ReactNode; testId: string }[] = [
-  {
-    path: '/portal',
-    label: '桌面门户入口',
-    icon: <LayoutGrid size={16} />,
-    testId: 'nav-desktop-portal',
-  },
-  {
-    path: '/phase1/coordination',
-    label: '一期系统嵌入',
-    icon: <MonitorSmartphone size={16} />,
-    testId: 'nav-phase1-host',
-  },
-  {
-    path: '/mobile',
-    label: '手机工作台嵌入',
-    icon: <Smartphone size={16} />,
-    testId: 'nav-mobile-workbench',
-  },
 ];
 
 /** 对话与通知设置（轻量展示，需求 2.6）+ 演示数据重置入口（现场一键回到初始场景）。 */
@@ -226,30 +185,6 @@ export default function GlobalSidebar() {
 
   const openLibrary = () => guardDirty('切换到文书库', () => navigate(NAV_PATH.library));
 
-  /** 建设智能体：直接开空白对话，并提醒先在输入区关联灾情。 */
-  const openAgentConversation = useCallback((agent: SidebarAgent) => {
-    guardDirty(`打开${agent.shortName}`, () => {
-      const conversation = createConversation({
-        title: `${agent.shortName}（未关联事件）`,
-        type: 'general',
-        status: 'active',
-        summary: `${agent.name} · ${agent.scene}`,
-      });
-      selectConversation(conversation.id);
-      navigate(NAV_PATH.assistant);
-      const sessionStore = useSessionStore.getState();
-      const eventId = conversation.eventId ?? `evt-blank-${conversation.id}`;
-      const sessionId = sessionStore.ensureSessionForConversation(conversation.id, eventId);
-      sessionStore.appendMessage(sessionId, {
-        sessionId,
-        role: 'assistant',
-        kind: 'text',
-        taskId: null,
-        text: `已进入「${agent.name}」（${agent.scene}）。请先在下方「关联灾情」中选择事件，再发起任务。`,
-      });
-    });
-  }, [guardDirty, createConversation, selectConversation, navigate]);
-
   const list = useMemo(
     () => Object.values(conversations).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)),
     [conversations],
@@ -333,41 +268,7 @@ export default function GlobalSidebar() {
             <span>{item.label}</span>
           </button>
         ))}
-        {EXTRA_NAV.map((item) => (
-          <button
-            key={item.path}
-            className="axn-gs-nav-item"
-            data-testid={item.testId}
-            onClick={() => guardDirty('打开一期系统嵌入', () => navigate(item.path))}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
       </nav>
-
-      {/* 4. 建设四智能体：点击后开空白对话，并提示先关联灾情 */}
-      <div className="axn-gs-agents" data-testid="sidebar-agents">
-        <div className="axn-gs-agents-head">
-          <span>建设智能体</span>
-        </div>
-        <div className="axn-gs-agents-list" role="list" aria-label="建设智能体入口">
-          {SIDEBAR_AGENTS.map((agent) => (
-            <button
-              key={agent.id}
-              type="button"
-              className="axn-gs-nav-item"
-              title={`${agent.name} · ${agent.scene}`}
-              data-testid={`sidebar-agent-${agent.id}`}
-              onClick={() => openAgentConversation(agent)}
-            >
-              {SIDEBAR_AGENT_ICONS[agent.id]}
-              <span className="axn-gs-agent-name">{agent.shortName}</span>
-              <span className="axn-gs-agent-scene">{agent.scene}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* 5. 对话搜索 */}
       <div className="axn-gs-search">

@@ -1,5 +1,7 @@
+import { SUPPLY_LEDGER_TEXT, SUPPLY_AUDIT_TEXT } from '@/pages/v2/businessData';
+import type { StageChoiceGroup } from './stageConversation';
 import { EVENT_NAME } from '@/pages/v2/constants';
-import type { ChatAttachment } from '@/domain/types';
+import type { ChatAttachment, Session } from '@/domain/types';
 import qa from '@/pages/v2/embeddedQa.json';
 import { isV2AiKind, V2_AI_KINDS, V2_AI_DOCUMENT_CODES, type V2AiKind } from '@/pages/v2/aiNodes';
 import { useSessionStore } from '@/store/sessionStore';
@@ -9,12 +11,40 @@ export function embeddedQaIntro(kind: V2AiKind): string {
   return `还可以继续向${node.agent}提问。本节点依据${node.source}回答（模拟）。\n\n${node.items.map((item, i) => `${i + 1}. ${item.question}`).join('\n')}\n\n可直接发送：${node.items[0].question}`;
 }
 
+export function embeddedQaKind(session: Session | undefined, mode: string | null): V2AiKind | null {
+  const kind = mode?.startsWith('v2-') ? mode.slice(3) : '';
+  if (!isV2AiKind(kind) || !session) return null;
+  if (kind === 'supplies') return session.messages.some(message => message.agentRole === 'v2-supplies') ? kind : null;
+  const code = V2_AI_DOCUMENT_CODES[V2_AI_KINDS.indexOf(kind)];
+  return session.messages.some(message => message.documentWorkflow?.documentCode === code) ? kind : null;
+}
+
+export function embeddedStageChoices(kind: V2AiKind): StageChoiceGroup[] {
+  return [
+    { label: '当前节点常见提问', options: qa[kind].items.map((item, index) => ({ id: `v2-qa:${kind}:${index}`, kind: 'question', label: item.question, prompt: item.question })) },
+    { label: '资料与模拟文件', options: [
+      { id: `v2-source:${kind}`, kind: 'question', label: '当前资料的数据来源是什么？', prompt: '当前资料的数据来源是什么？' },
+      { id: `v2-file:${kind}`, kind: 'file', label: `发送${qa[kind].label}参考资料（模拟）`, prompt: `我补充：请登记这份${qa[kind].label}参考资料，保留为待核材料。` },
+    ] },
+  ];
+}
+
+export function embeddedChoiceAttachment(kind: V2AiKind, session: Session): ChatAttachment {
+  const code = V2_AI_DOCUMENT_CODES[V2_AI_KINDS.indexOf(kind)];
+  const workflow = session.messages.slice().reverse().find(message => code && message.documentWorkflow?.documentCode === code)?.documentWorkflow;
+  const body = kind === 'supplies' ? `${SUPPLY_LEDGER_TEXT}\n${SUPPLY_AUDIT_TEXT}`
+    : workflow?.reportSections?.map(section => section.join('\n')).join('\n\n') ?? '当前节点正文尚未生成，资料待补。';
+  return { id: crypto.randomUUID(), name: `${qa[kind].label}参考资料（模拟）.docx`, eventId: session.eventId,
+    eventName: EVENT_NAME, simulated: true, kind: '当前节点参考资料', status: '模拟正文已登记·待核',
+    content: `当前事件：${EVENT_NAME}\n资料来源：${qa[kind].source}\n${body}` };
+}
+
 /** 仅处理当前嵌套节点已绑定的报告或物资核验会话，防止回落到其他种子事件。 */
 export function replyEmbeddedQa(sessionId: string, mode: string | null, raw: string, attachment?: ChatAttachment | null): boolean {
-  const kind = mode?.startsWith('v2-') ? mode.slice(3) : '';
-  if (!isV2AiKind(kind)) return false;
   const store = useSessionStore.getState();
   const session = store.sessions[sessionId];
+  const kind = embeddedQaKind(session, mode);
+  if (!kind) return false;
   const code = V2_AI_DOCUMENT_CODES[V2_AI_KINDS.indexOf(kind)];
   const workflow = code ? session?.messages.slice().reverse().find(message => message.documentWorkflow?.documentCode === code)?.documentWorkflow : undefined;
   const suppliesContext = kind === 'supplies' && session?.messages.some(message => message.agentRole === 'v2-supplies');

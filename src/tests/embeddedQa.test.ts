@@ -3,7 +3,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import qa from '@/pages/v2/embeddedQa.json';
 import { V2_REPORT_KINDS } from '@/pages/v2/aiNodes';
 import { generateEmbeddedResourceReport, generateEmbeddedAssemblyReport, generateEmbeddedPlanReport, generateEmbeddedAdditionalReport } from '@/services/embeddedResourceReport';
-import { replyEmbeddedQa } from '@/services/embeddedQa';
+import { replyEmbeddedQa, embeddedQaKind, embeddedStageChoices, embeddedChoiceAttachment } from '@/services/embeddedQa';
 import { useSessionStore } from '@/store/sessionStore';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useConversationStore } from '@/store/conversationStore';
@@ -24,6 +24,10 @@ describe('V2嵌套问答', () => {
     const cid = useConversationStore.getState().activeConversationId!;
     const sid = useSessionStore.getState().sessionByConversation[cid];
     const messages = () => useSessionStore.getState().sessions[sid].messages;
+    const supplySession = useSessionStore.getState().sessions[sid];
+    expect(embeddedQaKind(supplySession, 'v2-supplies')).toBe('supplies');
+    expect(embeddedStageChoices('supplies')[0].options.map(item => item.prompt)).toEqual(qa.supplies.items.map(item => item.question));
+    expect(embeddedChoiceAttachment('supplies', supplySession).content).toContain('饮用水');
     expect(messages().some(message => message.text?.includes('已登记5类物资'))).toBe(true);
     expect(messages().some(message => message.documentWorkflow)).toBe(false);
     for (const item of qa.supplies.items) {
@@ -53,6 +57,18 @@ describe('V2嵌套问答', () => {
     const sid = useSessionStore.getState().sessionByConversation[cid];
     const latest = () => useSessionStore.getState().sessions[sid].messages.at(-1)!.text;
     const node = qa[kind];
+    const currentSession = useSessionStore.getState().sessions[sid];
+    expect(currentSession.eventId).toMatch(/^evt-blank-/);
+    expect(embeddedQaKind(currentSession, `v2-${kind}`)).toBe(kind);
+    expect(embeddedQaKind(currentSession, null)).toBeNull();
+    expect(embeddedQaKind(undefined, `v2-${kind}`)).toBeNull();
+    const picker = embeddedStageChoices(kind);
+    expect(picker[0].options.map(item => item.prompt)).toEqual(node.items.map(item => item.question));
+    expect(picker[1].options.some(item => item.kind === 'file')).toBe(true);
+    const attachment = embeddedChoiceAttachment(kind, currentSession);
+    expect(attachment.eventId).toBe(currentSession.eventId);
+    expect(attachment.content).toContain('遂川县');
+    expect(attachment.content).not.toContain('青岭村');
     expect(latest()).toContain(node.items[0].question);
     for (const item of node.items) {
       expect(replyEmbeddedQa(sid, `v2-${kind}`, item.question)).toBe(true);

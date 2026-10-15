@@ -228,8 +228,8 @@
   max-width: min(220px, 40vw);
 }
 .axn-cp-select--inline.ant-select {
-  min-width: 168px !important;
-  max-width: 260px !important;
+  min-width: 96px !important;
+  max-width: 220px !important;
   width: auto !important;
   margin-inline-end: 0 !important;
 }
@@ -728,3 +728,36 @@
 .axn-task-details > summary { cursor: pointer; color: var(--axn-muted); font-size: var(--fs-caption); }
 .axn-text-result.axn-qa .axn-artifact-row { display: block; padding: 0; border: 0; }
 .axn-text-result.axn-qa .axn-artifact-label::after { content: '：'; }
+
+/* 对齐 main 的输入区控件：附件圆底、无边框事件选择器及单一主动作槽。 */
+.axn-composer-upload.ant-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  color: var(--axn-primary);
+  background: color-mix(in srgb, var(--axn-primary) 10%, transparent);
+  border-radius: 50%;
+}
+.axn-composer-upload.ant-btn:hover,
+.axn-composer-upload.ant-btn:focus-visible {
+  color: var(--axn-primary);
+  background: color-mix(in srgb, var(--axn-primary) 18%, transparent);
+}
+.axn-cp-select.ant-select { font-weight: 600; }
+.axn-cp-select--inline.ant-select { font-size: var(--fs-body); }
+.axn-cp-select .ant-select-placeholder { color: var(--axn-primary); }
+
+/* 右侧悬浮气泡直接展示操作，列表独立滚动，适配手机与窄浮窗。 */
+.axn-floating-actions { width: min(360px, calc(100vw - 100px)); }
+.axn-floating-actions-context { color: var(--axn-muted); font-size: 12px; line-height: 1.5; padding: 0 0 8px; }
+.axn-floating-actions-scroll { max-height: min(440px, 55dvh); overflow-y: auto; overscroll-behavior: contain; padding-right: 3px; }
+.axn-floating-action-group + .axn-floating-action-group { margin-top: 12px; }
+.axn-floating-action-group-title { color: var(--axn-muted); font-size: 12px; padding: 5px 8px; }
+.axn-floating-action-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; border-radius: 7px; background: transparent; color: var(--axn-text); padding: 9px 8px; text-align: left; font: inherit; font-size: 13px; line-height: 1.6; cursor: pointer; }
+.axn-floating-action-item > span { min-width: 0; overflow-wrap: anywhere; }
+.axn-floating-action-item > small { flex-shrink: 0; color: var(--axn-muted); font-size: 11px; }
+.axn-floating-action-item:hover:not(:disabled) { background: var(--axn-primary-bg); color: var(--axn-primary); }
+.axn-floating-action-item:focus-visible { outline: 2px solid var(--axn-primary); outline-offset: -2px; }
+.axn-floating-action-item:disabled { opacity: .45; cursor: not-allowed; }
+.axn-floating-actions-hint { padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--axn-border); color: var(--axn-muted); font-size: 12px; line-height: 1.6; }

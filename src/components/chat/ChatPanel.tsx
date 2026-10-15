@@ -1,5 +1,6 @@
+import { floatingActionGroups } from '@/services/floatingActionGroups';
 import type { ComponentRef } from 'react';
-import { replyEmbeddedQa } from '@/services/embeddedQa';
+import { replyEmbeddedQa, embeddedQaKind, embeddedStageChoices, embeddedChoiceAttachment } from '@/services/embeddedQa';
 import { V2_AI_MODES, V2_AI_DOCUMENT_CODES } from '@/pages/v2/aiNodes';
 import { EVALUATION_TEXT_ACTIONS, evaluationActionReply, type EvaluationTextAction } from '@/services/evaluationActions';
 import { resourceRecommendationReply } from '@/services/resourceRecommendation';
@@ -43,6 +44,7 @@ function useMediaQuery(query: string): boolean {
 import { hostPageChipOverride } from '@/seed/hostPageChips';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
+  Bell,
   FileCheck,
   FileText,
   Flame,
@@ -56,7 +58,7 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Alert, App as AntdApp, Button, Input, Popover, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
+import { Alert, App as AntdApp, Badge, Button, Input, Popover, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import type { AttachmentWorkflow, ChatAttachment, ChatMessage } from '@/domain/types';
@@ -214,7 +216,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const [clarifyValue, setClarifyValue] = useState('');
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
   const [queuedChoice, setQueuedChoice] = useState<StageChoice | null>(null);
-  const [choicePicker, setChoicePicker] = useState<string>('');
   const [stagePromptOpen, setStagePromptOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -251,6 +252,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     : undefined;
   const suppliesEventTitle = new URLSearchParams(location.search).get('embedded') === 'v2-supplies'
     ? session?.messages.find(message => message.agentRole === 'v2-supplies')?.text?.split('\n')[0]?.replace('当前事件：', '') : undefined;
+  const embeddedKind = isEmbeddedAssistant ? embeddedQaKind(session, new URLSearchParams(location.search).get('embedded')) : null;
+  const pickerGroups = embeddedKind ? embeddedStageChoices(embeddedKind) : floatingActionGroups(eventStage);
   const eventTitle = suppliesEventTitle ?? embeddedEventTitle ?? (incident
     ? factText(incident.factRefs.title) || currentEventId
     : isBlankEvent
@@ -261,7 +264,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     if (queuedChoice && input === queuedChoice.prompt) setInput('');
     setPendingAttachment(null);
     setQueuedChoice(null);
-    setChoicePicker('');
   };
 
   const replyResourceRecommendation = () => {
@@ -389,25 +391,26 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   };
 
   const selectStageChoice = (id: string) => {
-    if (!id || !session) { setChoicePicker(''); return; }
-    if (id.startsWith('legacy-quick:')) {
+    if (!id || !session) { return; }
+    if (!embeddedKind && id.startsWith('legacy-quick:')) {
       const label = id.slice('legacy-quick:'.length);
-      if (LEGACY_QUICK_ACTIONS.includes(label)) { handleQuickTask(label); setChoicePicker(''); }
+      if (LEGACY_QUICK_ACTIONS.includes(label)) { handleQuickTask(label); }
       return;
     }
-    const groups = stageChoices(eventStage ?? '待研判');
-    const choice = groups.flatMap(g => g.options).find(c => c.id === id);
-    if (!choice) { setChoicePicker(''); return; }
+    const choice = pickerGroups.flatMap(g => g.options).find(c => c.id === id);
+    if (!choice) { return; }
     const apply = () => {
       setQueuedChoice(choice);
       setInput(choice.prompt);
       if (choice.kind === 'file') {
-        const ctx = buildStageEventContext(session.eventId, session);
-        setPendingAttachment(simulateAttachment(choice, ctx));
+        if (embeddedKind) setPendingAttachment(embeddedChoiceAttachment(embeddedKind, session));
+        else {
+          const ctx = buildStageEventContext(session.eventId, session);
+          setPendingAttachment(simulateAttachment(choice, ctx));
+        }
       } else {
         setPendingAttachment(null);
       }
-      setChoicePicker('');
     };
     if ((input.trim() || pendingAttachment) && (input !== choice.prompt || pendingAttachment)) {
       modal.confirm({
@@ -416,7 +419,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         okText: '替换',
         cancelText: '取消',
         onOk: apply,
-        onCancel: () => setChoicePicker(''),
       });
       return;
     }
@@ -752,7 +754,9 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const incidentSelect = (
     <Select
       size="small"
-      className={`axn-cp-select${compact || isDesktopComposer ? ' axn-cp-select--compact' : ''}${isDesktopComposer ? ' axn-cp-select--inline' : ''}`}
+      variant="borderless"
+      placeholder="选择关联灾情事件"
+      className={`axn-cp-select${compact ? ' axn-cp-select--compact' : ''}${isDesktopComposer ? ' axn-cp-select--inline' : ''}`}
       classNames={{ popup: { root: compact || isDesktopComposer ? 'axn-cp-select-popup axn-cp-select-popup--compact' : 'axn-cp-select-popup' } }}
       value={embeddedEventTitle ? 'embedded-current-page' : linkValue}
       disabled={!!embeddedEventTitle}
@@ -762,7 +766,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       labelRender={(props) => (
         <span className="axn-cp-select-option-label">
           {embeddedEventTitle ?? (props.value === BLANK_LINK
-            ? '未关联事件（空白对话）'
+            ? '未关联事件'
             : incidentOptionLabel(String(props.value ?? '')))}
         </span>
       )}
@@ -1148,7 +1152,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               );
             })
           )}
-          <Button size="small" danger={unreadMonitorCount > 0} disabled={!session} onClick={replyMonitorNoticesInChat}>监测通知（{unreadMonitorCount}）</Button>
         </div>
       </div>}
       {/* 圆角输入区：电脑端关联灾情在发送钮左侧；手机端独立成行避免挤爆 */}
@@ -1197,8 +1200,8 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               <Tooltip title="添加资料（本机文件登记）">
                 <Button
                   type="text"
-                  size="small"
-                  icon={<Paperclip size={16} />}
+                  className="axn-composer-upload"
+                  icon={<Paperclip size={18} />}
                   aria-label="添加资料"
                   data-testid="chat-attach-button"
                   disabled={!session || busy}
@@ -1213,10 +1216,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                     {incidentSelect}
                   </span>
                 ) : null}
-                {/* 发送按钮始终可见；空内容时 SendButton 自带禁用。仅附件时用自定义发送（Sender 禁空提交）。 */}
-                {runningTask == null && !input.trim() && !pendingAttachment && (
-                  <SpeechButton variant="text" color="default" shape="circle" />
-                )}
+                {/* 与 main 共用一个动作槽：空输入为语音，有文字或附件为发送，任务中为停止。 */}
                 {runningTask != null ? (
                   <LoadingButton />
                 ) : pendingAttachment && !input.trim() ? (
@@ -1229,12 +1229,14 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                   >
                     发
                   </Button>
-                ) : (
+                ) : input.trim() ? (
                   <SendButton type="primary" shape="circle" />
+                ) : (
+                  <SpeechButton variant="solid" color="primary" shape="circle" />
                 )}
               </span>
             )}
-            autoSize={compact ? { minRows: 1, maxRows: 4 } : { minRows: 1, maxRows: 5 }}
+            autoSize={compact ? { minRows: 2, maxRows: 4 } : { minRows: 2, maxRows: 6 }}
             placeholder={
               session
                 ? (pendingAttachment
@@ -1255,33 +1257,46 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       {createPortal(
         <div style={{ position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 100 }}>
           <Popover
-            title="模拟发送／阶段提问／模拟文件"
+            title="模拟发送／阶段提问／模拟文件／监测通知"
             trigger="click"
             placement="left"
             open={stagePromptOpen}
             onOpenChange={setStagePromptOpen}
             destroyOnHidden
             content={
-              <div style={{ width: 'min(360px, calc(100vw - 100px))' }}>
-                <Select
-                  allowClear
-                  placeholder="选择提问或文件"
-                  value={choicePicker || undefined}
-                  disabled={!session || busy || !eventStage}
-                  aria-label="选择提问或模拟文件"
-                  data-testid="stage-choice-picker"
-                  options={[{ label: '之前的快捷按钮（原型扩展）', options: LEGACY_QUICK_ACTIONS.map(label => ({ value: `legacy-quick:${label}`, label: `${tenderName(label)}（之前的快捷按钮）` })) }, ...stageChoices(eventStage ?? '待研判').map(group => ({
-                    label: group.label,
-                    options: group.options.map(opt => ({ value: opt.id, label: opt.label })),
-                  }))]}
-                  onChange={value => {
-                    selectStageChoice(String(value ?? ''));
-                    if (value) setStagePromptOpen(false);
-                  }}
-                  style={{ width: '100%' }}
-                />
-                <div style={{ marginTop: 8, color: token.colorTextSecondary, fontSize: 12 }}>
-                  之前的快捷按钮选中后直接执行；提问和文件填入输入框，由你点击发送。
+              <div className="axn-floating-actions" data-testid="floating-action-list">
+                <div className="axn-floating-actions-context">
+                  {embeddedKind ? '当前节点相关操作优先展示' : eventStage ? `当前事件阶段：${eventStage} · 相关操作优先展示` : '未关联事件 · 展示常用操作'}
+                </div>
+                <div className="axn-floating-actions-scroll">
+                  {unreadMonitorCount > 0 && (
+                    <Button block icon={<Bell size={15} aria-hidden />} danger disabled={!session}
+                      onClick={() => { setStagePromptOpen(false); replyMonitorNoticesInChat(); }} data-testid="floating-monitor-notices">
+                      监测通知（{unreadMonitorCount}）
+                    </Button>
+                  )}
+                  {pickerGroups.map(group => (
+                    <section className="axn-floating-action-group" key={group.label} aria-label={group.label}>
+                      <div className="axn-floating-action-group-title">{group.label}</div>
+                      {group.options.map(option => (
+                        <button type="button" className="axn-floating-action-item" key={option.id}
+                          data-choice-id={option.id} disabled={!session || busy}
+                          onClick={() => { selectStageChoice(option.id); setStagePromptOpen(false); }}>
+                          <span>{option.label}</span>
+                          <small>{option.id.startsWith('legacy-quick:') ? '执行' : option.kind === 'file' ? '附件' : '填入'}</small>
+                        </button>
+                      ))}
+                    </section>
+                  ))}
+                  {unreadMonitorCount === 0 && (
+                    <Button block icon={<Bell size={15} aria-hidden />} disabled={!session}
+                      onClick={() => { setStagePromptOpen(false); replyMonitorNoticesInChat(); }} data-testid="floating-monitor-notices">
+                      监测通知（0）
+                    </Button>
+                  )}
+                </div>
+                <div className="axn-floating-actions-hint">
+                  {!session ? '会话初始化中，请稍候。' : busy ? '当前任务处理中，完成后即可选择。' : '标记“执行”的操作直接运行；提问和附件先填入输入区，由你发送。'}
                 </div>
               </div>
             }
@@ -1289,10 +1304,10 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
             <Button
               shape="circle"
               size="large"
-              icon={<MessageSquare size={18} />}
-              aria-label="阶段提问／模拟文件"
+              icon={<Badge count={unreadMonitorCount} size="small"><MessageSquare size={18} /></Badge>}
+              aria-label="阶段提问／模拟文件／监测通知"
               aria-expanded={stagePromptOpen}
-              title="模拟发送／阶段提问／模拟文件"
+              title="模拟发送／阶段提问／模拟文件／监测通知"
               data-testid="stage-prompt-toggle"
               style={{ boxShadow: token.boxShadowSecondary }}
             />
