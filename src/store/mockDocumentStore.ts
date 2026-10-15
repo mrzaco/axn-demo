@@ -3,6 +3,7 @@ import type { ChatMessage } from '@/domain/types';
 import { DOCUMENT_CATEGORIES, MOCK_DOCUMENTS, sameMockDocument, type MockDocument } from '@/seed/mockDocuments';
 import { diffDocuments, summarizeDiff } from '@/services/docDiff';
 import { clearPersist, loadPersist, schedulePersist } from './persistence.js';
+import { useDocumentReviewStore } from './documentReviewStore';
 
 type GenerationOptions = {
   collect?: () => Promise<void | false>;
@@ -108,29 +109,32 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
   select: (scope, document) => set(state => ({ libraries: {
     ...state.libraries, [scope]: { ...(state.libraries[scope] ?? EMPTY_LIBRARY), selected: document },
   } })),
-  update: (scope, document, meta) => set(state => {
-    const library = state.libraries[scope] ?? EMPTY_LIBRARY;
-    const { [document.id]: _saved, ...working } = library.working;
-    const history = versionsOf(library, document);
-    const last = history[history.length - 1];
-    const saveMeta = meta ?? { author: { kind: 'user' as const, name: '值班员', role: '值班员' } };
-    const unchanged = sameMockDocument(last.snapshot, document) && meta?.source !== 'restore';
-    // 自动保存只更新最近的自动版本；手动保存或定稿后，下一轮另起一版。
-    const sealAutoVersion = unchanged && last.source === 'autosave' && saveMeta.source !== 'autosave';
-    const coalesce = saveMeta.source === 'autosave' && last.source === 'autosave' && !last.final && !last.note
-      && last.author.kind === 'user' && saveMeta.author.kind === 'user'
-      && last.author.name === saveMeta.author.name && last.author.role === saveMeta.author.role;
-    const versions = unchanged && !sealAutoVersion ? library.versions : {
-      ...library.versions,
-      [document.id]: sealAutoVersion
-        ? history.map(v => v.no === last.no ? { ...v, source: 'edit' as const, author: saveMeta.author } : v)
-        : appendVersion(coalesce ? history.slice(0, -1) : history, document, saveMeta),
-    };
-    return { libraries: { ...state.libraries, [scope]: {
-      ...library, documents: library.documents.map(item => item.id === document.id ? document : item),
-      selected: document, working, versions,
-    } } };
-  }),
+  update: (scope, document, meta) => {
+    useDocumentReviewStore.getState().invalidate(scope, document);
+    set(state => {
+      const library = state.libraries[scope] ?? EMPTY_LIBRARY;
+      const { [document.id]: _saved, ...working } = library.working;
+      const history = versionsOf(library, document);
+      const last = history[history.length - 1];
+      const saveMeta = meta ?? { author: { kind: 'user' as const, name: '值班员', role: '值班员' } };
+      const unchanged = sameMockDocument(last.snapshot, document) && meta?.source !== 'restore';
+      // 自动保存只更新最近的自动版本；手动保存或定稿后，下一轮另起一版。
+      const sealAutoVersion = unchanged && last.source === 'autosave' && saveMeta.source !== 'autosave';
+      const coalesce = saveMeta.source === 'autosave' && last.source === 'autosave' && !last.final && !last.note
+        && last.author.kind === 'user' && saveMeta.author.kind === 'user'
+        && last.author.name === saveMeta.author.name && last.author.role === saveMeta.author.role;
+      const versions = unchanged && !sealAutoVersion ? library.versions : {
+        ...library.versions,
+        [document.id]: sealAutoVersion
+          ? history.map(v => v.no === last.no ? { ...v, source: 'edit' as const, author: saveMeta.author } : v)
+          : appendVersion(coalesce ? history.slice(0, -1) : history, document, saveMeta),
+      };
+      return { libraries: { ...state.libraries, [scope]: {
+        ...library, documents: library.documents.map(item => item.id === document.id ? document : item),
+        selected: document, working, versions,
+      } } };
+    });
+  },
   restoreVersion: (scope, documentId, no, author) => {
     const library = get().libraries[scope] ?? EMPTY_LIBRARY;
     const current = library.documents.find(item => item.id === documentId);
@@ -159,11 +163,14 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
       ...library.versions, [documentId]: history.map(v => v.no === no ? { ...v, final: !v.final } : v),
     } } } };
   }),
-  reset: () => { clearPersist('mockdoc'); set({ libraries: {} }); },
-  setWorking: (scope, document) => set(state => {
-    const library = state.libraries[scope] ?? EMPTY_LIBRARY;
-    return { libraries: { ...state.libraries, [scope]: { ...library, working: { ...library.working, [document.id]: document } } } };
-  }),
+  reset: () => { clearPersist('mockdoc'); useDocumentReviewStore.getState().reset(); set({ libraries: {} }); },
+  setWorking: (scope, document) => {
+    useDocumentReviewStore.getState().invalidate(scope, document);
+    set(state => {
+      const library = state.libraries[scope] ?? EMPTY_LIBRARY;
+      return { libraries: { ...state.libraries, [scope]: { ...library, working: { ...library.working, [document.id]: document } } } };
+    });
+  },
   clearWorking: (scope, documentId) => set(state => {
     const library = state.libraries[scope];
     if (!library?.working[documentId]) return state;
@@ -213,6 +220,7 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
       selected: document, generatingCode: null,
       versions: { ...(state.libraries[scope] ?? EMPTY_LIBRARY).versions, [document.id]: [baselineVersion(document)] },
     } } }));
+    useDocumentReviewStore.getState().start(scope, document);
     return document;
   },
 }));

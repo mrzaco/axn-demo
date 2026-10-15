@@ -40,6 +40,7 @@ import { factText, incidentById } from '@/seed/scenario';
 import { eventDisplayName } from '@/services/factLookup';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
+import { DocumentReviewCard } from '@/components/doc/DocumentReview';
 import AgentSummonCard from './AgentSummonCard';
 import { AGENT_ICONS } from './agentIcons';
 import IncidentPickerModal from './IncidentPickerModal';
@@ -404,6 +405,12 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     const messages = session?.messages ?? [];
     const summonedTasks = new Set(messages.filter(message => message.kind === 'agent' && message.taskId && tasks[message.taskId]).map(message => message.taskId));
     return messages.filter(message => !(message.kind === 'task' && summonedTasks.has(message.taskId))).map((m) => {
+      if (m.reviewDocumentId) {
+        return {
+          key: m.messageId, role: 'task', content: '文书检查', avatar: null,
+          contentRender: () => <DocumentReviewCard scope={m.sessionId} documentId={m.reviewDocumentId!} />,
+        };
+      }
       if (m.kind === 'task' && m.taskId) {
         const task = tasks[m.taskId];
         return {
