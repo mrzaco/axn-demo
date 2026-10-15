@@ -211,7 +211,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const state = get();
     if (state.sessions[state.currentSessionId]?.eventId !== eventId) invalidateAllRuns();
     const existing = state.sessionByEvent[eventId];
-    if (existing && state.sessions[existing]) {
+    if (existing && state.sessions[existing]?.eventId === eventId) {
       if (state.currentSessionId !== existing) set({ currentSessionId: existing });
       return existing;
     }
@@ -235,7 +235,20 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       }
       return existing;
     }
-    // 重新关联时切换到独立事件会话；不把旧事件的候选、补录或任务带入新事件。
+    // 关联事件只更新当前对话的业务上下文；session 身份和聊天记录始终保留。
+    if (existing && state.sessions[existing]) {
+      invalidateAllRuns();
+      set(s => ({
+        sessions: { ...s.sessions, [existing]: {
+          ...s.sessions[existing], eventId, title: seedEventTitle(eventId),
+          // 查询与待补录内容属于原事件，后续任务应重新按新事件获取。
+          lastResourceResultIds: [], resourceSortBy: null, candidateResourceIds: [],
+          selectedProposalId: null, selectedProposalVersion: null, pendingClarification: null,
+        } },
+        currentSessionId: existing,
+      }));
+      return existing;
+    }
     invalidateAllRuns();
     const legacyId = [`session-conv-${conversationId}`, SEED_SESSION_BY_CONVERSATION[conversationId]]
       .find(id => id && state.sessions[id]?.eventId === eventId);

@@ -26,3 +26,17 @@
   .doc-review-details { padding: var(--space-3); }
   .doc-review-tabs.ant-tabs { padding-inline: var(--space-3); }
 }
+.doc-review-stage.is-issue > svg, .doc-review-check.is-issue > svg { color: var(--axn-error-text); }
+.doc-review-result-head.has-issues .doc-review-result-icon { background: var(--axn-error-bg); color: var(--axn-error-text); }
+.doc-review-issue-summary { list-style: none; padding: 0; margin: 0 0 var(--space-3); display: grid; gap: var(--space-2); font-size: var(--fs-body); }
+.doc-review-issue-summary li { color: var(--axn-error-text); }
+.doc-review-issue-summary span { display: block; margin-top: var(--space-0-5); color: var(--axn-muted); font-size: var(--fs-meta); }
+.doc-review-problems { margin-top: var(--space-5); }
+.doc-review-problems h5.ant-typography { font-size: var(--fs-body); }
+.doc-review-problem { margin-bottom: var(--space-3); padding: var(--space-4); border: 1px solid var(--axn-border); border-radius: var(--radius-md); }
+.doc-review-problem > strong { display: flex; align-items: center; gap: var(--space-2); color: var(--axn-error-text); font-size: var(--fs-body); font-weight: 600; }
+.doc-review-problem > .ant-typography { display: block; margin-top: var(--space-2); font-size: var(--fs-meta); }
+.doc-review-problem blockquote { margin: var(--space-3) 0; padding: var(--space-2) var(--space-3); border-left: 2px solid var(--axn-error); background: var(--axn-soft); color: var(--axn-text); font-size: var(--fs-body); line-height: var(--lh-normal); overflow-wrap: anywhere; }
+.doc-review-suggestion { padding-top: var(--space-2); font-size: var(--fs-body); }
+.doc-review-suggestion .ant-typography { font-size: var(--fs-body); }
+.doc-review-suggestion .ant-typography:last-child { margin: var(--space-1) 0 0; color: var(--axn-muted); }

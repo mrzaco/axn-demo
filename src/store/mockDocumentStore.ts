@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { withReviewDemoIssues } from '@/services/documentReviewScenario';
 import type { ChatMessage } from '@/domain/types';
 import { DOCUMENT_CATEGORIES, MOCK_DOCUMENTS, sameMockDocument, type MockDocument } from '@/seed/mockDocuments';
 import { diffDocuments, summarizeDiff } from '@/services/docDiff';
@@ -206,14 +207,14 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
     const now = new Date();
     // 正文尾部附图与附件表体都按文种挂（不随上传件变）：从同文种的样稿上取。
     const sample = MOCK_DOCUMENTS.find(item => item.code === code);
-    const document: MockDocument = {
+    const document: MockDocument = withReviewDemoIssues({
       id: `generated-${code}-${now.getTime()}`, code,
       title: `${category.topics[0]}（新生成）`,
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
       number: `${category.prefix}〔${now.getFullYear()}〕模拟草稿`, sections: options?.sections ?? category.sections,
       figures: sample?.figures,
       tables: sample?.tables,
-    };
+    });
     set(state => ({ libraries: { ...state.libraries, [scope]: {
       ...(state.libraries[scope] ?? EMPTY_LIBRARY),
       documents: [document, ...(state.libraries[scope] ?? EMPTY_LIBRARY).documents],

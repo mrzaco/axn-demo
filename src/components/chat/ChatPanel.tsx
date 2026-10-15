@@ -3,18 +3,17 @@ import { startWeeklyDynamics, submitDynamicsSources } from '@/services/weeklyDyn
 import { formatSize } from '@/shared/format';
 /**
  * 安小能对话工作流（UI 改版）：会话头（标题 + 关联灾情）+ 消息流（Bubble.List）
- * + 圆角一体化输入区（快捷任务 chips 位于输入框上方）+ 补录表单。
- * 首页引导问题取自已接入知识库的 qa.json；输入区平铺 5 个能力块，点击后在它右侧就地横向展开一行子按钮
- * （文书生成例外：点它在对话里给选项，见 DOC_AGENT）。
+ * + 圆角一体化输入区 + 补录表单。
+ * 首页引导问题取自已接入知识库的 qa.json；五个智能体入口在当前对话追加自我介绍与功能选项。
  * 会话跟随演示事件切换（ensureSessionForConversation）；消息与任务状态全部订阅 sessionStore，不本地复制。
  * 本界面为模拟数据演示（规则意图识别，不接真实大模型）。
  */
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
   ArrowUp,
   ChevronDown,
-  ChevronRight,
+  Globe,
   LifeBuoy,
   MapPin,
   MessageSquare,
@@ -25,7 +24,7 @@ import {
   Waves,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Alert, App as AntdApp, Button, Input, Space, Tag, Typography, Upload, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Space, Switch, Tag, Tooltip, Typography, Upload, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -34,7 +33,9 @@ import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import { sendMessage, cancelTask } from '@/services/taskRunner';
-import { AGENT_QUICK_TASKS } from '@/seed/agentQuickTasks';
+import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
+import { summonAgentInConversation } from '@/services/agentConversation';
+import { AGENT_ICONS } from './agentIcons';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
 import { factText, incidentById } from '@/seed/scenario';
 import { eventDisplayName } from '@/services/factLookup';
@@ -42,7 +43,6 @@ import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
 import { DocumentReviewCard } from '@/components/doc/DocumentReview';
 import AgentSummonCard from './AgentSummonCard';
-import { AGENT_ICONS } from './agentIcons';
 import IncidentPickerModal from './IncidentPickerModal';
 import BrandMark from '@/components/brand/BrandMark';
 import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
@@ -60,27 +60,6 @@ const AVATAR = <div className="axn-chat-avatar"><BrandMark size={28} /></div>;
 // 语音输入模拟用的示例话语（标注 vibe_1791960862035）：点麦克风逐字「转写」这句话。
 const SPEECH_SAMPLE = '请汇总南堤堤防管涌险情的最新处置进展，并生成一份情况报告';
 
-// 快捷任务：5 个能力块平铺在输入框上方，点块在它右侧就地横向展开一行子按钮（不再是浮层）；
-// 例外是文书生成：点它改成在对话里召唤智能体 + 给三个文书类型选项（用户 m00263）
-// （任务全集与 task→intent 契约见 seed/agentQuickTasks，顺序沿用该目录即按智能体分组）
-
-// 能力块图标（标注 vibe_1791862025042：每个块各配一个图标）。
-// 与智能体能力页 NavPages 的 AGENTS[].icon 同源选型，改那边时这里跟着改。
-const AGENT_CHIP_ICONS = AGENT_ICONS;
-
-// 文书生成智能体：点能力块不再就地展开子按钮（父按钮也不带右箭头），改成在对话里
-// 「召唤它 + 自我介绍 + 文书类型选项 + 一句提示」（用户 m00263）。
-// 选项的 label/task 直接复用 seed/agentQuickTasks 的同一份数据 —— 点选项发起的 task
-// 与原来点子按钮完全一致，所以 task→intent 契约不变（见该文件顶部说明）。
-// intro/hint 是用户原话的润色：原句「您也可以直接跟我您要生成文书的要求…」缺谓语，已补齐。
-const DOC_AGENT = {
-  name: '文书生成智能体',
-  role: '文书撰写',
-  intro: '您好，我是文书生成智能体，可以帮您撰写各类文书。请选择您要生成的文书类型：',
-  hint: '您也可以直接把生成要求告诉我；需要参考的文件、要写进文书的图片，都可以上传给我。',
-  options: AGENT_QUICK_TASKS.flatMap((agent) => (agent.agentId === 'agent-doc' ? agent.tasks : [])),
-};
-
 // 首页推荐卡：与 WELCOME_QUESTIONS 按下标一一对应的图标与分类（问题本身取自知识库原文）。
 const QUESTION_META: { icon: LucideIcon; tag: string }[] = [
   { icon: ShieldAlert, tag: '险情识别' },
@@ -89,15 +68,16 @@ const QUESTION_META: { icon: LucideIcon; tag: string }[] = [
   { icon: LifeBuoy, tag: '现场急救' },
 ];
 
-/** 文书生成智能体气泡里的选项：三个文书类型 + 一句「也可以直接提要求」的提示。 */
-function DocAgentChoices({ options, hint, disabled, onPick }: {
+/** 五类智能体共用的功能选择区。文书入口保留已有测试定位。 */
+function AgentInviteChoices({ agentId, options, hint, disabled, onPick }: {
+  agentId?: string;
   options: { label: string; task: string }[];
   hint: string;
   disabled: boolean;
   onPick: (task: string) => void;
 }) {
   return (
-    <div className="axn-doc-choices" data-testid="doc-agent-choices">
+    <div className="axn-doc-choices" data-testid={agentId === 'agent-doc' || !agentId ? 'doc-agent-choices' : 'agent-invite-choices'} data-agent-id={agentId}>
       <div className="axn-doc-choice-row">
         {options.map(({ label, task }) => (
           <Button key={task} size="small" className="axn-doc-choice" data-choice-task={task} disabled={disabled} onClick={() => onPick(task)}>
@@ -141,55 +121,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     window.addEventListener(COMPOSE_EVENT, onCompose);
     return () => window.removeEventListener(COMPOSE_EVENT, onCompose);
   }, []);
-  // 当前就地展开子任务的能力块（一次只展开一个；null = 都收着）
-  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
-  const chipsRef = useRef<HTMLDivElement | null>(null);
-  // FLIP：展开/收起会瞬间重排，先用 transform 把父按钮「拉回」旧位置再动画归零，
-  // 让被推开的父按钮滑过去而不是跳位（用户 m01749「展开移动的时候要有动画效果」）。
-  // 用 offsetLeft 而非 getBoundingClientRect().x：前者是布局位置，不受容器横向滚动影响，
-  // 所以展开时的自动滚进可见区不会污染位移量。
-  const flipFrom = useRef<Map<string, number>>(new Map());
-  const recordChipPositions = () => {
-    const el = chipsRef.current;
-    if (!el) return;
-    flipFrom.current = new Map(
-      Array.from(el.querySelectorAll<HTMLElement>('[data-agent-id]')).map((n) => [n.dataset.agentId ?? '', n.offsetLeft]),
-    );
-  };
-  useLayoutEffect(() => {
-    const el = chipsRef.current;
-    const before = flipFrom.current;
-    flipFrom.current = new Map();
-    if (!el || before.size === 0) return;
-    // 尊重系统「减少动态效果」偏好（CSS 侧 token 已被同样地归零）
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    if (typeof el.animate !== 'function') return; // jsdom 等环境没有 WAAPI
-    el.querySelectorAll<HTMLElement>('[data-agent-id]').forEach((node) => {
-      const from = before.get(node.dataset.agentId ?? '');
-      const delta = from == null ? 0 : Math.round(from - node.offsetLeft);
-      if (!delta) return;
-      node.animate([{ transform: `translateX(${delta}px)` }, { transform: 'none' }], {
-        duration: 240,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)', // 同 --ease-out
-      });
-    });
-    // 子按钮晚 80ms 淡入：等父按钮让开位置再出现，避免与正在移动的父按钮重叠
-    el.querySelectorAll<HTMLElement>('[data-subtask]').forEach((node) => {
-      node.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: 140,
-        delay: 80,
-        easing: 'ease-out',
-        fill: 'backwards',
-      });
-    });
-  }, [expandedAgent]);
-  // 展开的首个子项若落在横向滚动区右边界外（末尾几个能力块会这样），把它滚进可见区。
-  // inline/block 都用 nearest：只做最小滚动，不会带动页面纵向跳。
-  const revealSubTask = useCallback((el: HTMLButtonElement | null) => {
-    el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
-  }, []);
   // 上传的文件：演示环境没有上传接口，不落盘也不读取内容，只把文件名与大小随消息记下来
   const [attachments, setAttachments] = useState<{ uid: string; name: string; size: number }[]>([]);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
   const addAttachments = (files: File[]) => {
     setAttachments((prev) => [
@@ -223,6 +157,10 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   }, [stopTranscribing]);
   // 卸载/切会话时别把 interval 留住
   useEffect(() => () => stopTranscribing(), [stopTranscribing]);
+  useEffect(() => {
+    stopTranscribing();
+    setInput(''); setClarifyValue(''); setAttachments([]);
+  }, [session?.sessionId, stopTranscribing]);
 
   // 事件切换/重置后确保会话存在并跟随当前事件
   useEffect(() => {
@@ -323,16 +261,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     // 同一件事说两遍（用户 m00705「气泡里只展示一个要素收集的过程，其他不要了」）。
   };
 
-  // 点「文书生成」：在对话里召唤文书生成智能体，由它自我介绍并给出三个文书类型选项
-  // （不再就地展开子按钮，用户 m00263）。文本先落在当前会话，真正生成仍走 handleQuickTask。
-  const handleDocAgentInvite = () => {
+  const handleAgentInvite = (agentId: string) => {
     if (!session || busy) return;
-    const { sessionId } = session;
-    useSessionStore.getState().appendMessage(sessionId, {
-      sessionId, role: 'assistant', kind: 'agent', taskId: null,
-      agentId: 'agent-doc', agentName: DOC_AGENT.name, agentRole: DOC_AGENT.role,
-      text: DOC_AGENT.intro, choices: DOC_AGENT.options, hint: DOC_AGENT.hint,
-    });
+    summonAgentInConversation(session.sessionId, agentId);
   };
 
   const pending = session?.pendingClarification ?? null;
@@ -375,7 +306,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     });
   };
 
-  // 关联灾情：输入框右下角的关联按钮，点开屏幕居中的选择弹窗（带事件名称搜索）。
+  // 关联灾情：输入框右下角的关联按钮，点开居中的选择弹窗（带事件名称搜索）。
   // 未关联时显示 placeholder「选择关联灾情事件」（标注 vibe_1791787570681）。
   const [incidentPickerOpen, setIncidentPickerOpen] = useState(false);
   const incidentSelect = (
@@ -455,8 +386,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               // 选项按当前 seed 渲染，不用消息里的快照：会话存在 localStorage 里，快照会让旧会话
               // 永远停在当时那几项上，新加的文书类型进不来（标注 vibe_1791945318621）。m.choices 只当标记用。
               bodyExtra={m.choices ? (
-                <DocAgentChoices
-                  options={DOC_AGENT.options}
+                <AgentInviteChoices
+                  agentId={m.agentId}
+                  options={AGENT_INVITATIONS.find(agent => agent.agentId === m.agentId)?.options ?? m.choices}
                   hint={m.hint ?? ''}
                   disabled={!session || busy}
                   onPick={(task) => { void handleQuickTask(task); }}
@@ -635,59 +567,20 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         </div>
       )}
 
-      {/* 快捷任务 chips：5 个能力块平铺在输入框上方，点块就在它右侧就地展开子任务 */}
+      {/* 智能体入口回到输入框上方，功能在当前对话的介绍卡中选择。 */}
       <div className="axn-cp-chips-wrap">
-        <div className="axn-chips" ref={chipsRef}>
-          {AGENT_QUICK_TASKS.map(({ label, agentName, agentId, tasks }) => {
-            // 文书生成不就地展开子任务：点它是在对话里召唤智能体 + 给选项，所以也不带右箭头（用户 m00263）
-            const expandable = agentId !== 'agent-doc';
-            const open = expandable && expandedAgent === agentId;
-            const ChipIcon = AGENT_CHIP_ICONS[agentId];
-            return (
-              <Fragment key={agentId}>
-                {/* 父按钮：右侧箭头提示「点开是向右展开一行」（用户 m01620）；busy 时整块禁用。 */}
-                <Button
-                  size="small"
-                  className="axn-chip"
-                  title={agentName}
-                  data-agent-id={agentId}
-                  disabled={!session || busy}
-                  aria-expanded={expandable ? open : undefined}
-                  onClick={() => {
-                    if (!expandable) { handleDocAgentInvite(); return; }
-                    recordChipPositions();
-                    setExpandedAgent(open ? null : agentId);
-                  }}
-                >
-                  {/* aria-hidden：图标不进可访问名，e2e 的 getByRole('button', { name, exact: true }) 才照旧命中 */}
-                  {ChipIcon && <ChipIcon className="axn-chip-icon" size={13} aria-hidden />}
-                  {label}
-                  {expandable && <ChevronRight className="axn-chip-arrow" size={12} aria-hidden />}
-                </Button>
-                {/* 子任务：内联插在父按钮右侧，与父按钮同一行 —— 后面的父按钮会被推到右边
-                    （用户 m01646「是横向的一行」/ m01661「父按钮要跟着往右移动」）。
-                    样式与父按钮同款胶囊按钮（备注 vibe_1791791690567_uzj6y6tjy）。 */}
-                {open &&
-                  tasks.map(({ label: taskLabel, task }, index) => (
-                    <Button
-                      key={task}
-                      // 首个条目挂上 ref：展开后保证它（以及跟它的父按钮）在可见区内
-                      ref={index === 0 ? revealSubTask : undefined}
-                      size="small"
-                      className="axn-chip"
-                      data-subtask={task}
-                      disabled={!session || busy}
-                      onClick={() => { recordChipPositions(); setExpandedAgent(null); void handleQuickTask(task); }}
-                    >
-                      {taskLabel}
-                    </Button>
-                  ))}
-              </Fragment>
-            );
+        <div className="axn-chips">
+          {AGENT_INVITATIONS.map(agent => {
+            const Icon = AGENT_ICONS[agent.agentId];
+            return <Button key={agent.agentId} size="small" className="axn-chip" title={agent.name}
+              data-agent-id={agent.agentId} disabled={!session || busy} onClick={() => handleAgentInvite(agent.agentId)}>
+              {Icon && <Icon className="axn-chip-icon" size={13} aria-hidden />}
+              {agent.name}
+            </Button>;
           })}
         </div>
       </div>
-      {/* 圆角一体化输入区：关联灾情与发送/语音按钮同在输入框右下角 */}
+      {/* 关联灾情与发送、语音操作位于输入框右下角。 */}
       <div className="axn-composer">
         <div className="axn-composer-shell">
           {/* 已选文件：输入框上方一行可移除的 chip（上传按钮在输入框左下角） */}
@@ -726,10 +619,11 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               if (runningTask) cancelTask(runningTask.taskId);
             }}
             prefix={(
-              /* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上。
+              <div className="axn-composer-tools">
+              {/* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上。
                  周工作动态的上传入口在对话气泡的卡里（用户 m00994），所以这里不再挂箭头提示、也不再挂弹出层；
                  但文件依旧可以在这里交给智能体（上传门开着时＝交材料）。
-                 外面这层 span 只给 Upload 收 ref（antd Upload 不转 ref，直接当 child 会告警）。 */
+                 外面这层 span 只给 Upload 收 ref（antd Upload 不转 ref，直接当 child 会告警）。 */}
               <span className="axn-composer-upload-wrap">
               <Upload
                 multiple
@@ -750,6 +644,14 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                 />
               </Upload>
               </span>
+              <Tooltip title="当前为原型演示，暂未接入真实联网检索">
+                <label className={`axn-composer-web-search${webSearchEnabled ? ' is-on' : ''}`}>
+                  <Globe size={14} aria-hidden />
+                  <span>联网搜索</span>
+                  <Switch size="small" checked={webSearchEnabled} onChange={setWebSearchEnabled} aria-label="联网搜索" />
+                </label>
+              </Tooltip>
+              </div>
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
               <div className="axn-composer-actions">

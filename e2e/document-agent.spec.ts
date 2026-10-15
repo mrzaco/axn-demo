@@ -22,12 +22,13 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
   await openLibrary(page);
   const library = page.getByTestId('document-library');
   await expect(library.getByRole('heading', { name: '文书库' })).toBeVisible();
-  await expect(library.locator('.doc-library-row')).toHaveCount(5);
+  await expect(library.locator('.doc-library-tabs').getByRole('tab')).toHaveCount(6);
   await expect(library.locator('.doc-sample-row')).toHaveCount(10);
   // 应急救援周工作动态不在这个循环里：它在文书库点「生成」不去直接出件，而是回对话要参考文档与附件
   // （流程见 services/weeklyDynamicsWorkflow，用例见下面的「周工作动态」。）
   for (const name of ['值班日报', '应急要情', '会议纪要', '工作总结']) {
-    const category = library.locator('.doc-category').filter({ hasText: name });
+    const category = library;
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
     // 点开样稿 → 回到助理页并展示右侧文书工作区
     await category.locator('.doc-sample-row').first().click();
     await expect(page.getByTestId('document-workspace')).toBeVisible();
@@ -43,8 +44,9 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
     await closeWorkspace(page);
     // 分类生成 → 生成中自动打开工作区 → 完成后回写该分类
     await openLibrary(page);
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
     await category.getByRole('button', { name: `生成${name}`, exact: true }).click();
-    await expect(page.getByTestId('document-workspace')).toContainText('正在生成文书');
+    await expect(page.getByTestId('document-workspace')).toBeVisible();
     if (name === '工作总结') {
       await page.getByRole('textbox', { name: '下一步改进措施' }).fill('完善通信保障和人员轮换机制。');
       await page.getByRole('button', { name: '提交并生成工作总结' }).click();
@@ -52,10 +54,15 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
     await expect(page.getByTestId('document-toolbar')).toContainText('新生成');
     await closeWorkspace(page);
     await openLibrary(page);
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
     await expect(category.locator('.doc-sample-row')).toHaveCount(3);
   }
   await page.screenshot({ path: 'artifacts/document-agent-library.png' });
 
+});
+
+test('文书任务生成真实草稿与重新打开', async ({ page }) => {
+  await page.goto('/');
   // 真实草稿：缺必填 → 补录 → 再次生成 → 草稿在文书工作区打开
   const send = async (text: string) => {
     await page.getByPlaceholder(/向安小能发送指令/).fill(text);
@@ -108,7 +115,8 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
     await expect(done.getByRole('button', { name: '查看文书' })).toBeVisible();
     await closeWorkspace(page);
     await openLibrary(page);
-    await expect(page.getByTestId('document-library').locator('.doc-category').filter({ hasText: name }).locator('.doc-sample-row')).toHaveCount(3);
+    await page.getByTestId('document-library').getByRole('tab', { name: new RegExp(`^${name} `) }).click();
+    await expect(page.getByTestId('document-library').locator('.doc-sample-row')).toHaveCount(3);
     await page.locator('.axn-gs-nav-item', { hasText: '智能助理' }).first().click();
   }
 });

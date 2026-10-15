@@ -163,6 +163,44 @@ describe('Conversation 基础行为（需求 2.3/2.5/九）', () => {
     expect(useConversationStore.getState().conversations[conversation.id].eventId).toBe(conversation.eventId);
   });
 
+  it('关联、改关联和取消关联均保留原对话身份、消息与文书，并更新后续任务上下文', async () => {
+    const conversation = useConversationStore.getState().createConversation({ title: '保持原对话', type: 'general' });
+    const sessionId = currentSession().sessionId;
+    const store = useSessionStore.getState();
+    const message = store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '这些聊天记录要保留', taskId: null });
+    store.setActiveDocument(sessionId, 'existing-document');
+    const count = Object.keys(useConversationStore.getState().conversations).length;
+    for (const eventId of [A, B, undefined, A]) {
+      useConversationStore.getState().linkConversationToEvent(conversation.id, eventId);
+      expect(useConversationStore.getState().activeConversationId).toBe(conversation.id);
+      expect(Object.keys(useConversationStore.getState().conversations)).toHaveLength(count);
+      expect(currentSession().sessionId).toBe(sessionId);
+      expect(currentSession().messages[0]).toEqual(message);
+      expect(currentSession().activeDocumentId).toBe('existing-document');
+      expect(currentSession().eventId).toBe(eventId ?? conversation.eventId);
+    }
+    await sendMessage(sessionId, { text: '生成灾情摘要' });
+    await vi.runAllTimersAsync();
+    expect(currentSession().messages[0]).toEqual(message);
+    const task = Object.values(useSessionStore.getState().tasks).find(t => t.sessionId === sessionId);
+    expect(task?.eventId).toBe(A);
+    useConversationStore.getState().selectConversation('conv-seed-nandi');
+    useConversationStore.getState().selectConversation(conversation.id);
+    expect(currentSession().sessionId).toBe(sessionId);
+    expect(currentSession().messages[0]).toEqual(message);
+  });
+
+  it('改关联事件后不沿用原事件的资源候选和补录状态', () => {
+    const conversation = useConversationStore.getState().createConversation({ title: '事件上下文', type: 'general', eventId: A });
+    const sessionId = currentSession().sessionId;
+    useSessionStore.getState().addCandidates(sessionId, ['team-001']);
+    useSessionStore.getState().setPendingClarification(sessionId, { clarificationId: 'clarify-old', field: 'reportingUnit', prompt: '请补充报送单位', exampleHint: '', scopeKind: 'event', scopeId: A, taskId: 'task-old' });
+    useConversationStore.getState().linkConversationToEvent(conversation.id, B);
+    expect(currentSession().candidateResourceIds).toEqual([]);
+    expect(currentSession().pendingClarification).toBeNull();
+    expect(currentSession().eventId).toBe(B);
+  });
+
   it('历史会话分组：种子数据覆盖 今天/昨天/更早', () => {
     const groups = new Set(seedConversationRows.map((row) => groupOf(row)));
     expect(groups.has('today')).toBe(true);

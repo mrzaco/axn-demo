@@ -1,20 +1,35 @@
 import { expect, test } from '@playwright/test';
 import { clickDocTask } from './helpers/quickTasks';
 
-test('生成后依次校验与初审，编辑后失效，重检和刷新保留结果', async ({ page }) => {
+test('生成后数据、内容和格式审核：发现问题、修正重检、刷新保留结果', async ({ page }) => {
   await page.goto('/');
   await clickDocTask(page, '应急要情');
   const card = page.getByTestId('document-review-card').last();
   await expect(card).toBeVisible({ timeout: 20000 });
   await expect(card).toContainText('数据校验中');
   await expect(card).toContainText('内容初审中', { timeout: 10000 });
-  await expect(card).toContainText('未发现需修改事项，文书待人工确认。', { timeout: 10000 });
+  await expect(card).toContainText('格式审核中', { timeout: 10000 });
+  await expect(card).toContainText('发现 2 项待修改事项', { timeout: 10000 });
+  await expect(card).toContainText('人数合计不一致');
+  await expect(card).toContainText('日期格式错误');
+  await expect(card).toContainText('内容初审通过');
   await card.getByRole('button', { name: '查看检查详情' }).click();
   const details = page.getByTestId('document-review-details');
   await expect(page.getByRole('tab', { name: '检查结果', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(details.getByText('通过', { exact: true })).toHaveCount(8);
+  await expect(details.getByText('需修改', { exact: true })).toHaveCount(2);
   await expect(details).toContainText('模拟检查流程');
-  await page.screenshot({ path: 'artifacts/ui-polish/document-review-passed.png' });
+  await expect(details).toContainText('72 + 24 = 96 人');
+  await expect(details).toContainText('成文日期 / 落款日期');
+  await page.screenshot({ path: 'artifacts/ui-polish/document-review-issues.png' });
+  await page.reload();
+  await expect(card).toContainText('发现 2 项待修改事项');
+  await card.getByRole('button', { name: '查看检查详情' }).click();
+  await details.getByRole('button', { name: '应用模拟修正并重新检查' }).click();
+  await expect(card).toContainText('未发现需修改事项，文书待人工确认。', { timeout: 14000 });
+  await expect(details.getByText('通过', { exact: true })).toHaveCount(10);
+  await expect(details.getByText('需修改', { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: 'artifacts/ui-polish/document-review-fixed.png' });
 
   await page.getByRole('tab', { name: '正文', exact: true }).click();
   await page.getByRole('textbox', { name: '文书标题', exact: true }).fill('应急要情（重新检查演示）');
@@ -24,12 +39,12 @@ test('生成后依次校验与初审，编辑后失效，重检和刷新保留�
   await details.getByRole('button', { name: '重新检查', exact: true }).click();
   await expect(card).toContainText('数据校验中');
   await expect(card).toContainText('未发现需修改事项，文书待人工确认。', { timeout: 12000 });
-  await expect(details.getByText('通过', { exact: true })).toHaveCount(8);
+  await expect(details.getByText('通过', { exact: true })).toHaveCount(10);
   await page.reload();
   await expect(page.getByTestId('document-review-card')).toHaveCount(1);
   await expect(card).toContainText('数据校验通过');
   await card.getByRole('button', { name: '查看检查详情' }).click();
-  await expect(details.getByText('通过', { exact: true })).toHaveCount(8);
+  await expect(details.getByText('通过', { exact: true })).toHaveCount(10);
   await page.getByTestId('doc-version-toggle').click();
   await expect(page.getByTestId('doc-version-panel')).toBeVisible();
   await expect(page.getByRole('tab', { name: '正文', exact: true })).toHaveAttribute('aria-selected', 'true');

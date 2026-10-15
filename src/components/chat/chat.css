@@ -46,9 +46,6 @@
 .axn-question-item:hover:not(:disabled) { border-color: color-mix(in srgb, var(--axn-text) 18%, var(--axn-border)); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .axn-question-item:disabled { color: var(--axn-muted); cursor: not-allowed; opacity: .6; }
 .axn-question-item:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-@media (max-width: 639px) {
-  .axn-question-list { grid-template-columns: minmax(0, 1fr); }
-}
 
 /* 态势卡：等级徽标（应急语义色）+ 事件名 + 地点 / 时间 + 3 个关键数字 */
 .axn-situation { display: flex; align-items: stretch; gap: var(--space-4); padding: var(--space-4) var(--space-5); border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: linear-gradient(180deg, var(--axn-surface), var(--axn-soft)); box-shadow: var(--shadow-xs); animation: axn-rise-in var(--dur-slower) var(--ease-out) 60ms backwards; }
@@ -78,66 +75,31 @@
 @media (prefers-reduced-motion: reduce) {
   .axn-home-hero, .axn-home-block, .axn-situation, .axn-situation-status > i { animation: none; }
 }
-.axn-chips { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: var(--space-6) !important; display: flex; flex-wrap: nowrap; gap: var(--space-2); padding: 0 var(--space-2); border: 0; background: transparent; flex: 0 0 auto; min-width: 0; max-width: var(--measure-chat); margin: 0 0 var(--space-2); width: 100%; box-sizing: border-box; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; }
+/* 五个智能体同排，窄屏横向滚动；功能选项保留在介绍卡中。 */
+.axn-cp-chips-wrap { display: flex; justify-content: center; padding: 0 var(--space-4); width: 100%; box-sizing: border-box; }
+.axn-chips { display: flex; flex-wrap: nowrap; gap: var(--space-2); padding: 0 var(--space-2) 0; border: 0; background: transparent; flex: 0 0 auto; min-width: 0; max-width: var(--measure-chat); margin: 0 0 var(--space-2); width: 100%; box-sizing: border-box; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
 .axn-chips::-webkit-scrollbar { display: none; }
-/* 单行横向滚动条（不再 flex-wrap: wrap）：子项在父按钮右侧展开时，后面的父按钮只往右移、不折行。
-   折行会把后随父按钮甩到第二行左端（实测 x 左移 196px），与「父按钮跟着往右移动」的预期相反。
-   窄屏本来就是这个策略（原 @media 767 块），现在全宽统一。 */
-/* 快捷任务 chips 全部平铺，不再有「更多任务」收纳浮层（原手写浮层与 .axn-more-tasks 规则已删）。 */
-.axn-assistant--split .axn-composer { padding: var(--space-3) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); }
-/* 蓝底白字（用户要求「把这几个按钮做成蓝底白字的」）：主色 #1A5CFF 上的白字 5.23:1，
-   12px 正文满足 AA。hover 往深里压一档，不用原来的浅色 hover（会把白字冲淡到不可读）。
-   边框与底色同色，只为了不改 27px 的盒模型尺寸。
-   注：展开瞬间子按钮看着偏白不是配色问题——那是 ChatPanel.tsx:116 的 80ms 延迟 +
-   140ms 淡入（opacity 未到 1 时蓝底被白背景冲淡）；插帧实测子按钮的 bg/color 从第一帧
-   就是 rgb(26,92,255)/#fff，稳定后像素同样是 #1A5CFF 底 + 白字。 */
-/* v2：能力块改为中性描边胶囊（只有图标带主色）——原实心蓝底白字比输入框本身还抢眼，
-   主色让给发送按钮。子按钮（下方 [data-subtask]）仍是浅蓝底，父子层级照旧靠反差区分。 */
-.axn-chip.ant-btn { height: 30px; padding: 0 var(--space-3); border: 1px solid var(--axn-border); background: var(--axn-surface); color: var(--axn-text); border-radius: 999px; font-size: var(--fs-meta); font-weight: 400; box-shadow: none; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); flex: 0 0 auto; scroll-snap-align: start; }
+.axn-chip.ant-btn { height: 30px; padding: 0 var(--space-3); border: 1px solid var(--axn-border); background: var(--axn-surface); color: var(--axn-text); border-radius: 999px; font-size: var(--fs-meta); font-weight: 400; box-shadow: none; transition: background var(--transition-fast), border-color var(--transition-fast); flex: 0 0 auto; }
 .axn-chip.ant-btn:hover:not(:disabled) { background: var(--axn-soft); border-color: color-mix(in srgb, var(--axn-text) 20%, var(--axn-border)); color: var(--axn-text); }
-.axn-chip.ant-btn[aria-expanded="true"] { background: var(--axn-soft); border-color: color-mix(in srgb, var(--axn-text) 24%, var(--axn-border)); }
-.axn-chip.ant-btn .axn-chip-icon { color: var(--axn-primary); }
-.axn-chip.ant-btn .axn-chip-arrow { color: var(--axn-faint); transition: transform var(--transition-fast); }
-.axn-chip.ant-btn[aria-expanded="true"] .axn-chip-arrow { transform: rotate(180deg); }
-/* 子按钮反过来：白底蓝字（用户 m00217「看到的子按钮背景颜色还是蓝色的」）—— 父子反色才能看出层级。
-   浅底色沿用仓里已有的同款（global.css:500 的 .fact-chip / 推荐问题）：--axn-primary-bg 底
-   + 72% 混黑的蓝字，对比度约 7.5:1，12px 也过 AA。hover 只把底色再压深一档。 */
-.axn-chips [data-subtask].ant-btn { background: var(--axn-primary-bg); border-color: var(--axn-primary-100); color: var(--axn-primary-text); }
-.axn-chips [data-subtask].ant-btn:hover:not(:disabled) { background: var(--axn-primary-100); border-color: color-mix(in srgb, var(--axn-primary) 52%, var(--axn-surface)); color: var(--axn-primary-text); }
+.axn-chip.ant-btn .axn-chip-icon { color: var(--axn-primary); flex: none; margin-inline-end: var(--space-1); }
 .axn-chip:disabled { opacity: .5; }
-/* 能力块图标（标注 vibe_1791862025042）：与右箭头的间距对称，图标本身不参与伸缩。 */
-.axn-chip.ant-btn .axn-chip-icon { flex: none; margin-inline-end: var(--space-1); }
-/* 父按钮里的右箭头（用户 m01620）：提示点开是向右展开一行。 */
-.axn-chip.ant-btn .axn-chip-arrow { flex: none; margin-inline-start: var(--space-1); }
-/* 子任务是内联展开的（见 ChatPanel.tsx 里同尺寸的 .axn-chip 子按钮，颜色走上面的反色规则），不再走 Dropdown 浮层，
-   所以原来的 .axn-chip-menu 系列浮层样式已删（用户 m01646 / m01661：横向一行、父按钮跟着右移）。 */
+@media (hover: none) { .axn-chip.ant-btn { height: 40px; } }
+.axn-assistant--split .axn-composer { padding: var(--space-3) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); }
 
-/* 触屏：首页的快捷 chips（27px）与推荐问题（33px）是主要入口，高度太难点中，
-   统一抬到 ~40px；图标与字号不变。 */
+
+/* 触屏的推荐问题与文书类型选项保留足够点击面积。 */
 @media (hover: none) {
-  .axn-chip.ant-btn {
-    height: 40px;
-    padding: 0 var(--space-3);
-  }
-  .axn-question-item {
-    padding-top: var(--space-2-5);
-    padding-bottom: var(--space-2-5);
-  }
-  /* 文书类型选项（气泡内）与上面的能力块一样抬到 40px，触屏才点得中 */
-  .axn-doc-choices .axn-doc-choice.ant-btn {
-    height: 40px;
-  }
+  .axn-question-item { padding-top: var(--space-2-5); padding-bottom: var(--space-2-5); }
+  .axn-doc-choices .axn-doc-choice.ant-btn { height: 40px; }
 }
 
-/* 原 @media (max-width: 767px) 的单行滚动条 / scroll-snap 规则已提到 .axn-chips 与
-   .axn-chip.ant-btn 基础规则（全宽统一），此处不再重复。 */
 /* 会话头：默认空白，收起侧边栏按钮居左。
-   圆角一体化输入区：快捷 chips 在输入框下方，发送按钮在右下角，与 Sender 共享一层外框；宽屏下限制正文宽度保持留白。 */
+   圆角一体化输入区：发送按钮在右下角，与 Sender 共享一层外框；宽屏下限制正文宽度保持留白。 */
 /* 底部让出 iPhone home indicator：输入区贴屏幕底，而发送按钮在右下角，
    正好与上滑手势抢区域（实测 390×844 下 shell 底边只剩 16px 余量，落在 34px 手势区内）。
    env() 在无安全区的设备上恒为 0，桌面 / 安卓无副作用。 */
 .axn-composer { padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; }
-.axn-composer-shell { width: 100%; max-width: var(--measure-chat); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-1-5) var(--space-2) var(--space-2); border: 1px solid var(--axn-border); border-radius: var(--radius-xl); background: var(--axn-surface); box-shadow: var(--shadow-md); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.axn-composer-shell { container-type: inline-size; width: 100%; max-width: var(--measure-chat); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-1-5) var(--space-2) var(--space-2); border: 1px solid var(--axn-border); border-radius: var(--radius-xl); background: var(--axn-surface); box-shadow: var(--shadow-md); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
 .axn-composer-shell:focus-within { border-color: color-mix(in srgb, var(--axn-primary) 45%, var(--axn-border)); }
 .axn-composer-shell .ant-sender { border: 0; background: transparent; box-shadow: none; }
 /* 输入区上方留白：外壳 6px + 这里 6px（原 8+12），收紧但保留呼吸感 */
@@ -178,6 +140,16 @@
 .axn-composer-shell .ant-upload { line-height: 0; }
 /* 📎 外面包一层 span 给 Upload 收 ref（antd Upload 不转 ref） */
 .axn-composer-upload-wrap { display: inline-flex; }
+.axn-composer-tools { display: flex; align-items: center; gap: 12px; }
+.axn-composer-web-search { display: inline-flex; align-items: center; gap: var(--space-2); height: 32px; box-sizing: border-box; padding: 0 var(--space-2); border: 1px solid var(--axn-border); border-radius: var(--radius-md); color: var(--axn-muted); background: var(--axn-surface); font-size: var(--fs-body); white-space: nowrap; cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast); }
+.axn-composer-web-search > svg { flex-shrink: 0; }
+.axn-composer-web-search:hover { border-color: var(--axn-primary); }
+.axn-composer-web-search.is-on { color: var(--axn-primary-text); border-color: var(--axn-primary); background: var(--axn-primary-bg); }
+.axn-composer-web-search:focus-within { outline: 2px solid var(--axn-primary); outline-offset: 2px; }
+@container (max-width: 460px) {
+  .axn-composer-shell .ant-sender-prefix { flex-basis: 100%; }
+  .axn-composer-shell .ant-sender-actions-list { flex-basis: 100%; justify-content: flex-end; }
+}
 
 /* 已选附件：输入框上方的可移除 chip */
 .axn-attach-list {
@@ -425,7 +397,7 @@
 @media (prefers-reduced-motion: reduce) {
   .is-running .axn-agent-summon-avatar::after { animation: none; }
   .axn-task-run.is-running .axn-task-title { animation: none; color: var(--axn-text); background: none; }
-  .axn-question-item, .axn-chip { transition: none; }
+  .axn-question-item { transition: none; }
   /* 动效 token 只归零 transition；animation 必须逐个关掉（见 global.css 的说明） */
   .axn-agent-execution, .axn-task-step, .axn-task-card > .axn-artifact, .axn-qa > *, .axn-qa .axn-qa-source,
   .axn-task-step .axn-step-output, .axn-task-answer, .axn-agent-execution:not(.is-running) .axn-agent-summon-action,
@@ -470,8 +442,7 @@
 /* ChatPanel 工具类 */
 .axn-cp-title { font-size: var(--fs-lead); flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .axn-cp-compact { width: 100%; margin-top: var(--space-2); }
-.axn-cp-chips-wrap { display: flex; justify-content: center; padding: 0 var(--space-4); width: 100%; box-sizing: border-box; }
-/* 与语音、发送统一高度；用独立间距隔开点击区域。 */
+/* 输入框右下角的事件选择器。 */
 .axn-cp-select { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; max-width: 240px; height: 32px; box-sizing: border-box; margin: 0; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--axn-primary) 22%, var(--axn-border)); border-radius: var(--radius-md); background: var(--axn-primary-50); color: var(--axn-primary-600); font: inherit; font-size: var(--fs-body); line-height: var(--lh-body); font-weight: 400; cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast); }
 .axn-cp-select:hover { background: var(--axn-primary-bg); border-color: var(--axn-primary); }
 .axn-cp-select:focus-visible { outline: 2px solid var(--axn-primary); outline-offset: 2px; }
@@ -479,6 +450,7 @@
 .axn-cp-select-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .axn-cp-select.is-empty .axn-cp-select-text { color: inherit; }
 .axn-cp-select-caret { flex-shrink: 0; color: var(--axn-primary); }
+
 @media (max-width: 767px) {
   .axn-composer-actions .axn-cp-select { max-width: min(220px, calc(100vw - 180px)); }
 }
@@ -529,4 +501,18 @@
   .axn-agent-summon-head { padding-inline-start: 32px; }
   .axn-artifact-row { grid-template-columns: 88px minmax(0, 1fr); padding-inline: var(--space-3); }
   .axn-resource-result { padding-inline: var(--space-3); }
+}
+
+/* 手机端为智能体入口与上方滚动内容留出独立间距。 */
+@media (max-width: 767px) {
+  .axn-cp-chips-wrap { padding-top: var(--space-3); flex-shrink: 0; }
+}
+
+/* 手机端推荐问题收为两列，完整文字自然换行，降低首屏占用。 */
+@media (max-width: 767px) {
+  .axn-question-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .axn-question-item { gap: var(--space-1); padding: var(--space-2-5); border-radius: var(--radius-md); font-size: var(--fs-body); line-height: var(--lh-normal); box-shadow: none; }
+  .axn-question-head { font-size: var(--fs-caption); gap: var(--space-1); }
+  .axn-question-head svg.lucide { width: 13px; height: 13px; }
+  .axn-question-text { display: block; overflow: visible; -webkit-line-clamp: unset; }
 }

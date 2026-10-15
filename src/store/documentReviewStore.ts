@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { findReviewIssues, type ReviewIssue } from '@/services/documentReviewScenario';
 import { sameMockDocument, type MockDocument } from '@/seed/mockDocuments';
 import { clearPersist, loadPersist, schedulePersist } from './persistence';
 
@@ -11,12 +12,15 @@ export const DOCUMENT_CHECK_ITEMS = [
   { label: '表述规范', phase: 'content', detail: '检查用语、措辞和文书表述。' },
   { label: '前后逻辑', phase: 'content', detail: '检查段落衔接与前后表述的一致性。' },
   { label: '结论依据', phase: 'content', detail: '检查结论与所引用资料的对应关系。' },
+  { label: '日期格式', phase: 'format', detail: '检查成文日期、落款日期与模板格式的一致性。' },
+  { label: '版式要素', phase: 'format', detail: '检查版头、文号、章节序号与落款的完整性。' },
 ] as const;
 export const DOCUMENT_CHECK_INTERVAL = 750;
 export type DocumentReview = {
   runId: string;
   snapshot: MockDocument;
-  status: 'running' | 'passed' | 'stale';
+  status: 'running' | 'passed' | 'issues' | 'stale';
+  issues?: ReviewIssue[];
   completedCount: number;
   startedAt: number;
   completedAt: number | null;
@@ -31,15 +35,24 @@ type ReviewState = {
   showDetails: (target: ReviewState['detailsTarget']) => void;
   reset: () => void;
 };
+function restoreReviews(): Reviews {
+  const reviews = loadPersist<{ reviews: Reviews }>('docreview')?.reviews ?? {};
+  for (const documents of Object.values(reviews)) for (const review of Object.values(documents)) {
+    review.issues ??= findReviewIssues(review.snapshot);
+    // 旧版检查未包含格式审核，不能把旧的通过结果当成完整的新结果。
+    if (review.status === 'passed' && review.completedCount < DOCUMENT_CHECK_ITEMS.length) review.status = 'stale';
+  }
+  return reviews;
+}
 let serial = 0;
 export const useDocumentReviewStore = create<ReviewState>((set) => ({
-  reviews: loadPersist<{ reviews: Reviews }>('docreview')?.reviews ?? {},
+  reviews: restoreReviews(),
   detailsTarget: null,
   start: (scope, document) => set(state => ({ reviews: {
     ...state.reviews,
     [scope]: { ...state.reviews[scope], [document.id]: {
       runId: `${Date.now()}:${++serial}`, snapshot: document,
-      status: 'running', completedCount: 0, startedAt: Date.now(), completedAt: null,
+      issues: findReviewIssues(document), status: 'running', completedCount: 0, startedAt: Date.now(), completedAt: null,
     } },
   } })),
   advance: (scope, documentId, runId, now = Date.now()) => set(state => {
@@ -49,7 +62,7 @@ export const useDocumentReviewStore = create<ReviewState>((set) => ({
     if (completedCount <= review.completedCount) return state;
     const done = completedCount === DOCUMENT_CHECK_ITEMS.length;
     return { reviews: { ...state.reviews, [scope]: { ...state.reviews[scope], [documentId]: {
-      ...review, completedCount, status: done ? 'passed' : 'running', completedAt: done ? now : null,
+      ...review, completedCount, status: done ? (review.issues?.length ? 'issues' : 'passed') : 'running', completedAt: done ? now : null,
     } } } };
   }),
   invalidate: (scope, document) => set(state => {

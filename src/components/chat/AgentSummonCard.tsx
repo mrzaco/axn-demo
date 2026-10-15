@@ -41,7 +41,7 @@ export default function AgentSummonCard({ agentId, agentName, agentRole, action,
   const text = awaitingChoice ? action : actionText(status, action);
   // 完成态的「任务已完成…」是给读屏的状态播报；视觉上任务行已有「已完成」，不再重复一句
   const quietAction = status === 'succeeded' && hasTask;
-  return <section className={`axn-agent-execution${active ? ' is-running' : ''}`} data-testid="agent-summon-card" aria-live="polite">
+  return <section className={`axn-agent-execution${active ? ' is-running' : ''}`} data-testid="agent-summon-card" data-agent-id={agentId} aria-live="polite">
     <span className="axn-agent-summon-avatar" aria-hidden><Icon size={16} /></span>
     <div className="axn-agent-summon-body">
       <div className="axn-agent-summon-head">

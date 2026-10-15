@@ -14,6 +14,7 @@ test('快捷任务在智能体卡片内展示执行过程和模拟结果', async
     await expect(card.locator('.axn-step-running')).toBeVisible();
     await expect(card).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
     await expect(card).not.toHaveClass(/is-running/);
+    await card.getByRole('button', { name: '展开执行过程', exact: true }).click();
     await expect(card.locator('.axn-step-completed')).toHaveCount(3);
     await expect(card).toContainText(result);
     if (label === '救援资源管理') {

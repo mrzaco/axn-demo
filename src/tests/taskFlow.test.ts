@@ -66,11 +66,11 @@ describe('任务链路', () => {
     return useSessionStore.getState().ensureSessionForEvent(eventId);
   }
 
-  it('重新关联灾情时切换会话上下文并保留原会话', () => {
+  it('重新关联灾情时原地更新事件并保留同一会话', () => {
     const store = useSessionStore.getState();
     const blankId = store.ensureSessionForConversation('relink-test', 'evt-blank-relink');
     const linkedId = store.ensureSessionForConversation('relink-test', DEFAULT_EVENT_ID);
-    expect(linkedId).not.toBe(blankId);
+    expect(linkedId).toBe(blankId);
     expect(useSessionStore.getState().sessions[linkedId].eventId).toBe(DEFAULT_EVENT_ID);
     expect(store.ensureSessionForConversation('relink-test', 'evt-blank-relink')).toBe(blankId);
     expect(useSessionStore.getState().sessions[blankId].eventId).toBe('evt-blank-relink');
