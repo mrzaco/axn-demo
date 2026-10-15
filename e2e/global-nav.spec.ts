@@ -24,7 +24,7 @@ async function sendInChat(page: Page, text: string) {
 /** 打开“资源与态势”抽屉并切到资源列表 Tab（表格仅在该 Tab 可见时可点）。 */
 async function openResourceDrawer(page: Page) {
   await page.getByRole('button', { name: '查看资源列表' }).first().click();
-  const drawer = page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' });
+  const drawer = page.getByTestId('document-workspace');
   await expect(drawer).toBeVisible();
   await drawer.getByRole('tab', { name: '资源列表' }).click();
   // antd Table 会拆成表头/表体两张 table，断言落在含数据行的那张。
@@ -32,8 +32,8 @@ async function openResourceDrawer(page: Page) {
 }
 
 async function closeDrawer(page: Page) {
-  await page.keyboard.press('Escape');
-  await expect(page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' })).toBeHidden({ timeout: 5000 });
+  await page.getByTestId('workspace-close-btn').click();
+  await expect(page.getByTestId('document-workspace')).toBeHidden({ timeout: 5000 });
 }
 
 /** 执行资源查询并打开抽屉等待表格出现（表格仅在抽屉内渲染）。 */
@@ -72,7 +72,7 @@ test('1. 新建对话 → 直接创建空白对话并激活（无弹窗，标注
 test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', async ({ page }) => {
   await newConversation(page);
   await page.getByTestId('chat-link-incident').click();
-  await page.locator('.ant-select-item-option', { hasText: '清河段堤防险情' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
   await page.waitForTimeout(500);
   // 切换后安小能提示已关联；提示消息出现后头部事件标题同步显示
   await expect(page.getByTestId('chat-link-incident')).toContainText('清河段堤防险情');
@@ -93,7 +93,7 @@ test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', a
   await expect(page.getByTestId('task-next-steps-task-生成应急要情')).toBeVisible();
   // 取消关联 → 回到未关联（专属虚拟事件）并提示
   await page.getByTestId('chat-link-incident').click();
-  await page.locator('.ant-select-item-option', { hasText: '未关联事件' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
   await page.waitForTimeout(500);
   await expect(page.getByTestId('chat-link-incident')).toContainText('未关联事件');
   await expect(page.getByText('已取消关联灾情')).toBeVisible();
@@ -203,6 +203,12 @@ test('10b. 「智能体与 Skill」恢复，其他规划外入口继续隐藏', 
   for (const label of ['文书库', '智能助理', '智能体与 Skill']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
+  // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转
+  const knowledgeNav = page.locator('.axn-gs-nav-item', { hasText: '知识库' });
+  await expect(knowledgeNav).toBeEnabled();
+  await knowledgeNav.click();
+  await expect(page.getByText('知识库功能建设中')).toBeVisible();
+  await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 
 test('11. 智能体与 Skill / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {

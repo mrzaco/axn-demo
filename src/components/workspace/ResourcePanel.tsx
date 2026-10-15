@@ -408,7 +408,7 @@ export default function ResourcePanel({
 
       <div className="axn-candidate-zone">
         <Space size={6} wrap align="center">
-          <Text strong style={{ fontSize: 13 }}>
+          <Text strong style={{ fontSize: 'var(--fs-body)' }}>
             候选力量
           </Text>
           <Tooltip title="候选力量是拟使用的资源清单，不代表已下达调派命令（模拟边界）。">

@@ -197,7 +197,7 @@ export default function SchematicMap({
       <svg
         viewBox={viewBoxStr}
         role="img"
-        aria-label="救援力量空间示意图（模拟）"
+        aria-label="救援力量空间示意图"
         onClick={() => onSelectResourceId?.(null)}
       >
         <defs>

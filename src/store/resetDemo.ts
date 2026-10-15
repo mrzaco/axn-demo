@@ -11,6 +11,7 @@ import { useCustomerOperations } from './customerOperationsStore';
  */
 import { useKnowledgeCaseStore } from '@/services/knowledgePublish';
 import { useConversationStore } from './conversationStore';
+import { useMockDocumentStore } from './mockDocumentStore';
 import { useSessionStore } from './sessionStore';
 import { useWorkspaceStore } from './workspaceStore';
 
@@ -21,4 +22,5 @@ export function resetDemoData(): void {
   useConversationStore.getState().resetAll();
   useWorkspaceStore.getState().resetAll();
   useKnowledgeCaseStore.getState().resetAll();
+  useMockDocumentStore.getState().reset();
 }

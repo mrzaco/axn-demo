@@ -91,7 +91,7 @@ export default function KnowledgePanel() {
         type="error"
         showIcon
         title="会话未初始化"
-        description="请稍候或重置模拟环境后重试（模拟数据）。"
+        description="请稍候或重置模拟环境后重试。"
         action={
           <Button size="small" onClick={() => resetDemoData()}>
             重置演示数据
@@ -167,16 +167,16 @@ export default function KnowledgePanel() {
               const showPlaceholder = section.id === 'resources' && boundTeamNames.length === 0;
               return (
                 <div key={section.id} style={{ marginBottom: 10 }}>
-                  <Text strong style={{ fontSize: 13 }}>
+                  <Text strong style={{ fontSize: 'var(--fs-body)' }}>
                     {section.title}
                   </Text>
-                  <Paragraph style={{ marginBottom: 4, fontSize: 13, whiteSpace: 'pre-wrap' }}>
+                  <Paragraph style={{ marginBottom: 4, fontSize: 'var(--fs-body)', whiteSpace: 'pre-wrap' }}>
                     {section.text}
                   </Paragraph>
                   {showPlaceholder ? (
                     <div className="axn-proposal-empty">
                       <Tag color="gold">候选 ≠ 已调派</Tag>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
+                      <Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
                         {section.emptyText ?? '尚未指定候选力量，请先在“资源与态势”页选择候选。'}
                       </Text>
                     </div>
@@ -195,13 +195,13 @@ export default function KnowledgePanel() {
               );
             })}
             <div>
-              <Text strong style={{ fontSize: 13 }}>
+              <Text strong style={{ fontSize: 'var(--fs-body)' }}>
                 风险提示
               </Text>
               <ul className="axn-risk-list">
                 {proposalRecord.riskNotes.map((note) => (
                   <li key={note}>
-                    <Text style={{ fontSize: 12 }}>{note}</Text>
+                    <Text style={{ fontSize: 'var(--fs-meta)' }}>{note}</Text>
                   </li>
                 ))}
               </ul>
@@ -215,7 +215,7 @@ export default function KnowledgePanel() {
                 <span>
                   尚无处置建议。
                   <br />
-                  可在对话中发送“给我处置建议”生成（模拟）。
+                  可在对话中发送“给我处置建议”生成。
                 </span>
               }
             >
@@ -275,7 +275,7 @@ export default function KnowledgePanel() {
           {knowledgeIds.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="会话中还没有知识引用；发送“解释依据与术语”或生成建议后，这里会展示依据卡片（模拟数据）。"
+              description="会话中还没有知识引用；发送“解释依据与术语”或生成建议后，这里会展示依据卡片。"
             />
           ) : (
             knowledgeIds.map((chunkId) => {
@@ -314,10 +314,10 @@ export default function KnowledgePanel() {
                     </Tooltip>
                   }
                 >
-                  <Paragraph style={{ marginBottom: 4, fontSize: 13, whiteSpace: 'pre-wrap' }}>
+                  <Paragraph style={{ marginBottom: 4, fontSize: 'var(--fs-body)', whiteSpace: 'pre-wrap' }}>
                     {chunk.content}
                   </Paragraph>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+                  <Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
                     {chunk.notice}
                     {isTactics ? ' 行动战法涉密管控：禁止下载与对外转发。' : ''}
                   </Text>

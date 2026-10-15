@@ -1,0 +1,74 @@
+/* 聊天标准控件页：页面外壳 + 卡片网格。控件本身的样式全部来自 chat.css。 */
+.axn-controls-route { background: var(--axn-canvas); }
+.axn-controls-page { min-width: 0; max-width: 1120px; margin-inline: auto; padding: var(--space-6) var(--space-8) var(--space-12); color: var(--axn-text); }
+.axn-controls-page > .axn-page-header { padding: var(--space-2) 0 var(--space-5); }
+.axn-controls-page-nav { font-size: var(--fs-meta); }
+.axn-controls-page-nav a { color: var(--axn-muted); text-decoration: none; }
+.axn-controls-page-nav a:hover { color: var(--axn-text); }
+.axn-controls-page-nav a:focus-visible { outline: 2px solid var(--axn-primary); outline-offset: 4px; border-radius: var(--radius-nest-md); }
+/* 对话里的小按钮规则限定在 .axn-chat-page，这里同步一份，预览才与产品一致 */
+.axn-controls-page .ant-btn-sm { font-size: var(--fs-meta); border-radius: var(--radius-sm); box-shadow: none; }
+
+.axn-controls-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-5); }
+.axn-controls-toolbar .ant-input-search { width: 280px; max-width: 100%; }
+
+.axn-controls-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
+.axn-controls-card { display: flex; flex-direction: column; min-width: 0; padding: var(--space-5); border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--axn-soft) 50%, var(--axn-surface)); }
+.axn-controls-card-head { display: flex; align-items: center; gap: var(--space-2-5); }
+.axn-controls-card-head h3 { margin: 0; font-size: var(--fs-h4); font-weight: 600; }
+.axn-controls-number { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 var(--space-1); border-radius: var(--radius-sm); background: var(--axn-soft); color: var(--axn-muted); font-size: var(--fs-meta); font-weight: 400; font-variant-numeric: tabular-nums; }
+.axn-controls-group { margin-inline-start: auto; color: var(--axn-faint); font-size: var(--fs-meta); }
+.axn-controls-description { margin: var(--space-2) 0 var(--space-4); color: var(--axn-muted); font-size: var(--fs-body); line-height: var(--lh-normal); }
+/* 预览区：极浅底 + 内边距，内容按真实对话的宽度自然排布 */
+.axn-controls-preview { flex: 1; min-width: 0; padding: var(--space-5); border: 1px solid color-mix(in srgb, var(--axn-border) 70%, transparent); border-radius: var(--radius-md); background: var(--axn-surface); overflow-wrap: anywhere; }
+
+.axn-controls-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.axn-controls-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.axn-controls-meta { color: var(--axn-muted); font-size: var(--fs-meta); }
+.axn-controls-form .ant-form-item { margin-bottom: var(--space-3); }
+.axn-controls-form .ant-form-item-label > label { font-size: var(--fs-body); color: var(--axn-muted); }
+.axn-controls-form .ant-input { font-size: var(--fs-body); }
+
+.axn-controls-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.axn-controls-images figure { margin: 0; min-width: 0; }
+.axn-controls-images .ant-image { display: block; overflow: hidden; border-radius: var(--radius-md); background: var(--axn-soft); }
+.axn-controls-images .ant-image-img { display: block; aspect-ratio: 4 / 3; object-fit: cover; }
+.axn-controls-images figcaption { margin-top: var(--space-1-5); color: var(--axn-muted); font-size: var(--fs-meta); line-height: var(--lh-normal); }
+
+.axn-controls-drawer h4 { margin: 0 0 var(--space-1); font-size: var(--fs-h3); }
+.axn-controls-drawer p { margin: var(--space-3) 0 0; line-height: var(--lh-relaxed); }
+.axn-controls-drawer blockquote { margin: var(--space-4) 0 0; padding: var(--space-3) var(--space-4); border-left: 3px solid var(--axn-border); background: var(--axn-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; line-height: var(--lh-relaxed); }
+
+/* ===== 对话标本里规范页独有的几个小件 ===== */
+.axn-spec-brand { display: grid; place-items: center; width: 28px; height: 28px; }
+.axn-spec-brand svg { display: block; border-radius: var(--radius-nest-xl); }
+.axn-spec-user { display: flex; justify-content: flex-end; }
+.axn-spec-user > div { max-width: 80%; padding: var(--space-2-5) var(--space-4); border-radius: 18px 18px var(--radius-sm) 18px; background: var(--axn-soft); color: var(--axn-text); font-size: var(--fs-lead); line-height: var(--lh-relaxed); overflow-wrap: anywhere; }
+.axn-spec-file { grid-template-columns: 36px minmax(0, 1fr) auto; }
+.axn-spec-file-copy { display: flex; flex-direction: column; min-width: 0; }
+.axn-spec-file-sub { color: var(--axn-muted); font-size: var(--fs-meta); }
+.axn-spec-clickable { cursor: pointer; border-radius: var(--radius-sm); }
+.axn-spec-clickable:hover { background: var(--axn-soft); }
+/* 真实对话的选项点一次即提交，没有「选中态」；规范页演示单选，补一个选中描边 */
+.axn-doc-choices .axn-doc-choice.ant-btn.is-selected { border-color: var(--axn-primary); box-shadow: inset 0 0 0 1px var(--axn-primary); font-weight: 600; }
+.axn-doc-choices .axn-doc-choice.ant-btn:not(.is-selected) { background: var(--axn-surface); border-color: var(--axn-border); color: var(--axn-text); }
+.axn-spec-notice { display: flex; align-items: flex-start; gap: var(--space-2-5); font-size: var(--fs-body); line-height: var(--lh-normal); }
+.axn-spec-notice > i { flex-shrink: 0; width: 6px; height: 6px; margin-top: 8px; border-radius: 50%; background: var(--axn-primary); }
+.axn-spec-notice.is-ok > i { background: var(--axn-success); }
+.axn-spec-notice.is-warn > i { background: var(--axn-warning); }
+.axn-spec-notice.is-err > i { background: var(--axn-error); }
+.axn-spec-notice strong { font-weight: 600; }
+.axn-spec-notice.is-warn strong { color: var(--axn-warning-text); }
+.axn-spec-notice.is-err strong { color: var(--axn-error-text); }
+.axn-spec-notice p { margin: var(--space-0-5) 0 0; color: var(--axn-muted); }
+
+@media (max-width: 767px) {
+  /* 与对话页窄屏一致：安小能头像隐藏，正文用满宽 */
+  .axn-spec-brand { display: none; }
+  .axn-controls-page { padding: 64px var(--space-4) var(--space-8); }
+  .axn-controls-grid { grid-template-columns: minmax(0, 1fr); }
+  .axn-controls-toolbar { align-items: stretch; }
+  .axn-controls-toolbar .ant-input-search { width: 100%; }
+  .axn-controls-card { padding: var(--space-4); }
+  .axn-controls-preview { padding: var(--space-3-5); }
+}

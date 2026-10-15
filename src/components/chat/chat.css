@@ -45,7 +45,7 @@
 .axn-chat-page .ant-tag { border-radius: 5px; font-size: var(--fs-meta); line-height: 18px; padding-inline: var(--space-1-5); margin-inline-end: 0; }
 .axn-chat-page .ant-btn-sm { font-size: var(--fs-meta); border-radius: 6px; box-shadow: none; }
 .axn-chat-page .ant-alert { border-radius: var(--radius-md); padding: var(--space-3) var(--space-3); line-height: var(--lh-normal); font-size: var(--fs-body); }
-.axn-chat-page .ant-alert-message, .axn-chat-page .ant-alert-title { font-size: var(--fs-body); font-weight: 500; }
+.axn-chat-page .ant-alert-message, .axn-chat-page .ant-alert-title { font-size: var(--fs-body); font-weight: 600; }
 .axn-chat-page .ant-alert-description { font-size: var(--fs-body); color: var(--axn-muted); }
 
 /* 首页：宽敞居中欢迎 + 知识库引导问题。 */
@@ -440,14 +440,40 @@
 .axn-clarification .ant-space-compact { margin-top: var(--space-3); }
 
 /* 任务卡与步骤时间线：名称、输出各占一行，长文本不挤压状态图标。 */
-.axn-task-card { display: flex; flex-direction: column; gap: var(--space-4); border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: var(--axn-surface); padding: var(--space-4); max-width: 100%; min-width: 0; box-sizing: border-box; }
-.axn-task-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
-.axn-task-head > .ant-space { row-gap: var(--space-2); }
+.axn-task-card { display: flex; flex-direction: column; gap: var(--space-3); max-width: 100%; min-width: 0; box-sizing: border-box; }
+/* v2：AI 回答不再套框（气泡本身已透明），任务头是一行轻量标题 + 状态点 */
+.axn-status { display: inline-flex; align-items: center; gap: var(--space-1-5); height: 22px; padding: 0 var(--space-2); border-radius: 999px; font-size: var(--fs-meta); font-weight: 400; color: var(--axn-muted); background: var(--axn-soft); }
+.axn-status > i { width: 6px; height: 6px; border-radius: 50%; background: var(--axn-faint); }
+.axn-status--busy { color: var(--axn-primary-text); background: var(--axn-primary-bg); }
+.axn-status--busy > i { background: var(--axn-primary); animation: axn-breathe 1.6s var(--ease-in-out) infinite; }
+.axn-status--ok { color: var(--axn-success-text); background: var(--axn-success-bg); }
+.axn-status--ok > i { background: var(--axn-success); }
+.axn-status--warn { color: var(--axn-warning-text); background: var(--axn-warning-bg); }
+.axn-status--warn > i { background: var(--axn-warning); }
+.axn-status--err { color: var(--axn-error-text); background: var(--axn-error-bg); }
+.axn-status--err > i { background: var(--axn-error); }
+/* 运行条（v3）：任务名 · 步数 · 耗时 | 状态 —— 一行浅底条，展开后执行过程接在条内 */
+.axn-task-run { border-radius: var(--radius-md); background: var(--axn-soft); overflow: hidden; }
+.axn-task-head { display: flex; align-items: center; gap: var(--space-2); min-height: 36px; padding: 0 var(--space-2) 0 var(--space-1); }
+.axn-task-head > .axn-task-title { padding-inline-start: var(--space-2); }
+.axn-task-title.ant-typography { font-size: var(--fs-body); font-weight: 600; color: var(--axn-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.axn-task-process-toggle { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--space-1-5); height: 36px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; cursor: pointer; text-align: left; color: var(--axn-text); }
+.axn-task-process-toggle:hover .axn-task-title { color: var(--axn-primary-text); }
+.axn-task-process-toggle:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.axn-task-process-caret { flex-shrink: 0; color: var(--axn-faint); transition: transform var(--transition-fast); }
+.axn-task-run.is-open .axn-task-process-caret { transform: rotate(90deg); }
+.axn-task-process-meta { flex-shrink: 0; font-size: var(--fs-meta); color: var(--axn-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.axn-task-process-meta::before { content: '·'; margin-inline-end: var(--space-1-5); }
+.axn-task-head-side { flex-shrink: 0; display: flex; align-items: center; gap: var(--space-1-5); margin-inline-start: auto; }
+.axn-task-run.is-running .axn-task-title { background: linear-gradient(90deg, var(--axn-text) 0%, var(--axn-faint) 50%, var(--axn-text) 100%) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: axn-shimmer-text 2s linear infinite; }
+@keyframes axn-shimmer-text { to { background-position: -200% 0; } }
+/* 展开的步骤：条内时间线，顶部细分隔线 */
+.axn-task-run .axn-task-steps { padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3); border-top: 1px solid var(--axn-border); border-radius: 0; background: transparent; }
 .axn-task-steps { list-style: none; margin: 0; padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-3); background: var(--axn-soft); border-radius: var(--radius-md); }
 .axn-task-step { position: relative; display: grid; grid-template-columns: 15px minmax(0,1fr) auto; column-gap: var(--space-2); row-gap: var(--space-1); min-height: 22px; font-size: var(--fs-body); line-height: var(--lh-normal); }
 .axn-task-step:not(:last-child)::after { content: ''; position: absolute; left: 6px; top: 21px; bottom: -10px; border-left: 1px solid var(--axn-border); }
 .axn-task-step > svg.lucide { grid-column: 1; grid-row: 1; margin-top: 3px; font-size: var(--fs-body); z-index: 1; }
-.axn-step-name { grid-column: 2; grid-row: 1; color: var(--axn-text); font-weight: 500; overflow-wrap: anywhere; }
+.axn-step-name { grid-column: 2; grid-row: 1; color: var(--axn-text); font-weight: 600; overflow-wrap: anywhere; }
 .axn-step-output { grid-column: 2; color: var(--axn-muted); font-size: var(--fs-body); overflow-wrap: anywhere; }
 .axn-step-time { grid-column: 3; grid-row: 1; font-size: var(--fs-meta); color: var(--axn-muted); font-variant-numeric: tabular-nums; }
 .axn-step-pending .axn-step-name, .axn-step-cancelled .axn-step-name { color: var(--axn-muted); }
@@ -470,7 +496,10 @@
 .axn-artifact { border: 1px solid var(--axn-border); border-radius: 9px; background: var(--axn-surface); overflow: hidden; min-width: 0; }
 .axn-artifact-row { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: var(--space-3); padding: var(--space-3-5) var(--space-4); font-size: var(--fs-body); line-height: var(--lh-relaxed); border-bottom: 1px solid var(--axn-border); }
 .axn-artifact-row:last-child { border-bottom: 0; }
-.axn-artifact-label { color: var(--axn-muted); }
+.axn-artifact-label { color: var(--axn-muted); white-space: nowrap; }
+.axn-inline-flag { display: inline-block; margin-inline-start: var(--space-2); padding: 0 var(--space-1-5); border-radius: var(--radius-sm); font-size: var(--fs-meta); line-height: 20px; vertical-align: 1px; }
+.axn-inline-flag.is-info { color: var(--axn-primary-text); background: var(--axn-primary-bg); }
+.axn-inline-flag.is-warn { color: var(--axn-warning-text); background: var(--axn-warning-bg); }
 .axn-artifact-value { color: var(--axn-text); text-align: left; overflow-wrap: anywhere; min-width: 0; }
 .axn-artifact-foot { padding: var(--space-4); color: var(--axn-muted); font-size: var(--fs-body); line-height: var(--lh-normal); overflow-wrap: anywhere; background: var(--axn-soft); box-sizing: border-box; max-width: 100%; }
 .axn-artifact-foot .ant-space { row-gap: var(--space-2); max-width: 100%; }
@@ -557,7 +586,6 @@
 .axn-task-card > .axn-artifact { animation: axn-rise-in var(--dur-slower) var(--ease-in-out) backwards; }
 /* 完成后只换图标颜色，而不是「一个 icon 突然变成另一个」；状态标签（执行中 → 已完成）同理渐变 */
 .axn-task-step > svg.lucide { transition: color var(--transition-slow); }
-.axn-task-head .ant-tag { transition: color var(--transition-slow), background-color var(--transition-slow), border-color var(--transition-slow); }
 /* 新出现的步骤结论、结论文字、以及任务结束时替换的说明文字都淡入，不做硬切 */
 .axn-task-step .axn-step-output, .axn-task-answer { animation: axn-fade-in var(--dur-slower) var(--ease-in-out) backwards; }
 .axn-agent-execution:not(.is-running) .axn-agent-summon-action { animation: axn-fade-in var(--dur-slower) var(--ease-in-out) backwards; }
@@ -584,10 +612,10 @@
 
 /* 智能体身份与任务形成一张连续卡片。 */
 /* 与下方 .axn-document-workflow 同一原则：铺在白底会话流上的内联卡不用阴影。 */
-.axn-agent-execution { border: 1px solid var(--axn-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--axn-surface); }
-.axn-agent-summon { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); background: var(--axn-surface); width: 100%; box-sizing: border-box; }
-.axn-agent-summon-avatar { position: relative; flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; background: var(--axn-primary-bg); color: var(--axn-primary); display: grid; place-items: center; font-size: var(--fs-h2); }
-.is-running .axn-agent-summon-avatar::after { content: ''; position: absolute; inset: -3px; border-radius: var(--radius-lg); border: 1px solid var(--axn-primary); animation: axn-summon-pulse 2.4s var(--ease-out) infinite; }
+/* 智能体消息（v3）：与普通 AI 回答同一版式 —— 28px 头像列 + 内容列，不套外框 */
+.axn-agent-execution { display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: var(--space-3); align-items: start; width: 100%; min-width: 0; }
+.axn-agent-summon-avatar { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-md); color: var(--axn-primary); background: var(--axn-primary-bg); }
+.is-running .axn-agent-summon-avatar::after { content: ''; position: absolute; inset: -3px; border-radius: var(--radius-lg); border: 1px solid var(--axn-primary); animation: axn-summon-pulse 2.4s var(--ease-in-out) infinite; }
 @keyframes axn-summon-pulse { 0% { transform: scale(.95); opacity: .35; } 100% { transform: scale(1.15); opacity: 0; } }
 .axn-agent-summon-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .axn-agent-summon-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
@@ -620,16 +648,21 @@
 .axn-document-workflow-footer svg.lucide { color: var(--axn-success); }
 @media (prefers-reduced-motion: reduce) {
   .is-running .axn-agent-summon-avatar::after { animation: none; }
+  .axn-task-run.is-running .axn-task-title { animation: none; color: var(--axn-text); background: none; }
   .axn-question-item, .axn-chip { transition: none; }
   /* 动效 token 只归零 transition；animation 必须逐个关掉（见 global.css 的说明） */
   .axn-agent-execution, .axn-task-step, .axn-task-card > .axn-artifact, .axn-qa > *, .axn-qa .axn-qa-source,
   .axn-task-step .axn-step-output, .axn-task-answer, .axn-agent-execution:not(.is-running) .axn-agent-summon-action,
   .axn-step-running::before, .axn-step-running .axn-step-output { animation: none; }
   .axn-task-step > svg.lucide, .axn-task-head .ant-tag { transition: none; }
+  .axn-summary-round, .axn-collect-progress::after, .axn-summary-round.is-collecting::after { animation: none; }
 }
 
-.axn-summary-collection { display: grid; gap: var(--space-3); margin: var(--space-4) 0; }
-.axn-summary-round { padding: var(--space-3) var(--space-4); border: 1px solid var(--axn-border); border-radius: 10px; background: var(--axn-soft); }
+.axn-summary-collection { display: grid; gap: var(--space-3); margin: var(--space-1) 0 0; }
+.axn-summary-round { padding: var(--space-3) var(--space-4); border: 1px solid var(--axn-border); border-radius: var(--radius-md); background: var(--axn-surface); animation: axn-rise-in var(--dur-slower) var(--ease-in-out) backwards; }
+/* 正在收集的那一轮：描边挑亮 + 扫光，和进度条同一语言（用户 m01044） */
+.axn-summary-round.is-collecting { position: relative; overflow: hidden; border-color: color-mix(in srgb, var(--axn-primary) 30%, var(--axn-border)); }
+.axn-summary-round.is-collecting::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--axn-primary) 9%, transparent), transparent); animation: axn-collect-sweep 1.6s var(--ease-in-out) infinite; }
 .axn-summary-round .ant-typography { line-height: var(--lh-relaxed); }
 .axn-summary-round .ant-typography + .ant-typography { margin: var(--space-2) 0 0; }
 .axn-summary-input { display: grid; gap: var(--space-3); margin-top: var(--space-3); }
@@ -761,3 +794,64 @@
 .axn-floating-action-item:focus-visible { outline: 2px solid var(--axn-primary); outline-offset: -2px; }
 .axn-floating-action-item:disabled { opacity: .45; cursor: not-allowed; }
 .axn-floating-actions-hint { padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--axn-border); color: var(--axn-muted); font-size: 12px; line-height: 1.6; }
+
+.axn-cp-chips-wrap { display: flex; justify-content: center; padding: 0 var(--space-4); width: 100%; box-sizing: border-box; }
+/* 与语音、发送统一高度；用独立间距隔开点击区域。 */
+.axn-cp-select { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; max-width: 240px; height: 32px; box-sizing: border-box; margin: 0; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--axn-primary) 22%, var(--axn-border)); border-radius: var(--radius-md); background: var(--axn-primary-50); color: var(--axn-primary-600); font: inherit; font-size: var(--fs-body); line-height: var(--lh-body); font-weight: 400; cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast); }
+.axn-cp-select:hover { background: var(--axn-primary-bg); border-color: var(--axn-primary); }
+.axn-cp-select:focus-visible { outline: 2px solid var(--axn-primary); outline-offset: 2px; }
+.axn-cp-select > svg:first-child { flex-shrink: 0; color: var(--axn-primary); }
+.axn-cp-select-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.axn-cp-select.is-empty .axn-cp-select-text { color: inherit; }
+.axn-cp-select-caret { flex-shrink: 0; color: var(--axn-primary); }
+@media (max-width: 767px) {
+  .axn-composer-actions .axn-cp-select { max-width: min(220px, calc(100vw - 180px)); }
+}
+
+/* ===== 关联灾情选择弹窗 ===== */
+.axn-incident-modal .ant-modal-container, .axn-incident-modal .ant-modal-content { padding: 0; overflow: hidden; border-radius: var(--radius-lg); }
+.axn-incident-picker { display: flex; flex-direction: column; max-height: min(640px, calc(100vh - 96px)); }
+.axn-incident-head, .axn-incident-search, .axn-incident-foot { flex-shrink: 0; }
+.axn-incident-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: var(--space-5) var(--space-5) var(--space-3); }
+.axn-incident-head h2 { margin: 0; font-size: var(--fs-title); line-height: var(--lh-title); font-weight: 600; }
+.axn-incident-head p { margin: var(--space-1) 0 0; color: var(--axn-muted); font-size: var(--fs-body); line-height: var(--lh-body); }
+.axn-incident-close { display: grid; place-items: center; width: 32px; height: 32px; margin: calc(var(--space-1) * -1) calc(var(--space-1) * -1) 0 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--axn-faint); cursor: pointer; }
+.axn-incident-close:hover { background: var(--axn-soft); color: var(--axn-text); }
+.axn-incident-search { display: flex; align-items: center; gap: var(--space-2); margin: 0 var(--space-5) var(--space-3); height: 40px; padding: 0 var(--space-3); border: 1px solid var(--axn-control); border-radius: var(--radius-md); background: var(--axn-surface); color: var(--axn-faint); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.axn-incident-search:focus-within { border-color: var(--axn-primary); box-shadow: 0 0 0 3px var(--axn-primary-50); }
+.axn-incident-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--axn-text); font: inherit; font-size: var(--fs-body); }
+.axn-incident-search input::placeholder { color: var(--axn-faint); }
+.axn-incident-search button { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--axn-soft); color: var(--axn-muted); cursor: pointer; }
+.axn-incident-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 var(--space-3) var(--space-3); border-top: 1px solid var(--axn-divider); overscroll-behavior: contain; }
+.axn-incident-option { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; box-sizing: border-box; padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); cursor: pointer; }
+.axn-incident-option.is-active { background: var(--axn-soft); }
+.axn-incident-option.is-selected { background: var(--axn-primary-50); }
+.axn-level-none { color: var(--axn-muted); background: var(--axn-sunken); font-weight: 400; }
+.axn-incident-copy { display: flex; flex: 1; flex-direction: column; gap: var(--space-0-5); min-width: 0; }
+.axn-incident-title { overflow: hidden; color: var(--axn-text); font-size: var(--fs-body); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.axn-incident-option.is-selected .axn-incident-title { color: var(--axn-primary-600); }
+.axn-incident-check { flex-shrink: 0; color: var(--axn-primary); }
+.axn-incident-none { margin-top: var(--space-2); border-top: 1px solid var(--axn-divider); border-radius: 0 0 var(--radius-md) var(--radius-md); padding-top: var(--space-3); }
+.axn-incident-empty { padding: var(--space-10) var(--space-4); color: var(--axn-muted); font-size: var(--fs-body); text-align: center; }
+.axn-incident-foot { display: flex; gap: var(--space-4); padding: var(--space-2-5) var(--space-5); border-top: 1px solid var(--axn-divider); background: var(--axn-canvas); color: var(--axn-faint); font-size: var(--fs-meta); }
+.axn-incident-foot kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-inline-end: var(--space-0-5); padding: 0 var(--space-1); border: 1px solid var(--axn-border); border-radius: var(--radius-nest-md); background: var(--axn-surface); color: var(--axn-muted); font: inherit; font-size: var(--fs-meta); }
+@media (max-width: 767px) {
+  .axn-incident-foot { display: none; }
+  .axn-incident-picker { max-height: calc(100vh - 64px); }
+}
+/* 语音：次要文字按钮，主色只留给右侧的发送 */
+.axn-composer-speech.ant-btn { color: var(--axn-muted); font-size: var(--fs-h3); }
+.axn-composer-speech.ant-btn:hover { color: var(--axn-text); background: var(--axn-soft); }
+.axn-task-cancel.ant-btn { color: var(--axn-muted); }
+.axn-task-cancel.ant-btn:hover { color: var(--axn-error-text) !important; }
+.axn-message-list .ant-bubble-list-scroll-box, .ant-bubble-list-scroll-box { scrollbar-width: thin; scrollbar-color: var(--axn-border) transparent; }
+
+/* 窄屏（手机）：头像列让位给正文 —— AI 头像隐藏，智能体图标并入身份行 */
+@media (max-width: 640px) {
+  .axn-message-list .ant-bubble-start > .ant-bubble-avatar { display: none; }
+  .axn-agent-execution { display: block; position: relative; }
+  .axn-agent-summon-avatar { position: absolute; top: 2px; left: 0; width: 24px; height: 24px; }
+  .axn-agent-summon-head { padding-inline-start: 32px; }
+  .axn-artifact-row { grid-template-columns: 88px minmax(0, 1fr); padding-inline: var(--space-3); }
+  .axn-resource-result { padding-inline: var(--space-3); }
+}

@@ -13,15 +13,22 @@ body {
    * 中文这一层必须逐个平台点名，不能只写 sans-serif：
    * 在 Linux 上 sans-serif 解析到 Liberation Sans（无 CJK），
    * 中文要靠 fontconfig 二次回退才落到 Noto Sans CJK，结果不可预期。
-   * 点名后三个平台的黑体均为已知且带 Medium 字重，--fw-medium 才不会被合成加粗。
+   * 点名后三个平台的黑体均为已知；雅黑只有 Regular / Bold，故全站只用 400 / 600（--fw-regular / --fw-strong）。
+   * 'Microsoft YaHei UI' 是雅黑的界面变体，行距更紧、更适合控件。
    *
    * Inter 缺失时（离线、加载失败）整条栈退化为原系统字体，无副作用。 */
-  font-family: 'Inter Variable',
-    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Segoe UI', sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   font-optical-sizing: auto;
-  /* 表格、时间戳、编号、KPI 数字对齐 —— 切换数值时不会左右跳动 */
+  line-height: var(--lh-body);
+}
+
+/* 等宽数字只给需要上下对齐的地方（表格、指标、时间、编号）；正文里的数字保持比例宽度，不显松散 */
+.ant-table,
+.ant-statistic,
+.ant-pagination,
+time,
+.axn-num {
   font-variant-numeric: tabular-nums;
 }
 
@@ -30,42 +37,66 @@ body {
  * 全局可用（包括 portal 渲染的 Drawer / Modal 内容）。此处只放尺度常量与由令牌派生的
  * 深档文字色 —— 不出现任何字面色值，换主题只改 theme.ts。 */
 :root {
-  /* 阴影色（匹配 Deep Ocean Blue 冷调） */
-  --shadow-rgb: 15, 35, 65;
+  /* 应用只有浅色主题。声明 color-scheme 有两个作用：
+     1) 系统处于深色模式时，浏览器不会把滚动条 / 下拉面板 / 原生控件渲染成深色；
+     2) 表单控件不再被 iOS / 安卓的「智能反色」改动。 */
+  color-scheme: light;
 
-  /* 深档文字色：同类浅色底上的正文专用。
-   * 主色 #1A5CFF 在白底 5.23:1，但在 colorPrimaryBg 底上只有 3.64:1（12px 正文不合格）；
-   * 掺黑后（实测）主色 7.3:1 / 警示 5.1:1 / 成功 6.5:1 / 错误 6.9:1，均满足 AA 正文。 */
-  --axn-primary-text: color-mix(in srgb, var(--axn-primary) 72%, #000);
-  --axn-warning-text: color-mix(in srgb, var(--axn-warning) 68%, #000);
-  --axn-success-text: color-mix(in srgb, var(--axn-success) 72%, #000);
-  --axn-error-text: color-mix(in srgb, var(--axn-error) 72%, #000);
+  /* 颜色：全部来自 theme.ts（antd token + brandVars），由 main.tsx 注入本 :root。
+   * 已注入：--axn-primary(-50/-100/-400/-500/-600/-bg/-text)、text/muted/faint、border/divider、
+   * surface/canvas/soft/sunken、success|warning|error(-text/-bg)、level-1..4(-text/-bg)、cat-1..6、
+   * map-*、critical、--shadow-rgb。此处只做语义别名，不出现字面色值。 */
+  --axn-legend-team: var(--axn-cat-1);
+  --axn-legend-event: var(--axn-cat-2);
+  --axn-legend-station: var(--axn-cat-3);
 
-  /* ===== 语义色：品牌自定义，来自 antd token 之外 =====
-   * 仅用于数据可视化的固定语义（图例 / 地图）与公文要害标记，
-   * 不参与 antd 主题派生，故不受换主题影响，直接定值。 */
-  --axn-legend-team: #52c41a; /* 图例·队伍 */
-  --axn-legend-event: #ff8c1f; /* 图例·事件 */
-  --axn-legend-station: #722ed1; /* 图例·站点 */
-  --axn-map-active: #fa541c; /* 地图·当前选中 */
-  --axn-map-route: #2e7d0e; /* 地图·常态连线 */
-  --axn-map-selected: #73d13d; /* 地图·高亮 */
-  --axn-critical: #d0021b; /* 公文·要害标记（比 colorError 更重的红） */
+  /* ===== 字体体系：系统字体，只用 400 / 600 两档字重 =====
+   * 微软雅黑只有 Regular / Bold 两个真字重：500 会渲染成 400、600 会落到 Bold。
+   * 只用 400 / 600，三个平台（苹方 / 雅黑 / 思源）的层级都不会塌。 */
+  --fw-regular: 400;
+  --fw-strong: 600;
 
-  /* 字号尺度：12px 仅用于标签/元信息；正文一律 ≥13px */
-  --fs-caption: 11px;
-  --fs-meta: 12px;
-  --fs-body: 13px;
-  --fs-lead: 14px;
+  /* 字号 7 档，每档与行高成对使用（--fs-x 配 --lh-x），相邻档 ≥2px：
+   *   caption 12/18 · body 14/22 · reading 15/26 · title-sm 16/24 · title 18/26 · page 22/30 · display 30/38 */
+  --fs-caption: 12px;
+  --fs-body: 14px;
+  --fs-reading: 15px;
+  --fs-title-sm: 16px;
+  --fs-title: 18px;
+  --fs-page: 22px;
+  --fs-display: 30px;
+  --lh-caption: 18px;
+  --lh-body: 22px;
+  --lh-reading: 26px;
+  --lh-title-sm: 24px;
+  --lh-title: 26px;
+  --lh-page: 30px;
+  --lh-display: 38px;
 
-  /* 标题层级：正文 4 档之上再加 6 档。相邻档保持 ≥2px 差，
-   * h1(22) 与 display(30) 之间刻意留大间隙 —— 页面大标题与区块标题要拉开层级。 */
-  --fs-h4: 15px; /* 卡片/面板小标题 */
-  --fs-h3: 16px; /* 区块标题 */
-  --fs-h2: 18px; /* 页面内主区块标题 */
-  --fs-h1: 22px; /* 页面标题 */
-  --fs-display: 30px; /* 大数字 / 概览标题 */
-  --fs-hero: clamp(28px, 2.7vw, 38px); /* 首屏主标题，随视口缩放 */
+  /* 旧名保留为别名，组件无需逐个改名 */
+  --fs-meta: var(--fs-caption);
+  --fs-lead: var(--fs-reading);
+  --fs-h4: var(--fs-title-sm); /* 卡片/面板小标题 */
+  --fs-h3: var(--fs-title-sm); /* 区块标题 */
+  --fs-h2: var(--fs-title); /* 页面内主区块标题 */
+  --fs-h1: var(--fs-page); /* 页面标题 */
+  --fs-hero: clamp(24px, 2.2vw, 30px); /* 首屏主标题，随视口缩放，上限 = display */
+
+  /* 公文字体（GB/T 9704）：标题方正小标宋、正文仿宋_GB2312、小标题黑体。
+   * 多数电脑没装方正小标宋 / 仿宋_GB2312，回退顺序按「字形最接近」排：
+   * 小标宋 → 华文中宋 → 思源宋体（Heavy 由 font-weight 取）；仿宋 → 楷体 → 思源宋体。 */
+  /* 界面字体（body 与需要跳出公文字体的局部共用，见 body 注释） */
+  --font-ui: 'Inter Variable',
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Segoe UI', sans-serif;
+  --font-doc-title: 'FZXiaoBiaoSong-B05S', '方正小标宋简体', 'FZXiaoBiaoSong-B05', 'STZhongsong',
+    'Source Han Serif SC', 'Noto Serif CJK SC', 'SimSun', serif;
+  --font-doc-body: 'FangSong_GB2312', 'FangSong', '仿宋', 'STFangsong', 'KaiTi_GB2312', 'KaiTi', 'STKaiti',
+    'Source Han Serif SC', 'Noto Serif CJK SC', serif;
+  --font-doc-heading: 'SimHei', '黑体', 'Heiti SC', 'Noto Sans CJK SC', 'Source Han Sans SC', sans-serif;
+
+  /* 字距：中文一律 0；只有含拉丁/数字的大字（标题、指标）收 -0.01em */
+  --ls-tight: -0.01em;
 
   /* ===== 间距尺度：2px 精度栅格 =====
    * 所有间距必须落在此栅格上，禁止裸写 px。
@@ -105,10 +136,10 @@ body {
   --measure-wide: 1100px; /* 宽表格/看板 */
 
   /* 圆角系统 */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 
   /* 圆角嵌套：内层 = 外层 − padding。
    * 12px 容器配 8px padding，内层用 4px 才同心；否则圆角看起来「不平行」。 */
@@ -142,15 +173,16 @@ body {
    * 中文需要比拉丁文更大的行高，故 relaxed 与 document 两档偏松。 */
   --lh-tight: 1.35; /* 标题、单行大字 */
   --lh-snug: 1.5; /* 控件、标签、单行 UI */
-  --lh-normal: 1.65; /* UI 正文（多行） */
-  --lh-relaxed: 1.9; /* 中文长文、聊天正文 */
+  --lh-normal: 1.6; /* UI 正文（多行）≈ 14/22 */
+  --lh-relaxed: 1.75; /* 中文长文、聊天正文 ≈ 15/26 */
   --lh-document: 2.1; /* 公文正文（配首行缩进 2em） */
 
   /* ===== 层次系统：多层阴影 =====
    * 真实物体有近影（接触）+ 远影（环境）。单层阴影永远显得平。
    * 透明度保持极低（.04–.10），层次靠「叠加」而非「加深」。 */
-  --shadow-xs: 0 1px 2px rgba(var(--shadow-rgb), .04);
-  --shadow-sm: 0 1px 2px rgba(var(--shadow-rgb), .04), 0 2px 6px rgba(var(--shadow-rgb), .05);
+  /* 三档：sm 贴面（卡片静置）· md 悬浮（hover / 下拉）· lg 浮层（抽屉 / 弹窗）。xs 为 sm 的别名，保留旧引用 */
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-rgb), .05), 0 1px 3px rgba(var(--shadow-rgb), .04);
+  --shadow-xs: var(--shadow-sm);
   --shadow-md: 0 2px 4px rgba(var(--shadow-rgb), .04), 0 8px 24px rgba(var(--shadow-rgb), .07);
   --shadow-lg: 0 4px 8px rgba(var(--shadow-rgb), .05), 0 16px 40px rgba(var(--shadow-rgb), .1);
   --shadow-primary: 0 1px 2px rgba(var(--shadow-rgb), .06),
@@ -252,6 +284,7 @@ svg.lucide {
 
 /* 助理区：默认宽栏（对话），打开文书写后为两列；≤1024px 时文书占满主区 */
 .axn-assistant {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
@@ -259,8 +292,39 @@ svg.lucide {
 }
 
 .axn-assistant--split {
-  grid-template-columns: minmax(420px, 480px) minmax(0, 1fr);
+  /* 对话列宽可拖拽（--axn-chat-col 由 SplitResizer 写入），限制在 360px ~ 55% 之间 */
+  --axn-chat-col-clamped: clamp(360px, var(--axn-chat-col, 460px), 55%);
+  grid-template-columns: var(--axn-chat-col-clamped) minmax(0, 1fr);
 }
+
+/* 分栏拖拽条：骑在两列分界线上，热区 8px，悬停/拖动时显示主色细线 */
+.axn-split-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--axn-chat-col-clamped) - 4px);
+  width: 8px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+.axn-split-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+.axn-split-resizer:hover::after,
+.axn-split-resizer:focus-visible::after,
+.axn-split-resizer.is-dragging::after {
+  background: var(--axn-primary);
+}
+.axn-split-resizer:focus-visible { outline: none; }
+.axn-assistant.is-resizing { cursor: col-resize; user-select: none; }
 
 .axn-assistant > .axn-chat-pane,
 .axn-assistant > .axn-workspace-pane {
@@ -276,19 +340,14 @@ svg.lucide {
   flex-direction: column;
 }
 
-@media (max-width: 1280px) {
-  /* 二级断点：助手区两列收窄对话列下限 */
-  .axn-assistant--split {
-    grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
-  }
-}
 
 @media (max-width: 1024px) {
   /* 窄屏不为三列挤压：文书视图独占主区宽度（侧栏仍常驻，见下方 767px 块） */
   .axn-assistant--split {
     grid-template-columns: minmax(0, 1fr);
   }
-  .axn-assistant--split > .axn-chat-pane {
+  .axn-assistant--split > .axn-chat-pane,
+  .axn-split-resizer {
     display: none;
   }
   .axn-assistant--split > .axn-workspace-pane {
@@ -361,10 +420,55 @@ svg.lucide {
      用 visibility 而非 display:none，保留节点让关闭后能把焦点还给它。 */
   .axn-shell-navtoggle.is-open { visibility: hidden; }
 
-  /* 勿给 .axn-shell-main 整列加 padding-left：窄屏(~390) 上会挤出右侧溢出。
-     汉堡避让只做在顶栏（见 chat.css / doc.css）。 */
-  .axn-shell-main {
-    overflow-x: hidden;
+  /* 首行内容避让汉堡按钮：它是 fixed 定位，会盖住各页左上角的标题 / 首个操作，
+     不避让就会被压住且点不到。这里逐个点名各页首行容器（52px = 44px 按钮 + 8px 间隙）。 */
+  .axn-shell-main .axn-chat-head,
+  .axn-shell-main .axn-page-header,
+  .axn-shell-main .doc-detail-toolbar--full {
+    padding-left: 52px;
+  }
+
+  /* 抽屉 / Modal 的宽度都是按桌面内容定的固定 px（760 / 560 / 620 / 520 / 480 / 440 / 880），
+     窄屏下会超出视口把右侧内容裁掉，而抽屉内部没有横向滚动 —— 一律夹到视口宽。
+     max-width 能压住 antd 写在行内的 width，且不影响桌面。 */
+  .ant-drawer-content-wrapper {
+    max-width: 100vw;
+  }
+  .ant-modal {
+    max-width: calc(100vw - var(--space-4));
+  }
+
+  /* iOS Safari 聚焦字号 <16px 的输入框会自动放大整页，且不会自动还原。
+     实测量过：单类选择器 .ant-input（0,1,0）压不过 antd 的
+     `:where(...).ant-input-affix-wrapper > input.ant-input { font-size: inherit }`（0,2,1），
+     故改用元素选择器 + !important 一次性收口 —— antd 的字号来源太散
+     （--ant-input-input-font-size 变量 / :where(...) 组件样式 / 上述后代规则），逐个列举既脆又难维护。
+     仅窄屏生效，桌面维持 13 / 14px 的紧凑节奏不受影响。 */
+  input,
+  textarea {
+    font-size: 16px !important; /* token-exempt: iOS 输入框 <16px 会自动缩放 */
+  }
+}
+
+/* 触屏：按钮 / 链接不参与双击缩放，避免误缩放与点按延迟。 */
+@media (hover: none) {
+  button,
+  a,
+  label,
+  [role='button'],
+  .ant-btn {
+    touch-action: manipulation;
+  }
+
+  /* 长按导航 chrome 与按钮不再弹出「拷贝 / 在网页中查找」系统菜单，也不参与文本选中。
+     只点名外壳控件，**刻意不碰正文与消息内容** —— 用户需要能选中文本来复制。 */
+  .axn-shell-sidebar,
+  .axn-chat-head,
+  .axn-page-header,
+  .doc-detail-toolbar--full,
+  .ant-btn {
+    -webkit-touch-callout: none;
+    user-select: none;
   }
 }
 
@@ -390,10 +494,10 @@ svg.lucide {
   display: inline-block;
   padding: 0 var(--space-1-5);
   margin: 0 var(--space-0-5);
-  border-radius: 4px;
+  border-radius: var(--radius-nest-md);
   background: var(--axn-primary-bg);
   color: var(--axn-primary-text);
-  border: 1px solid color-mix(in srgb, var(--axn-primary) 30%, var(--axn-surface));
+  border: 1px solid var(--axn-primary-100);
   font-size: var(--fs-meta);
   line-height: 20px;
   cursor: pointer;
@@ -411,10 +515,10 @@ svg.lucide {
   display: inline-block;
   padding: 0 var(--space-1-5);
   margin: 0 var(--space-0-5);
-  border-radius: 4px;
+  border-radius: var(--radius-nest-md);
   background: var(--axn-soft);
   color: var(--axn-primary-text);
-  border: 1px dashed color-mix(in srgb, var(--axn-primary) 35%, var(--axn-surface));
+  border: 1px dashed var(--axn-primary-100);
   font-size: var(--fs-meta);
   line-height: 20px;
 }
@@ -445,7 +549,7 @@ svg.lucide {
   .print-root .print-doc-title {
     text-align: center;
     font-size: var(--fs-h1);
-    font-weight: 700;
+    font-weight: 600;
     margin-bottom: var(--space-2);
   }
   .print-root .print-doc-meta {
@@ -456,7 +560,7 @@ svg.lucide {
   }
   .print-root h3.print-section-title {
     font-size: var(--fs-h4);
-    font-weight: 700;
+    font-weight: 600;
     margin: var(--space-4) 0 var(--space-1-5);
   }
   .print-root p.print-para {
@@ -525,5 +629,63 @@ svg.lucide {
 }
 ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--axn-muted) 40%, var(--axn-surface));
-  border-radius: 4px;
+  border-radius: var(--radius-nest-md);
+}
+
+/* 读屏可见、视觉隐藏（Typewriter 逐字呈现时保留全文供辅助技术读取） */
+.axn-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* 流式输出的插入光标 */
+.axn-caret,
+.axn-typing > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: var(--axn-primary);
+  animation: axn-caret-blink 1s steps(2, start) infinite;
+}
+@keyframes axn-caret-blink { to { visibility: hidden; } }
+
+/* ================= 全站统一页头（PageHeader） ================= */
+.axn-page-header {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-6) var(--space-6) var(--space-5);
+}
+/* 导航页 section 已自带左右内边距，页头不再重复缩进 */
+.axn-np-section > .axn-page-header { padding-inline: 0; }
+.axn-page-header-copy { flex: 1; min-width: 0; }
+.axn-page-header h1 {
+  margin: 0;
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  color: var(--axn-text);
+}
+.axn-page-header p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  color: var(--axn-muted);
+}
+.axn-page-header-extra { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+@media (max-width: 768px) {
+  .axn-page-header { padding: var(--space-4); }
+  .axn-np-section > .axn-page-header { padding-inline: 0; }
+  .axn-page-header-extra { width: 100%; margin-left: 0; }
 }

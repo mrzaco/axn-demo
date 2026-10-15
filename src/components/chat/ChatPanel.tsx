@@ -1,3 +1,7 @@
+import IncidentPickerModal from './IncidentPickerModal';
+import { MapPin, ChevronDown } from 'lucide-react';
+import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
+import { startWeeklyDynamics, submitDynamicsSources } from '@/services/weeklyDynamicsWorkflow';
 import { floatingActionGroups } from '@/services/floatingActionGroups';
 import type { ComponentRef } from 'react';
 import { replyEmbeddedQa, embeddedQaKind, embeddedStageChoices, embeddedChoiceAttachment } from '@/services/embeddedQa';
@@ -58,7 +62,7 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Alert, App as AntdApp, Badge, Button, Input, Popover, Select, Space, Tag, Tooltip, Typography, theme } from 'antd';
+import { Alert, App as AntdApp, Badge, Button, Input, Popover, Space, Tag, Tooltip, Typography, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import type { AttachmentWorkflow, ChatAttachment, ChatMessage } from '@/domain/types';
@@ -83,8 +87,7 @@ import {
   type StageChoice,
 } from '@/services/stageConversation';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
-import { factText, incidentById, incidents } from '@/seed/scenario';
-import { vueWorkspaceEventById } from '@/seed/vueWorkspaceEvents';
+import { factText, incidentById } from '@/seed/scenario';
 import { eventDisplayName } from '@/services/factLookup';
 import {
   buildEventSwitchBriefing,
@@ -180,12 +183,6 @@ function AgentInviteChoices({ options, hint, disabled, onPick }: {
   );
 }
 
-function incidentOptionLabel(eventId: string): string {
-  const name = eventDisplayName(eventId);
-  const vue = vueWorkspaceEventById.get(eventId);
-  return vue ? `${name}（${vue.stage}）` : name;
-}
-
 const noopOpenDrawer: NonNullable<ChatPanelProps['onOpenDrawer']> = () => {};
 
 export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: ChatPanelProps) {
@@ -213,6 +210,11 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const unreadMonitorCount = monitorNotices.filter(n => n.eventId === session?.eventId && n.status === '待处理').length;
   const [customerAction, setCustomerAction] = useState<CustomerAction | null>(null);
   const [input, setInput] = useState('');
+  useEffect(() => {
+    const compose = (event: Event) => setInput((event as CustomEvent<string>).detail);
+    window.addEventListener(COMPOSE_EVENT, compose);
+    return () => window.removeEventListener(COMPOSE_EVENT, compose);
+  }, []);
   const [clarifyValue, setClarifyValue] = useState('');
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
   const [queuedChoice, setQueuedChoice] = useState<StageChoice | null>(null);
@@ -339,6 +341,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   }) => {
     const text = raw.trim();
     const attachment = attachmentOverride !== undefined ? attachmentOverride : pendingAttachment;
+    const uploadGate = session?.messages.find(m => m.documentWorkflow?.stage === 'waiting_upload');
+    if (session && uploadGate && attachment) {
+      setInput(''); setPendingAttachment(null);
+      void submitDynamicsSources(session.sessionId, uploadGate.messageId, [{ name: attachment.name, size: 0 }]);
+      return;
+    }
     if (!session || busy) return;
     if (!text && !attachment) return;
     if (isEmbeddedAssistant && replyEmbeddedQa(session.sessionId, new URLSearchParams(location.search).get('embedded'), text, attachment)) {
@@ -573,6 +581,10 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   };
 
   const handleQuickTask = async (raw: string) => {
+    if (raw === '生成应急救援周工作动态') {
+      if (session && !busy) startWeeklyDynamics(session.sessionId, raw);
+      return;
+    }
     const text = normalizeCompletedAction(resolveActionPrompt(raw)) || resolveActionPrompt(raw);
     if (text === '物资核验' || tenderName(text) === '物资核验' || text === '资源数据校验对比' || tenderName(text) === '资源数据校验对比') {
       replyResourceAuditInChat(text);
@@ -694,19 +706,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     !activeConversation || !activeConversation.eventId || activeConversation.eventId.startsWith('evt-blank-')
       ? BLANK_LINK
       : activeConversation.eventId;
-  const linkOptions = useMemo(
-    () => [
-      // title 置空：避免与 Ant Design Tooltip 详情叠出浏览器原生 title
-      { value: BLANK_LINK, label: '未关联事件（空白对话）', title: '' },
-      // Vue 建设场景事件附带阶段，便于对照原型工作台事件列表。
-      ...incidents.map((i) => ({
-        value: i.eventId,
-        label: incidentOptionLabel(i.eventId),
-        title: '',
-      })),
-    ],
-    [],
-  );
   const notifyEventLinked = (conversationId: string, value: string) => {
     const sessionId = useSessionStore.getState().sessionByConversation[conversationId];
     if (!sessionId) return;
@@ -751,31 +750,29 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
 
   // 电脑端：关联灾情放发送钮左侧（右下角）；手机端独立成行，避免 suffix 挤爆输入框
   const isDesktopComposer = useMediaQuery('(min-width: 768px)');
+  const [incidentPickerOpen, setIncidentPickerOpen] = useState(false);
   const incidentSelect = (
-    <Select
-      size="small"
-      variant="borderless"
-      placeholder="选择关联灾情事件"
-      className={`axn-cp-select${compact ? ' axn-cp-select--compact' : ''}${isDesktopComposer ? ' axn-cp-select--inline' : ''}`}
-      classNames={{ popup: { root: compact || isDesktopComposer ? 'axn-cp-select-popup axn-cp-select-popup--compact' : 'axn-cp-select-popup' } }}
-      value={embeddedEventTitle ? 'embedded-current-page' : linkValue}
-      disabled={!!embeddedEventTitle}
-      onChange={handleLinkChange}
-      options={embeddedEventTitle ? [{ value: 'embedded-current-page', label: embeddedEventTitle, title: '' }] : linkOptions}
-      popupMatchSelectWidth={compact || isDesktopComposer ? false : true}
-      labelRender={(props) => (
-        <span className="axn-cp-select-option-label">
-          {embeddedEventTitle ?? (props.value === BLANK_LINK
-            ? '未关联事件'
-            : incidentOptionLabel(String(props.value ?? '')))}
-        </span>
-      )}
-      optionRender={(option) => (
-        <span className="axn-cp-select-option-label">{option.label}</span>
-      )}
-      aria-label="关联灾情"
-      data-testid="chat-link-incident"
-    />
+    <>
+      <button
+        type="button"
+        className={`axn-cp-select${linkValue === BLANK_LINK ? ' is-empty' : ''}`}
+        onClick={() => setIncidentPickerOpen(true)}
+        aria-label="关联灾情"
+        aria-haspopup="dialog"
+        data-testid="chat-link-incident"
+      >
+        <MapPin size={14} aria-hidden />
+        <span className="axn-cp-select-text">{linkValue === BLANK_LINK ? '选择关联灾情事件' : eventDisplayName(linkValue)}</span>
+        <ChevronDown size={12} aria-hidden className="axn-cp-select-caret" />
+      </button>
+      <IncidentPickerModal
+        open={incidentPickerOpen}
+        value={linkValue === BLANK_LINK ? 'none' : linkValue}
+        onClose={() => setIncidentPickerOpen(false)}
+        onSelect={(id) => { if (id !== linkValue) handleLinkChange(id === 'none' ? BLANK_LINK : id); }}
+      />
+    </>
+
   );
 
   const items: BubbleItemType[] = useMemo(() => {
@@ -824,9 +821,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           contentRender: () => m.documentWorkflow ? (
             <DocumentGenerationCard
               message={m}
-              busy={busy}
-              onTask={(prompt) => { void handleQuickTask(prompt); }}
-              onNavigate={(path) => { navigate(path); }}
             />
           ) : (
             <AgentSummonCard

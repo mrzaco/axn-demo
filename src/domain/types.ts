@@ -238,10 +238,12 @@ export interface ChatMessage {
   resourceAudit?: { rows: ResourceLedgerRow[]; checkedAt: string };
   /** 用户消息携带的附件摘要（展示用）。 */
   attachment?: ChatAttachment | null;
+  attachments?: { name: string; size: number }[];
   /** 助手消息：附件用途确认 workflow。 */
   workflow?: AttachmentWorkflow | null;
   documentWorkflow?: {
-    stage: 'collecting' | 'waiting_input' | 'calling' | 'generating' | 'completed' | 'interrupted';
+    /** waiting_upload：素材依赖型文书（周工作动态）在收要素前先等用户上传参考文档/附件。 */
+    stage: 'collecting' | 'waiting_upload' | 'waiting_input' | 'calling' | 'generating' | 'completed' | 'interrupted';
     elements: { label: string; value: string }[];
     collection?: { question: string; answer: string }[];
     collectedCount?: number;
@@ -249,6 +251,10 @@ export interface ChatMessage {
     documentCode?: string;
     documentTitle?: string;
     documentId?: string;
+    /** 生成前需要用户上传的参考文档与附件清单：门在收到上传件之后才放行（周工作动态用）。 */
+    requiredAttachments?: string[];
+    /** 本轮实际收到的上传件，演示环境只留文件名与大小（不落盘、不读取内容）。 */
+    attachments?: { name: string; size: number }[];
   };
   /** 关联灾情切换提示：携带事件 ID，用于「查看时间轴」等结构化动作。 */
   eventBriefingEventId?: string | null;
@@ -794,7 +800,7 @@ export interface Conversation {
 }
 
 /** 一级导航页；'library' 为本次 UI 改版新增的独立文书库入口。 */
-export type NavPage = 'assistant' | 'library' | 'projects' | 'agents' | 'schedules' | 'knowledge';
+export type NavPage = 'assistant' | 'library' | 'projects' | 'agents' | 'schedules' | 'knowledge' | 'controls' | 'controlExamples';
 
 export interface ConversationSettings {
   openRecentOnStart: boolean;

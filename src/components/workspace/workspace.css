@@ -124,8 +124,8 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--axn-border);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #f7fafc 0%, var(--axn-soft) 100%);
+  border-radius: var(--radius-md);
+  background: var(--axn-soft);
   padding: var(--space-2);
   margin: var(--space-3) var(--space-4) 0;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
@@ -159,7 +159,7 @@
   display: inline-block;
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-nest-sm);
 }
 
 /* 图例色块：与图元语义色一一对应（数据可视化调色板，非 UI 主题色） */

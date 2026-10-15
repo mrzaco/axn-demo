@@ -55,7 +55,7 @@ test.describe('安小能主线（要情全链路）', () => {
     await sendChat(page, '查询周边救援资源');
     await waitTaskDone(page, '查询周边救援资源');
     await page.getByRole('button', { name: '查看资源列表' }).first().click();
-    await expect(page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' })).toBeVisible();
+    await expect(page.getByTestId('document-workspace')).toBeVisible();
     await expect(page.getByTestId('resource-tab-list').getByText('一号工程应急救援队').first()).toBeVisible();
     await expect(page.getByTestId('resource-tab-list').getByText('二号应急救援队').first()).toBeVisible();
     await page.getByRole('tab', { name: '态势地图' }).click();
@@ -88,7 +88,7 @@ test.describe('安小能主线（要情全链路）', () => {
     await sendChat(page, '给我处置建议');
     await waitTaskDone(page, '形成处置建议');
     await page.getByRole('button', { name: '查看建议与知识' }).first().click();
-    await expect(page.locator('.ant-drawer', { hasText: '建议与知识（模拟）' })).toBeVisible();
+    await expect(page.locator('.ant-drawer', { hasText: '建议与知识' })).toBeVisible();
     await page.getByRole('button', { name: '采纳为当前建议' }).click();
     await expect(page.getByText('已采纳').first()).toBeVisible();
     await shot('04-proposal');

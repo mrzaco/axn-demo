@@ -50,6 +50,14 @@ export function isRichHtml(value: string): boolean {
   return TAG_PATTERN.test(value);
 }
 
+/** 按段落取可见文本（段间用 \n），版本对比按段比较时用。 */
+export function richTextToLines(value: string): string {
+  const text = isRichHtml(value)
+    ? decodeEntities(value.replace(BLOCK_BOUNDARY, '\n').replace(/<[^>]*>/g, ''))
+    : value;
+  return text.split('\n').map(line => line.replace(/[ \t\u00a0]+/g, ' ').trim()).filter(Boolean).join('\n');
+}
+
 /** 可见文本：字数统计、聊天卡片摘要用（去标签 → 还原实体 → 折叠空白）。 */
 export function richTextToPlain(value: string): string {
   if (!isRichHtml(value)) return value;

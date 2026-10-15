@@ -28,7 +28,7 @@ describe('V2周边资源报告', () => {
     await act(async () => {
       const run = generateEmbeddedAdditionalReport(kind, `new-${kind}`);
       expect(generateEmbeddedAdditionalReport(kind, `new-${kind}`)).toBe(run);
-      await vi.advanceTimersByTimeAsync(3000);
+      await vi.runAllTimersAsync();
       await run;
     });
     const cid = useConversationStore.getState().activeConversationId!;
@@ -51,7 +51,7 @@ describe('V2周边资源报告', () => {
     await act(async () => {
       const run = generateEmbeddedPlanReport('plan-click-test');
       expect(generateEmbeddedPlanReport('plan-click-test')).toBe(run);
-      await vi.advanceTimersByTimeAsync(3000);
+      await vi.runAllTimersAsync();
       await run;
     });
     const cid = useConversationStore.getState().activeConversationId!;
@@ -77,7 +77,7 @@ describe('V2周边资源报告', () => {
     await act(async () => {
       const run = generateEmbeddedAssemblyReport('assembly-click-test');
       expect(generateEmbeddedAssemblyReport('assembly-click-test')).toBe(run);
-      await vi.advanceTimersByTimeAsync(3000);
+      await vi.runAllTimersAsync();
       await run;
     });
     const cid = useConversationStore.getState().activeConversationId!;
@@ -102,7 +102,7 @@ describe('V2周边资源报告', () => {
     await act(async () => {
       run = generateEmbeddedResourceReport('report-click-test');
       expect(generateEmbeddedResourceReport('report-click-test')).toBe(run);
-      await vi.advanceTimersByTimeAsync(3000);
+      await vi.runAllTimersAsync();
       await run;
     });
     const conversation = useConversationStore.getState().activeConversationId!;

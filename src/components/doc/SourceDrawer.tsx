@@ -42,7 +42,7 @@ interface FieldRow {
 
 const FIELD_COLUMNS: TableColumnsType<FieldRow> = [
   { title: '字段', dataIndex: 'key', key: 'key', width: 130 },
-  { title: '值（模拟）', dataIndex: 'value', key: 'value' },
+  { title: '值', dataIndex: 'value', key: 'value' },
 ];
 
 export default function SourceDrawer({ factId, documentId, open, onClose }: SourceDrawerProps) {
@@ -75,7 +75,7 @@ export default function SourceDrawer({ factId, documentId, open, onClose }: Sour
           type="error"
           showIcon
           title="来源无法解析"
-          description={`绑定标识 ${factId} 在本文书范围内无法解析，可能来源缺失或不属于本文书授权范围。校核会以阻断级问题提示（模拟数据）。`}
+          description={`绑定标识 ${factId} 在本文书范围内无法解析，可能来源缺失或不属于本文书授权范围。校核会以阻断级问题提示。`}
         />
       )}
       {derived && <Descriptions column={1} bordered items={[
@@ -145,7 +145,7 @@ export default function SourceDrawer({ factId, documentId, open, onClose }: Sour
             </>
           )}
 
-          <Typography.Paragraph type="secondary" style={{ marginTop: 16, fontSize: 12 }}>
+          <Typography.Paragraph type="secondary" style={{ marginTop: 16, fontSize: 'var(--fs-meta)' }}>
             模拟数据声明：本抽屉展示的来源链路均为种子模拟数据（dataMode: mock），不代表真实系统记录。
           </Typography.Paragraph>
         </Spin>

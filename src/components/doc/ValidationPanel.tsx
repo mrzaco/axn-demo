@@ -74,12 +74,12 @@ function IssueItem({ issue, locate, onAdopt }: IssueItemProps) {
     <div className={`doc-issue-item ${levelMeta.cls}`}>
       <Space wrap size={[6, 2]} align="center">
         <Tag color={levelMeta.color}>{levelMeta.label}</Tag>
-        <Typography.Text strong style={{ fontSize: 13 }}>
+        <Typography.Text strong style={{ fontSize: 'var(--fs-body)' }}>
           {RULE_TITLES[issue.ruleId] ?? issue.ruleId}
         </Typography.Text>
         {issue.fieldKey && <Tag>{issue.fieldKey}</Tag>}
       </Space>
-      <div style={{ fontSize: 13, marginTop: 2 }}>{issue.message}</div>
+      <div style={{ fontSize: 'var(--fs-body)', marginTop: 2 }}>{issue.message}</div>
       {issue.currentValue && (
         <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--axn-muted)', marginTop: 4 }}>当前值：{issue.currentValue}</div>
       )}
@@ -97,7 +97,7 @@ function IssueItem({ issue, locate, onAdopt }: IssueItemProps) {
               采用建议
             </Button>
           </Tooltip>
-          <Typography.Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+          <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)', marginLeft: 8 }}>
             建议：{issue.suggestionText}
           </Typography.Text>
         </div>
@@ -160,9 +160,9 @@ export default function ValidationPanel({ documentId }: ValidationPanelProps) {
       }
       const blockCount = next.issues.filter((issue) => issue.level === 'block').length;
       if (blockCount > 0) {
-        message.error(`校核完成（模拟）：${blockCount} 条阻断级问题，处理后才能提交`);
+        message.error(`校核完成：${blockCount} 条阻断级问题，处理后才能提交`);
       } else {
-        message.success('校核通过（模拟）');
+        message.success('校核通过');
       }
     } catch (error) {
       message.error(error instanceof Error ? error.message : '校核失败');
@@ -207,7 +207,7 @@ export default function ValidationPanel({ documentId }: ValidationPanelProps) {
 
       // 通知编辑器同步最新工作副本（放弃未保存的本地修改）。
       window.dispatchEvent(new CustomEvent('axn:doc-content-replaced'));
-      message.success('已采用建议，旧报告已失效；请显式重新校核（模拟）');
+      message.success('已采用建议，旧报告已失效；请显式重新校核');
     },
     [documentId],
   );
@@ -220,7 +220,7 @@ export default function ValidationPanel({ documentId }: ValidationPanelProps) {
         </Typography.Title>
         <Space size={8}>
           {report && (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
               {fmtTime(report.checkedAt)} · 规则集 v{report.rulesetVersion}
             </Typography.Text>
           )}
@@ -230,14 +230,14 @@ export default function ValidationPanel({ documentId }: ValidationPanelProps) {
         </Space>
       </div>
 
-      {!draft && <Empty description="文书不存在，无法校核（模拟）" style={{ marginTop: 12 }} />}
+      {!draft && <Empty description="文书不存在，无法校核" style={{ marginTop: 12 }} />}
 
       {draft && !report && (
         <Empty
           style={{ marginTop: 12 }}
           description={
-            <span style={{ fontSize: 13 }}>
-              尚未校核：点击「重新校核」对工作副本执行规则校核（模拟规则集，含来源/时间/伤亡/调派等一致性检查）
+            <span style={{ fontSize: 'var(--fs-body)' }}>
+              尚未校核：点击「重新校核」对工作副本执行规则校核（规则集含来源/时间/伤亡/调派等一致性检查）
             </span>
           }
         />
@@ -260,7 +260,7 @@ export default function ValidationPanel({ documentId }: ValidationPanelProps) {
               type="success"
               showIcon
               title="校核通过"
-              description={`未发现问题（规则集 v${report.rulesetVersion}，模拟校核）。`}
+              description={`未发现问题（规则集 v${report.rulesetVersion}）。`}
             />
           )}
           {!hashMismatch && blocks.length === 0 && warnings.length > 0 && (

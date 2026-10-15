@@ -23,6 +23,8 @@ export const PATH_TO_NAV: Record<string, NavPage> = {
   '/agents': 'agents',
   '/schedules': 'schedules',
   '/knowledge': 'knowledge',
+  '/settings/chat-controls': 'controls',
+  '/settings/chat-controls/examples': 'controlExamples',
 };
 
 /** NavPage → URL 路径。代码内跳页统一用 `navigate(NAV_PATH.library)`，不要写路径字面量。 */
@@ -33,6 +35,8 @@ export const NAV_PATH: Record<NavPage, string> = {
   agents: '/agents',
   schedules: '/schedules',
   knowledge: '/knowledge',
+  controls: '/settings/chat-controls',
+  controlExamples: '/settings/chat-controls/examples',
 };
 
 /** URL → store（单向）：只用来驱动侧栏高亮，不参与任何跳转决策。 */

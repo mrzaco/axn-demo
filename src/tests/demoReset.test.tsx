@@ -1,12 +1,8 @@
 /**
- * 演示数据重置入口测试（task #2）：设置面板里的「重置演示数据」确实回到种子状态。
+ * 演示数据重置测试：resetDemoData 确实回到种子状态。
  * 覆盖 store/resetDemo 的收口逻辑（含 sessionStore → documentStore / demoStore 的级联）。
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { App as AntdApp } from 'antd';
-import { fireEvent, render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { ConversationSettingsPanel } from '@/components/nav/GlobalSidebar';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { resetDemoData } from '@/store/resetDemo';
 import { useConversationStore } from '@/store/conversationStore';
 import { useDemoStore } from '@/store/demoStore';
@@ -55,23 +51,4 @@ describe('演示数据重置', () => {
     expectSeedState();
   });
 
-  it('设置面板可完成「重置演示数据」并回调关闭', () => {
-    dirtyAllStores();
-    const onDone = vi.fn();
-    const view = render(
-      // 重置后要在路由里回到首页，所以面板现在依赖 Router 上下文。
-      <MemoryRouter>
-        <AntdApp>
-          <ConversationSettingsPanel onDone={onDone} />
-        </AntdApp>
-      </MemoryRouter>,
-    );
-
-    // 入口在设置面板底部；点击后需二次确认（防现场误触）。
-    fireEvent.click(view.getByRole('button', { name: /重置演示数据/ }));
-    fireEvent.click(view.getByRole('button', { name: '确认重置' }));
-
-    expectSeedState();
-    expect(onDone).toHaveBeenCalledTimes(1);
-  });
 });

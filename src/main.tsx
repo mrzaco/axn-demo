@@ -10,7 +10,7 @@ import './styles/fonts.css';
 import './styles/global.css';
 import AppRoot from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { themeConfig } from './theme';
+import { brandVars, themeConfig } from './theme';
 
 /**
  * 把 antd 设计 token 注入 :root，作为全应用唯一的颜色来源。
@@ -25,17 +25,24 @@ type DesignToken = ReturnType<typeof theme.useToken>['token'];
 function applyDesignTokenVars(token: DesignToken) {
   const vars: Record<string, string> = {
     '--axn-primary': token.colorPrimary,
+    // 主色色阶：antd 由 colorPrimary 生成，组件里不再 color-mix 临时调色
+    '--axn-primary-50': token.colorPrimaryBg,
+    '--axn-primary-100': token.colorPrimaryBorder,
+    '--axn-primary-400': token.colorPrimaryHover,
+    '--axn-primary-500': token.colorPrimary,
+    '--axn-primary-600': token.colorPrimaryActive,
     '--axn-primary-bg': token.colorPrimaryBg,
+    '--axn-primary-text': token.colorPrimaryActive,
     '--axn-text': token.colorText,
     '--axn-muted': token.colorTextSecondary,
     '--axn-faint': token.colorTextTertiary,
     '--axn-border': token.colorBorderSecondary,
+    '--axn-control': token.colorBorder,
     '--axn-surface': token.colorBgContainer,
     '--axn-canvas': token.colorBgLayout,
     '--axn-soft': token.colorFillAlter,
-    '--axn-success': token.colorSuccess,
-    '--axn-warning': token.colorWarning,
-    '--axn-error': token.colorError,
+    // 语义色两档、等级色、分类色等品牌扩展色（theme.ts brandVars）
+    ...brandVars,
   };
   for (const [key, value] of Object.entries(vars)) {
     document.documentElement.style.setProperty(key, value);

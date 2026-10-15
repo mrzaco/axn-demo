@@ -19,7 +19,7 @@ import { startOperationsScheduler } from '@/store/customerOperationsStore';
  * ≤1024px 只收缩助理区列宽，侧栏依旧常驻。
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Drawer } from 'antd';
+import { Drawer, Spin } from 'antd';
 import { Menu } from 'lucide-react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { NAV_PATH, useUrlNavSync } from '@/components/nav/navRoutes';
@@ -32,6 +32,8 @@ import GlobalSidebar from '@/components/nav/GlobalSidebar';
 import WorkspaceSync from '@/components/workspace/WorkspaceSync';
 import EmbeddedResourceReportBridge from '@/components/chat/EmbeddedResourceReportBridge';
 import { SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
+import SplitResizer from '@/components/workspace/SplitResizer';
+import SelectionAssist from '@/components/doc/SelectionAssist';
 
 // URL 路径 → NavPage 映射表与「URL → store」单向同步都放在 navRoutes.ts，
 // 路由表与代码内跳转共用同一套路径。
@@ -60,6 +62,8 @@ const DESKTOP_PORTAL_PATH = '/portal';
 const PHASE1_HOST_PREFIX = '/phase1';
 /** V2 独立原型：应急救援综合协调保障系统，不走安小能主壳。 */
 const V2_PROTOTYPE_PREFIX = '/v2';
+const ChatControlsPage = lazy(() => import('@/components/settings/ChatControlsPage'));
+const ChatBubbleExamplesPage = lazy(() => import('@/components/settings/ChatBubbleExamplesPage'));
 
 /** 工作区抽屉目标（资源/知识面板由对话任务卡触发的抽屉承载）。 */
 export type WorkspaceTab = 'resource' | 'knowledge';
@@ -282,9 +286,11 @@ export default function AppRoot() {
                 <EmbeddedResourceReportBridge />
                 <ChatPanel compact={workspaceOpen} onOpenDrawer={openPanelDrawer} />
               </div>
+              {workspaceOpen && <SplitResizer />}
               {workspaceOpen && (
                 <div className="axn-workspace-pane">
                   <Suspense><DocumentWorkspace /></Suspense>
+                  <SelectionAssist scope=".axn-workspace-pane .axn-redhead-paper, .axn-workspace-pane .doc-paper-editing" />
                 </div>
               )}
             </div>
@@ -301,6 +307,16 @@ export default function AppRoot() {
             </div>
           } />
           <Route path="/library" element={<Suspense><DocumentLibraryPage /></Suspense>} />
+          <Route path="/settings/chat-controls" element={
+            <div className="axn-controls-route" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Suspense fallback={<Spin />}><ChatControlsPage /></Suspense>
+            </div>
+          } />
+          <Route path="/settings/chat-controls/examples" element={
+            <div className="axn-controls-route" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Suspense fallback={<Spin />}><ChatBubbleExamplesPage /></Suspense>
+            </div>
+          } />
           <Route path="/projects" element={
             <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Suspense><NavPageContent page="projects" /></Suspense>

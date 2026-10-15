@@ -1,3 +1,4 @@
+import { resetDemoData } from '@/store/resetDemo';
 /**
  * 全局导航 + 对话历史管理侧栏（UI 改版）：
  * 区域：品牌 / 新建 / 一级导航 /
@@ -11,18 +12,18 @@ import {
   Bot,
   // Clock, // 恢复「定时任务」侧栏入口时一并取回
   // FilePlus, // 恢复「新建任务」按钮时一并取回
-  // FlaskConical, // 恢复「知识库」侧栏入口时一并取回
+  FlaskConical,
   FolderOpen,
   // LayoutGrid, // 恢复「应急项目」侧栏入口时一并取回
   Pin,
   Plus,
-  RotateCcw,
   Search,
   Settings,
   Sparkles,
   Trash2,
+  RotateCcw,
 } from 'lucide-react'
-import { App as AntdApp, Avatar, Button, Divider, Drawer, Dropdown, Empty, Input, Popconfirm, Radio, Tooltip } from 'antd';
+import { App as AntdApp, Avatar, Button, Dropdown, Empty, Input, Radio, Divider, Popconfirm, Tooltip } from 'antd';
 import type { Conversation, ConversationSettings, NavPage } from '@/domain/types';
 import {
   GROUP_LABEL,
@@ -34,8 +35,8 @@ import {
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore, type WorkMode } from '@/store/workspaceStore';
-import { resetDemoData } from '@/store/resetDemo';
 import { actors } from '@/seed/scenario';
+import BrandMark from '@/components/brand/BrandMark';
 import './sidebar.css';
 
 type NavKey = NavPage;
@@ -48,7 +49,6 @@ const NAV: { key: NavKey; label: string; icon: ReactNode }[] = [
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
   { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
-  // { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
 ];
 
 /** 对话与通知设置（轻量展示，需求 2.6）+ 演示数据重置入口（现场一键回到初始场景）。 */
@@ -121,7 +121,7 @@ export function ConversationSettingsPanel({ onDone }: { onDone?: () => void } = 
   );
 }
 
-export default function GlobalSidebar() {
+export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
   const { message, modal } = AntdApp.useApp();
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
@@ -134,12 +134,10 @@ export default function GlobalSidebar() {
   const actorId = useDemoStore((s) => s.actorId);
   const setActor = useDemoStore((s) => s.setActor);
   const actor = useDemoStore((s) => s.getActor());
-  const globalBanner = useDemoStore((s) => s.globalBanner);
   const scope = useActiveScope();
   const setMode = useWorkspaceStore((s) => s.setMode);
 
   const [keyword, setKeyword] = useState('');
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   /** 未保存编辑保护：关闭 / 切换文书、会话或导航前确认（取消保留编辑；继续也不丢弃，工作副本仍在 store 里）。 */
   const guardDirty = useCallback(
@@ -214,12 +212,11 @@ export default function GlobalSidebar() {
     // 但它们只挂在侧栏这个 div 上 —— <main> 里的 NavPages 与 portal 出去的抽屉内容
     // 都继承不到，那些引用实际取不到值（颜色静默回退到继承色）。已整体并入 --axn-*。
     <div className="axn-global-sidebar" data-testid="global-sidebar">
-      {/* 1. 品牌区（左上，保留安小能身份与模拟环境标识） */}
+      {/* 1. 品牌区（左上，保留安小能身份） */}
       <div className="axn-gs-brand">
-        <span className="axn-gs-brand-mark">安</span>
+        <span className="axn-gs-brand-mark"><BrandMark /></span>
         <span className="axn-gs-brand-copy">
           <span className="axn-gs-brand-name">安小能 · 应急智能工作台</span>
-          <span className="axn-gs-brand-sub">{globalBanner}</span>
         </span>
       </div>
 
@@ -259,6 +256,11 @@ export default function GlobalSidebar() {
             onClick={() => {
               if (item.key === 'library') {
                 openLibrary();
+                return;
+              }
+              // 知识库：占位入口，暂不跳转 /knowledge（仅提示）
+              if (item.key === 'knowledge') {
+                message.info('知识库功能建设中');
                 return;
               }
               guardDirty('切换导航页', () => navigate(`/${item.key}`));
@@ -316,7 +318,7 @@ export default function GlobalSidebar() {
 
       {/*
        * 6. 底部账户区：左侧当前用户（头像 + 两行：上行模拟用户名、下行身份），右侧设置按钮。
-       * 设置按钮承载两项：切换用户身份（原底部角色下拉）与对话与通知设置（原底部入口），
+       * 设置按钮承载两项：切换用户身份（原底部角色下拉）与聊天标准控件，
        * 避免底部堆叠多个入口。（关联事件改在对话区头部显示，不占侧栏）
        */}
       <div className="axn-gs-footer">
@@ -345,10 +347,15 @@ export default function GlobalSidebar() {
                   children: actors.map((a) => ({ key: a.actorId, label: <span title={a.name}>{a.name}</span> })),
                 },
                 { type: 'divider' },
-                { key: 'conversation-settings', icon: <Settings size={14} />, label: '对话与通知设置' },
+                { key: 'chat-controls', icon: <FlaskConical size={14} />, label: '聊天标准控件' },
               ],
               onClick: ({ key }) => {
-                if (key === 'conversation-settings') setSettingsOpen(true);
+                if (key === 'chat-controls') {
+                  guardDirty('查看聊天标准控件', () => {
+                    navigate(NAV_PATH.controls);
+                    onClose?.();
+                  });
+                }
                 else setActor(key);
               },
             }}
@@ -360,18 +367,6 @@ export default function GlobalSidebar() {
         </div>
       </div>
 
-      {/*
-       * 设置属于「有内容的二级视图」→ 用 Drawer 承载（Modal 仅用于轻量确认与短表单）。
-       * 反馈范式：message=瞬时结果 / notification=需处理的失败 / Popconfirm·Modal.confirm=破坏性确认。
-       */}
-      <Drawer
-        title="对话与通知设置"
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        size={440}
-      >
-        <ConversationSettingsPanel onDone={() => setSettingsOpen(false)} />
-      </Drawer>
     </div>
   );
 }

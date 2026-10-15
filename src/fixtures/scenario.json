@@ -92,6 +92,240 @@
       "reportingUnitFactId": null,
       "contextVersion": 1,
       "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-003",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-003-title",
+        "location": "fact-incident-003-location",
+        "occurredAt": "fact-incident-003-occurredAt",
+        "disasterType": "fact-incident-003-disasterType",
+        "controlStatus": "fact-incident-003-controlStatus",
+        "incidentDescription": "fact-incident-003-incidentDescription",
+        "impactScope": "fact-incident-003-impactScope",
+        "casualty": "fact-incident-003-casualty",
+        "confirmedResponseLevel": "fact-incident-003-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 380,
+        "y": 200
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-004",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-004-title",
+        "location": "fact-incident-004-location",
+        "occurredAt": "fact-incident-004-occurredAt",
+        "disasterType": "fact-incident-004-disasterType",
+        "controlStatus": "fact-incident-004-controlStatus",
+        "incidentDescription": "fact-incident-004-incidentDescription",
+        "impactScope": "fact-incident-004-impactScope",
+        "casualty": "fact-incident-004-casualty",
+        "confirmedResponseLevel": "fact-incident-004-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 760,
+        "y": 180
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-005",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-005-title",
+        "location": "fact-incident-005-location",
+        "occurredAt": "fact-incident-005-occurredAt",
+        "disasterType": "fact-incident-005-disasterType",
+        "controlStatus": "fact-incident-005-controlStatus",
+        "incidentDescription": "fact-incident-005-incidentDescription",
+        "impactScope": "fact-incident-005-impactScope",
+        "casualty": "fact-incident-005-casualty",
+        "confirmedResponseLevel": "fact-incident-005-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 150,
+        "y": 260
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-006",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-006-title",
+        "location": "fact-incident-006-location",
+        "occurredAt": "fact-incident-006-occurredAt",
+        "disasterType": "fact-incident-006-disasterType",
+        "controlStatus": "fact-incident-006-controlStatus",
+        "incidentDescription": "fact-incident-006-incidentDescription",
+        "impactScope": "fact-incident-006-impactScope",
+        "casualty": "fact-incident-006-casualty",
+        "confirmedResponseLevel": "fact-incident-006-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 520,
+        "y": 560
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-007",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-007-title",
+        "location": "fact-incident-007-location",
+        "occurredAt": "fact-incident-007-occurredAt",
+        "disasterType": "fact-incident-007-disasterType",
+        "controlStatus": "fact-incident-007-controlStatus",
+        "incidentDescription": "fact-incident-007-incidentDescription",
+        "impactScope": "fact-incident-007-impactScope",
+        "casualty": "fact-incident-007-casualty",
+        "confirmedResponseLevel": "fact-incident-007-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 700,
+        "y": 420
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-008",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-008-title",
+        "location": "fact-incident-008-location",
+        "occurredAt": "fact-incident-008-occurredAt",
+        "disasterType": "fact-incident-008-disasterType",
+        "controlStatus": "fact-incident-008-controlStatus",
+        "incidentDescription": "fact-incident-008-incidentDescription",
+        "impactScope": "fact-incident-008-impactScope",
+        "casualty": "fact-incident-008-casualty",
+        "confirmedResponseLevel": "fact-incident-008-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 300,
+        "y": 420
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-009",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-009-title",
+        "location": "fact-incident-009-location",
+        "occurredAt": "fact-incident-009-occurredAt",
+        "disasterType": "fact-incident-009-disasterType",
+        "controlStatus": "fact-incident-009-controlStatus",
+        "incidentDescription": "fact-incident-009-incidentDescription",
+        "impactScope": "fact-incident-009-impactScope",
+        "casualty": "fact-incident-009-casualty",
+        "confirmedResponseLevel": "fact-incident-009-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 90,
+        "y": 120
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-010",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-010-title",
+        "location": "fact-incident-010-location",
+        "occurredAt": "fact-incident-010-occurredAt",
+        "disasterType": "fact-incident-010-disasterType",
+        "controlStatus": "fact-incident-010-controlStatus",
+        "incidentDescription": "fact-incident-010-incidentDescription",
+        "impactScope": "fact-incident-010-impactScope",
+        "casualty": "fact-incident-010-casualty",
+        "confirmedResponseLevel": "fact-incident-010-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 860,
+        "y": 300
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
+    },
+    {
+      "eventId": "evt-demo-011",
+      "orgId": "org-demo-001",
+      "scope": "drill",
+      "factRefs": {
+        "title": "fact-incident-011-title",
+        "location": "fact-incident-011-location",
+        "occurredAt": "fact-incident-011-occurredAt",
+        "disasterType": "fact-incident-011-disasterType",
+        "controlStatus": "fact-incident-011-controlStatus",
+        "incidentDescription": "fact-incident-011-incidentDescription",
+        "impactScope": "fact-incident-011-impactScope",
+        "casualty": "fact-incident-011-casualty",
+        "confirmedResponseLevel": "fact-incident-011-confirmedResponseLevel"
+      },
+      "situationFactRefs": {},
+      "stationId": null,
+      "schematicPosition": {
+        "x": 820,
+        "y": 520
+      },
+      "confirmedDeployments": [],
+      "reportingUnitFactId": null,
+      "contextVersion": 1,
+      "supportedDepth": "context_isolation_and_shift_statistics"
     }
   ],
   "sessions": [
@@ -363,6 +597,249 @@
         "impactScope": "待核实",
         "casualty": "待核实",
         "confirmedResponseLevel": "未提供"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-003",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "漳河镇水位上涨预警",
+        "location": "漳河镇水文站下游 2 公里",
+        "occurredAt": "2026-09-28T18:52:00+08:00",
+        "disasterType": "洪水预警",
+        "controlStatus": "ongoing",
+        "incidentDescription": "漳河镇水文站水位持续上涨，已超警戒水位 0.4 米，沿河低洼地带需预置转移力量。",
+        "impactScope": "漳河镇沿河 3 个行政村、约 1800 名群众（模拟）",
+        "casualty": "暂无人员伤亡（模拟）",
+        "confirmedResponseLevel": "III"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-004",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "G5F13 边坡滑坡",
+        "location": "G5F13 K86+450 右侧边坡",
+        "occurredAt": "2026-09-28T07:15:00+08:00",
+        "disasterType": "公路边坡滑坡",
+        "controlStatus": "ongoing",
+        "incidentDescription": "连续降雨导致路堑边坡局部滑塌，约 300 立方米土方侵占右幅行车道。",
+        "impactScope": "G5F13 K86+300—K86+600 半幅封闭，绕行车辆约 2000 辆/日（模拟）",
+        "casualty": "无人员伤亡，1 辆货车受损（模拟）",
+        "confirmedResponseLevel": "IV"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-005",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "青石岭山洪",
+        "location": "青石岭村上游沟道",
+        "occurredAt": "2026-09-27T23:40:00+08:00",
+        "disasterType": "山洪",
+        "controlStatus": "controlled",
+        "incidentDescription": "短时强降雨引发沟道山洪，冲毁便桥 1 座，已组织下游群众转移。",
+        "impactScope": "青石岭村 2 个组、约 260 名群众已转移（模拟）",
+        "casualty": "1 人轻伤（模拟）",
+        "confirmedResponseLevel": "III"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-006",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "城南水库溢洪道堵塞",
+        "location": "城南水库溢洪道出口",
+        "occurredAt": "2026-09-27T14:20:00+08:00",
+        "disasterType": "水库险情",
+        "controlStatus": "controlled",
+        "incidentDescription": "溢洪道出口被漂浮物与树木堵塞，已调派机械清障，泄流恢复正常。",
+        "impactScope": "水库下游河道沿线（模拟）",
+        "casualty": "无人员伤亡（模拟）",
+        "confirmedResponseLevel": "IV"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-007",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "北岸洼地群众被困",
+        "location": "北岸洼地居民区",
+        "occurredAt": "2026-09-28T19:20:00+08:00",
+        "disasterType": "人员被困",
+        "controlStatus": "ongoing",
+        "incidentDescription": "北岸洼地积水深约 1.2 米，部分群众被困，需冲锋舟转移。",
+        "impactScope": "北岸洼地约 40 户、130 名群众（模拟）",
+        "casualty": "被困 37 人，暂无伤亡（模拟）",
+        "confirmedResponseLevel": "II"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-008",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "东湖片区城市内涝",
+        "location": "东湖片区解放路—建设路",
+        "occurredAt": "2026-09-26T19:05:00+08:00",
+        "disasterType": "城市内涝",
+        "controlStatus": "closed",
+        "incidentDescription": "强降雨致东湖片区多处路段积水，排涝后已恢复通行。",
+        "impactScope": "东湖片区 6 条道路、2 个地下车库（模拟）",
+        "casualty": "无人员伤亡（模拟）",
+        "confirmedResponseLevel": "IV"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-009",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "白沙河左岸漫溢",
+        "location": "白沙河左岸 K3+200",
+        "occurredAt": "2026-09-26T03:30:00+08:00",
+        "disasterType": "堤防漫溢",
+        "controlStatus": "closed",
+        "incidentDescription": "洪峰过境期间左岸低矮段漫溢，经子堤加高后险情解除。",
+        "impactScope": "白沙河左岸农田约 600 亩（模拟）",
+        "casualty": "无人员伤亡（模拟）",
+        "confirmedResponseLevel": "II"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-010",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "西岭隧道口泥石流",
+        "location": "西岭隧道东口",
+        "occurredAt": "2026-09-25T16:10:00+08:00",
+        "disasterType": "泥石流",
+        "controlStatus": "closed",
+        "incidentDescription": "隧道东口沟谷暴发泥石流，堆积体已清除，道路恢复通行。",
+        "impactScope": "西岭隧道双向交通中断约 9 小时（模拟）",
+        "casualty": "无人员伤亡（模拟）",
+        "confirmedResponseLevel": "III"
+      }
+    },
+    {
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceSystem": "接报与事件服务",
+      "sourceTable": "incident",
+      "objectId": "evt-demo-011",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      },
+      "dataMode": "mock",
+      "isSimulated": true,
+      "label": "接报与事件服务（模拟）",
+      "fields": {
+        "title": "临港化工园区雨水外溢",
+        "location": "临港化工园区南门排口",
+        "occurredAt": "2026-09-24T21:45:00+08:00",
+        "disasterType": "次生环境风险",
+        "controlStatus": "closed",
+        "incidentDescription": "园区初期雨水收集池满溢，经应急封堵与监测，未见污染物超标。",
+        "impactScope": "园区南侧排水渠约 1.5 公里（模拟）",
+        "casualty": "无人员伤亡（模拟）",
+        "confirmedResponseLevel": "IV"
       }
     },
     {
@@ -1024,6 +1501,1464 @@
       "scope": {
         "kind": "event",
         "eventId": "evt-demo-002",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-title",
+      "value": "漳河镇水位上涨预警",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-location",
+      "value": "漳河镇水文站下游 2 公里",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-occurredAt",
+      "value": "2026-09-28T18:52:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-disasterType",
+      "value": "洪水预警",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-controlStatus",
+      "value": "ongoing",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-incidentDescription",
+      "value": "漳河镇水文站水位持续上涨，已超警戒水位 0.4 米，沿河低洼地带需预置转移力量。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-impactScope",
+      "value": "漳河镇沿河 3 个行政村、约 1800 名群众（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-casualty",
+      "value": "暂无人员伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-003-confirmedResponseLevel",
+      "value": "III",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-003",
+      "sourceRecordId": "src-incident-003-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T18:52:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-003",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-title",
+      "value": "G5F13 边坡滑坡",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-location",
+      "value": "G5F13 K86+450 右侧边坡",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-occurredAt",
+      "value": "2026-09-28T07:15:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-disasterType",
+      "value": "公路边坡滑坡",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-controlStatus",
+      "value": "ongoing",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-incidentDescription",
+      "value": "连续降雨导致路堑边坡局部滑塌，约 300 立方米土方侵占右幅行车道。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-impactScope",
+      "value": "G5F13 K86+300—K86+600 半幅封闭，绕行车辆约 2000 辆/日（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-casualty",
+      "value": "无人员伤亡，1 辆货车受损（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-004-confirmedResponseLevel",
+      "value": "IV",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-004",
+      "sourceRecordId": "src-incident-004-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T07:15:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-004",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-title",
+      "value": "青石岭山洪",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-location",
+      "value": "青石岭村上游沟道",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-occurredAt",
+      "value": "2026-09-27T23:40:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-disasterType",
+      "value": "山洪",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-controlStatus",
+      "value": "controlled",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-incidentDescription",
+      "value": "短时强降雨引发沟道山洪，冲毁便桥 1 座，已组织下游群众转移。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-impactScope",
+      "value": "青石岭村 2 个组、约 260 名群众已转移（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-casualty",
+      "value": "1 人轻伤（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-005-confirmedResponseLevel",
+      "value": "III",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-005",
+      "sourceRecordId": "src-incident-005-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T23:40:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-005",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-title",
+      "value": "城南水库溢洪道堵塞",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-location",
+      "value": "城南水库溢洪道出口",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-occurredAt",
+      "value": "2026-09-27T14:20:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-disasterType",
+      "value": "水库险情",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-controlStatus",
+      "value": "controlled",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-incidentDescription",
+      "value": "溢洪道出口被漂浮物与树木堵塞，已调派机械清障，泄流恢复正常。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-impactScope",
+      "value": "水库下游河道沿线（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-casualty",
+      "value": "无人员伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-006-confirmedResponseLevel",
+      "value": "IV",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-006",
+      "sourceRecordId": "src-incident-006-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-27T14:20:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-006",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-title",
+      "value": "北岸洼地群众被困",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-location",
+      "value": "北岸洼地居民区",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-occurredAt",
+      "value": "2026-09-28T19:20:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-disasterType",
+      "value": "人员被困",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-controlStatus",
+      "value": "ongoing",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-incidentDescription",
+      "value": "北岸洼地积水深约 1.2 米，部分群众被困，需冲锋舟转移。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-impactScope",
+      "value": "北岸洼地约 40 户、130 名群众（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-casualty",
+      "value": "被困 37 人，暂无伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-007-confirmedResponseLevel",
+      "value": "II",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-007",
+      "sourceRecordId": "src-incident-007-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-28T19:20:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-007",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-title",
+      "value": "东湖片区城市内涝",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-location",
+      "value": "东湖片区解放路—建设路",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-occurredAt",
+      "value": "2026-09-26T19:05:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-disasterType",
+      "value": "城市内涝",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-controlStatus",
+      "value": "closed",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-incidentDescription",
+      "value": "强降雨致东湖片区多处路段积水，排涝后已恢复通行。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-impactScope",
+      "value": "东湖片区 6 条道路、2 个地下车库（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-casualty",
+      "value": "无人员伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-008-confirmedResponseLevel",
+      "value": "IV",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-008",
+      "sourceRecordId": "src-incident-008-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T19:05:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-008",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-title",
+      "value": "白沙河左岸漫溢",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-location",
+      "value": "白沙河左岸 K3+200",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-occurredAt",
+      "value": "2026-09-26T03:30:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-disasterType",
+      "value": "堤防漫溢",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-controlStatus",
+      "value": "closed",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-incidentDescription",
+      "value": "洪峰过境期间左岸低矮段漫溢，经子堤加高后险情解除。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-impactScope",
+      "value": "白沙河左岸农田约 600 亩（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-casualty",
+      "value": "无人员伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-009-confirmedResponseLevel",
+      "value": "II",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-009",
+      "sourceRecordId": "src-incident-009-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-26T03:30:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-009",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-title",
+      "value": "西岭隧道口泥石流",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-location",
+      "value": "西岭隧道东口",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-occurredAt",
+      "value": "2026-09-25T16:10:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-disasterType",
+      "value": "泥石流",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-controlStatus",
+      "value": "closed",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-incidentDescription",
+      "value": "隧道东口沟谷暴发泥石流，堆积体已清除，道路恢复通行。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-impactScope",
+      "value": "西岭隧道双向交通中断约 9 小时（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-casualty",
+      "value": "无人员伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-010-confirmedResponseLevel",
+      "value": "III",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-010",
+      "sourceRecordId": "src-incident-010-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-25T16:10:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-010",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-title",
+      "value": "临港化工园区雨水外溢",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.title.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "title",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-location",
+      "value": "临港化工园区南门排口",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.location.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "location",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-occurredAt",
+      "value": "2026-09-24T21:45:00+08:00",
+      "unit": null,
+      "valueType": "datetime",
+      "sourceFieldId": "mock.incident.occurredAt.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "occurredAt",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-disasterType",
+      "value": "次生环境风险",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.disasterType.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "disasterType",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-controlStatus",
+      "value": "closed",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.controlStatus.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "controlStatus",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-incidentDescription",
+      "value": "园区初期雨水收集池满溢，经应急封堵与监测，未见污染物超标。",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.incidentDescription.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "incidentDescription",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "confirmed",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-impactScope",
+      "value": "园区南侧排水渠约 1.5 公里（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.impactScope.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "impactScope",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-casualty",
+      "value": "无人员伤亡（模拟）",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.casualty.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "casualty",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
+        "orgId": "org-demo-001"
+      }
+    },
+    {
+      "factId": "fact-incident-011-confirmedResponseLevel",
+      "value": "IV",
+      "unit": null,
+      "valueType": "string",
+      "sourceFieldId": "mock.incident.confirmedResponseLevel.evt-demo-011",
+      "sourceRecordId": "src-incident-011-v1",
+      "sourceFieldKey": "confirmedResponseLevel",
+      "sourceVersion": 1,
+      "capturedAt": "2026-09-24T21:45:00+08:00",
+      "verification": "pending",
+      "dataMode": "mock",
+      "scope": {
+        "kind": "event",
+        "eventId": "evt-demo-011",
         "orgId": "org-demo-001"
       }
     },

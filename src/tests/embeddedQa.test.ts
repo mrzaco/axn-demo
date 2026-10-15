@@ -51,7 +51,7 @@ describe('V2嵌套问答', () => {
       : kind === 'assembly' ? generateEmbeddedAssemblyReport('qa-assembly')
       : kind === 'plan' ? generateEmbeddedPlanReport('qa-plan')
       : generateEmbeddedAdditionalReport(kind, `qa-${kind}`);
-    await vi.advanceTimersByTimeAsync(3000);
+    await vi.runAllTimersAsync();
     await run;
     const cid = useConversationStore.getState().activeConversationId!;
     const sid = useSessionStore.getState().sessionByConversation[cid];

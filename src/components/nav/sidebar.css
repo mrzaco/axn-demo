@@ -30,37 +30,26 @@
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
-  background: var(--axn-primary);
-  color: #fff;
+  background: transparent;
+  color: var(--axn-primary);
   font-weight: 600;
   font-size: var(--fs-h4);
 }
+.axn-gs-brand-mark svg { width: 32px; height: 32px; display: block; }
 .axn-gs-brand-copy { min-width: 0; }
 .axn-gs-brand-name {
   display: block;
   font-size: var(--fs-lead);
   font-weight: 600;
   line-height: var(--lh-tight);
-  letter-spacing: -.01em;
   color: var(--axn-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.axn-gs-brand-sub {
-  display: block;
-  font-size: var(--fs-caption);
-  line-height: var(--lh-snug);
-  margin-top: var(--space-0-5);
-  color: var(--axn-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ── 导航菜单 ── */
 .axn-gs-nav {
   display: flex;
@@ -77,13 +66,12 @@
   height: 34px;
   padding: 0 var(--space-2-5);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--axn-muted);
   font: inherit;
   font-size: var(--fs-body);
-  font-weight: 500;
-  letter-spacing: -.005em;
+  font-weight: 400;
   cursor: pointer;
   text-align: left;
   transition: background .12s var(--ease-out), color .12s var(--ease-out);
@@ -105,11 +93,12 @@
 }
 .axn-gs-nav-item:hover svg.lucide { opacity: 1; }
 .axn-gs-nav-item.is-active {
-  background: color-mix(in srgb, var(--axn-primary) 10%, transparent);
-  color: var(--axn-primary);
+  background: var(--axn-surface);
+  color: var(--axn-text);
   font-weight: 600;
+  box-shadow: var(--shadow-xs), 0 0 0 1px var(--axn-border);
 }
-.axn-gs-nav-item.is-active svg.lucide { opacity: 1; }
+.axn-gs-nav-item.is-active svg.lucide { opacity: 1; color: var(--axn-primary); }
 .axn-gs-nav-item:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
@@ -127,26 +116,27 @@
 .axn-gs-new-btn.ant-btn {
   width: 100%;
   height: 34px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: var(--fs-body);
-  font-weight: 500;
-  letter-spacing: -.005em;
+  font-weight: 400;
   gap: var(--space-2);
   transition: background .12s var(--ease-out), border-color .12s var(--ease-out), color .12s var(--ease-out);
 }
 .axn-gs-new-btn.ant-btn svg.lucide { font-size: var(--icon-sm); }
+/* 新建对话：不再用实心主蓝 + 光晕（与输入区主操作抢重心），改为白底描边按钮 */
 .axn-gs-new-btn--solid.ant-btn {
-  background: var(--axn-primary);
-  border-color: var(--axn-primary);
-  color: #fff;
-  box-shadow: var(--shadow-primary);
+  background: var(--axn-surface);
+  border-color: var(--axn-border);
+  color: var(--axn-text);
+  box-shadow: var(--shadow-xs);
 }
 .axn-gs-new-btn--solid.ant-btn:hover {
-  background: color-mix(in srgb, var(--axn-primary) 90%, #000);
-  border-color: color-mix(in srgb, var(--axn-primary) 90%, #000);
-  color: #fff;
-  box-shadow: var(--shadow-primary);
+  background: var(--axn-surface);
+  border-color: color-mix(in srgb, var(--axn-text) 22%, var(--axn-border));
+  color: var(--axn-text);
+  box-shadow: var(--shadow-sm);
 }
+.axn-gs-new-btn--solid.ant-btn svg.lucide { color: var(--axn-primary); }
 .axn-gs-new-btn--ghost.ant-btn {
   border-color: var(--axn-border);
   color: var(--axn-text);
@@ -199,7 +189,7 @@
 .axn-gs-search .ant-input-affix-wrapper {
   height: 32px;
   padding: var(--space-1) var(--space-2-5);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border-color: transparent;
   background: color-mix(in srgb, var(--axn-text) 4%, transparent);
   box-shadow: none;
@@ -235,7 +225,6 @@
   color: var(--axn-muted);
   padding: var(--space-3-5) var(--space-2-5) var(--space-1);
   line-height: var(--lh-snug);
-  letter-spacing: .06em;
   text-transform: uppercase;
   opacity: .8;
 }
@@ -250,14 +239,14 @@
   padding: var(--space-2) var(--space-2-5);
   margin: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
   text-align: left;
   transition: background .12s var(--ease-out);
 }
 .axn-gs-conversation:hover { background: color-mix(in srgb, var(--axn-text) 5%, transparent); }
-.axn-gs-conversation.is-active { background: color-mix(in srgb, var(--axn-primary) 10%, transparent); }
+.axn-gs-conversation.is-active { background: color-mix(in srgb, var(--axn-text) 7%, transparent); }
 
 .axn-gs-conversation-title {
   display: flex;
@@ -266,13 +255,12 @@
   width: 100%;
   min-width: 0;
   font-size: var(--fs-body);
-  font-weight: 500;
-  letter-spacing: -.005em;
+  font-weight: 400;
   color: var(--axn-text);
   line-height: var(--lh-snug);
 }
 .axn-gs-conversation.is-active .axn-gs-conversation-title {
-  color: var(--axn-primary);
+  color: var(--axn-text);
   font-weight: 600;
 }
 .axn-gs-conv-title-text {
@@ -315,13 +303,13 @@
   color: var(--axn-muted);
   cursor: pointer;
   padding: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: var(--fs-meta);
   transition: background .12s var(--ease-out), color .12s var(--ease-out);
 }
 .axn-gs-conv-action:hover {
-  background: color-mix(in srgb, var(--axn-error) 10%, transparent);
-  color: var(--axn-error);
+  background: var(--axn-error-bg);
+  color: var(--axn-error-text);
 }
 /* 置顶按钮：悬停用主色（删除按钮保留上面的危险色） */
 .axn-gs-conv-action--pin:hover {
@@ -378,8 +366,7 @@
 .axn-gs-account-name {
   color: var(--axn-text);
   font-size: var(--fs-body);
-  font-weight: 500;
-  letter-spacing: -.005em;
+  font-weight: 600;
 }
 .axn-gs-account-identity {
   color: var(--axn-muted);
@@ -394,7 +381,7 @@
   height: 30px;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--axn-muted);
   cursor: pointer;
@@ -421,10 +408,12 @@
 }
 
 /* ── NavPages 工具类（间距/字号/宽度已按 token 收敛） ── */
-.axn-np-section { padding: var(--space-2) var(--space-4) var(--space-4); }
+.axn-np-section { padding: 0 var(--space-6) var(--space-6); }
 .axn-np-col { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-3); max-width: var(--measure-form); }
-.axn-np-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--space-3); max-width: var(--measure-wide); }
-.axn-np-grid-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); max-width: var(--measure-wide); }
+/* min(330px, 100%)：auto-fill 不会把轨道压到 minmax 的下限以下，320px 屏幕上 330px 的硬下限
+   会让卡片横向溢出（实测 right=346 > vw=320）。套一层 min() 后容器不足 330px 时轨道跟随容器。 */
+.axn-np-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: var(--space-4); }
+.axn-np-grid-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: var(--space-4); }
 .axn-np-flex-row { display: flex; align-items: center; gap: var(--space-2); }
 .axn-np-flex-1 { flex: 1; min-width: 0; }
 .axn-np-header { display: flex; align-items: baseline; gap: var(--space-3); padding: var(--space-4) var(--space-4) var(--space-1); flex-wrap: wrap; }
@@ -450,5 +439,76 @@
 .axn-np-text-sm { font-size: var(--fs-meta); flex-shrink: 0; }
 .axn-np-k-title { font-size: var(--fs-body); font-weight: 600; }
 /* --axn-warning (#B45309) = 5.02:1；旧值 #d48806 仅 2.87:1 */
-.axn-np-k-notice { font-size: var(--fs-body); color: var(--axn-warning); margin-top: var(--space-0-5); }
+.axn-np-k-notice { font-size: var(--fs-body); color: var(--axn-warning-text); margin-top: var(--space-0-5); }
 .axn-np-full-span { grid-column: 1 / -1; }
+
+/* ── 窄屏（侧栏 = 覆盖式抽屉）：触摸密度 ───────────────────────────
+   侧栏在桌面是常驻 260px 列（鼠标密度：13px 字号 / 34px 行高），
+   ≤767px 变成覆盖式抽屉（断点见 global.css）。实测抽屉里 22/23 个可点目标
+   高度 < 40px，手指点不中；这里只放宽抽屉形态，桌面一律不动。
+   必须放在上方 @media (hover: none) 之后 —— 两者选择器权重相同，靠后者生效。 */
+@media (max-width: 767px) {
+  /* 品牌区：给关闭按钮让位。右侧内边距收到 6px、间距收到 8px，
+     刚好腾出 40×40 的关闭按钮 + 标题区 152px（标题自然宽 150px，不截断）。
+     整体 69 → 62px。 */
+  .axn-gs-brand {
+    gap: var(--space-2);
+    padding: 12px 6px 10px var(--space-3-5);
+  }
+  .axn-gs-brand-copy { flex: 1; }
+  .axn-gs-brand-close {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--axn-muted);
+    cursor: pointer;
+    font-size: var(--fs-h2);
+    transition: background .12s var(--ease-out), color .12s var(--ease-out);
+  }
+  .axn-gs-brand-close:active {
+    background: color-mix(in srgb, var(--axn-text) 8%, transparent);
+    color: var(--axn-text);
+  }
+
+  /* 主要动作 / 导航项 / 搜索：34 / 34 / 32 → 44 / 44 / 40 */
+  .axn-gs-new { padding-bottom: var(--space-3); }
+  .axn-gs-new-btn.ant-btn { height: 44px; font-size: var(--fs-lead); }
+  .axn-gs-new-btn.ant-btn svg.lucide { font-size: var(--fs-h3); }
+  .axn-gs-nav { padding-bottom: var(--space-2); }
+  .axn-gs-nav-item { height: 44px; font-size: var(--fs-lead); }
+  .axn-gs-nav-item svg.lucide { width: 20px; font-size: var(--fs-h2); }
+  .axn-gs-search .ant-input-affix-wrapper { height: 40px; }
+
+  /* 分区标签收紧：3 个标签原来吃 105px（矮屏滚动区只有 271px） */
+  .axn-gs-group-label { padding: 10px var(--space-2-5) 2px; }
+
+  /* 会话行 36 → 48px、字号 13 → 15px；行内操作 36 → 40px，
+     终于留出 8px 纵向余量（此前 36px 按钮顶满 36px 行高，零容错）。 */
+  .axn-gs-conversation {
+    --axn-conv-action-size: 40px;
+    padding: 13px var(--space-2-5);
+  }
+  .axn-gs-conversation-title { font-size: var(--fs-lead); }
+}
+
+/* 统一图标底块 / 状态点 / 计数 —— 与文书库分类图标同一视觉语言 */
+.axn-np-icon-tile { width: 32px; height: 32px; display: inline-grid; place-items: center; flex-shrink: 0; border-radius: var(--radius-md); color: var(--axn-primary); background: var(--axn-primary-bg); font-size: var(--icon-md); }
+.axn-np-icon-tile svg { width: 16px; height: 16px; }
+.axn-np-count { font-size: var(--fs-meta); color: var(--axn-muted); }
+.axn-np-skill.ant-tag { color: var(--axn-text); background: var(--axn-soft); border-color: transparent; }
+.axn-np-status { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--fs-meta); color: var(--axn-success-text); }
+.axn-np-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.axn-np-status.is-idle { color: var(--axn-faint); }
+.axn-np-recent { margin-top: var(--space-6); }
+.axn-np-subhead { margin: 0 0 var(--space-3); font-size: var(--fs-h4); font-weight: 600; color: var(--axn-text); }
+.axn-np-recent-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: var(--axn-surface); }
+.axn-np-recent-list li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.axn-np-recent-list li + li { border-top: 1px solid var(--axn-border); }
+.axn-np-recent-title { flex: 1; min-width: 0; font-size: var(--fs-body); color: var(--axn-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.axn-np-recent-meta { font-size: var(--fs-meta); color: var(--axn-muted); flex-shrink: 0; }
