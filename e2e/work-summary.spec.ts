@@ -16,7 +16,7 @@ for (const entry of ['分类按钮', '对话输入', '快捷操作']) {
     const card = page.getByTestId('document-generation-card').last();
     await expect(card).toContainText('正在收集复盘要素');
     await expect(card.locator('.axn-summary-round').first()).toContainText('总结什么阶段');
-    await expect(card).toContainText('模拟补充 · 已确认');
+    await expect(card).toContainText('资料提取');
     await expect(card).toContainText('待补充', { timeout: 15000 });
     await expect(page.getByTestId('mock-redhead-document')).toHaveCount(0);
     await expect(page.locator('.doc-center .doc-generation')).toContainText('等待补充改进计划');
@@ -34,7 +34,7 @@ for (const entry of ['分类按钮', '对话输入', '快捷操作']) {
       await page.getByPlaceholder(/向安小能发送指令/).fill(answer);
       await page.keyboard.press('Enter');
     }
-    await expect(card).toContainText('用户补充 · 已确认');
+    await expect(card).toContainText('用户补充');
     await expect(page.locator('.doc-center .doc-generation')).toContainText('正在生成文书');
     // 气泡里只有要素收集过程（用户 m00705）：完成信号是末尾那行收尾，不再是「红头文书已生成」那一步
     await expect(card.getByTestId('doc-collect-done')).toBeVisible({ timeout: 15000 });
@@ -48,7 +48,7 @@ for (const entry of ['分类按钮', '对话输入', '快捷操作']) {
     await expect(page.getByLabel('第3节标题')).toHaveValue(/深刻启示/);
     await expect(page.getByLabel('第4节标题')).toHaveValue(/下一步工作/);
     await expect(doc).toContainText(answer);
-    await expect(doc).not.toContainText('模拟补充 · 已确认');
+    await expect(doc).not.toContainText('资料提取');
     await expect(doc).not.toContainText('文书要素（模拟收集）');
   });
 }

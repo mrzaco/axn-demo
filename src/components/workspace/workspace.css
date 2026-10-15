@@ -80,7 +80,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--axn-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--axn-soft);
   padding: var(--space-2);
   margin: var(--space-3) var(--space-4) 0;
@@ -113,7 +113,7 @@
   display: inline-block;
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-nest-sm);
 }
 
 /* 图例色块：与图元语义色一一对应（数据可视化调色板，非 UI 主题色） */

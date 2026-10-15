@@ -30,9 +30,10 @@ import MockDocumentDetail from '@/components/doc/MockDocumentDetail';
 import DocumentDetailToolbar from '@/components/doc/DocumentDetailToolbar';
 import DocumentEditor from '@/components/doc/DocumentEditor';
 import { flattenRuns } from '@/services/contentRuns';
+import PageHeader from '@/components/common/PageHeader';
 import {
-  Bot,
   Calendar,
+  ClipboardCheck,
   ChartColumn,
   ChevronRight,
   FileText,
@@ -205,14 +206,14 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
   const handleValidate = useCallback((documentId: string) => {
     const report = runValidationForDocument(documentId);
     if (!report) {
-      message.warning('文书不存在，无法校核（模拟）');
+      message.warning('文书不存在，无法校核');
       return;
     }
     const blockCount = report.issues.filter((issue) => issue.level === 'block').length;
     if (blockCount > 0) {
-      message.error(`校核完成（模拟）：${blockCount} 条阻断级问题，详见编辑抽屉校核面板`);
+      message.error(`校核完成：${blockCount} 条阻断级问题，详见编辑抽屉校核面板`);
     } else {
-      message.success('校核通过（模拟）');
+      message.success('校核通过');
     }
   }, []);
 
@@ -221,7 +222,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       const report = getReport(draft.documentId);
       const reason = checkSubmit(draft, report);
       if (reason) {
-        message.warning(`无法提交送审（模拟）：${reason}`);
+        message.warning(`无法提交送审：${reason}`);
         return;
       }
       const store = useDocumentStore.getState();
@@ -234,7 +235,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
         submitted: false,
       });
       store.markSubmitted(rev.revisionId, actor.name);
-      message.success(`已提交送审：${draft.title} ${rev.displayVersion}（模拟）`);
+      message.success(`已提交送审：${draft.title} ${rev.displayVersion}`);
     },
     [actor.name, getReport],
   );
@@ -244,12 +245,12 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       const report = getReport(draft.documentId);
       const reason = checkSign(draft, report, actor.role);
       if (reason || !draft.activeRevisionId) {
-        message.warning(`无法签发（模拟）：${reason ?? '缺少送审版本'}`);
+        message.warning(`无法签发：${reason ?? '缺少送审版本'}`);
         return;
       }
       const store = useDocumentStore.getState();
       store.markSigned(draft.activeRevisionId, actor.name, actor.actorId);
-      message.success(`已签发（模拟）：${draft.title}，该版本已锁定，修订请新建草稿`);
+      message.success(`已签发：${draft.title}，该版本已锁定，修订请新建草稿`);
     },
     [actor.actorId, actor.name, actor.role, getReport],
   );
@@ -260,7 +261,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       const store = useDocumentStore.getState();
       const rev = draft.activeRevisionId ? store.getRevision(draft.activeRevisionId) : undefined;
       if (!rev || !rev.signedRecord) {
-        message.warning('仅已签发版本支持修订（模拟）');
+        message.warning('仅已签发版本支持修订');
         return;
       }
       store.beginRevision(draft.documentId, '基于已签发版本开始修订');
@@ -319,7 +320,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
                 size="small"
                 onClick={() => {
                   refreshDraftSnapshot({ documentId: draft.documentId, actorName: actor.name });
-                  message.success('已按最新数据重建快照（模拟）；请重新校核后再提交/签发');
+                  message.success('已按最新数据重建快照；请重新校核后再提交/签发');
                 }}
               >
                 按最新数据重建快照
@@ -336,7 +337,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
             <HintButton
               size="small"
               disabled={draft.lifecycle !== 'submitted' || signReason !== null}
-              hint={draft.lifecycle !== 'submitted' ? '仅待签发状态可签发' : signReason ?? '签发后该版本锁定（模拟）'}
+              hint={draft.lifecycle !== 'submitted' ? '仅待签发状态可签发' : signReason ?? '签发后该版本锁定'}
               onClick={() => handleSign(draft)}
             >
               签发
@@ -375,7 +376,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
     <article className="doc-card doc-detail-paper axn-redhead-paper" data-testid="draft-paper">
       <div className="axn-redhead-org">中国安能建设集团有限公司</div>
       <div className="axn-redhead-type">{templateByCode.get(draft.templateCode)?.name ?? '文 书'}</div>
-      <div className="axn-redhead-no">文书草稿（模拟）</div>
+      <div className="axn-redhead-no">文书草稿</div>
       <div className="axn-redhead-rule" />
       <Tag color="blue">{templateByCode.get(draft.templateCode)?.name}</Tag>
       <Typography.Title level={3}>{draft.working.content.title}</Typography.Title>
@@ -407,11 +408,12 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       className={`doc-center doc-center--${view}`}
       data-testid={view === 'library' ? 'document-library' : 'document-workspace'}
     >
-      {view === 'library' && <header className="doc-agent-header">
-        <span className="doc-agent-avatar"><Bot /></span>
-        <div className="doc-agent-heading"><h2>文书库</h2><p>规范成文，让每一份文书清晰有据</p></div>
-        <Tag className="doc-demo-badge">模拟</Tag>
-      </header>}
+      {view === 'library' && (
+        <PageHeader
+          title="文书库"
+          sub={`规范成文，让每一份文书清晰有据 · 共 ${drafts.length + mockDocuments.length} 份`}
+        />
+      )}
 
       {view === 'workspace' ? (
         generating ? (
@@ -427,8 +429,8 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
                 ? '工作总结要素已收集 5/6 · 请在对话中填写下一步改进措施，提交后继续生成文书'
                 : pendingDocument ? pendingDocument.prompt
                 : generatingCode
-                  ? `生成${DOCUMENT_CATEGORIES.find((category) => category.code === generatingCode)?.name} · 正在编排红头文书（模拟）`
-                  : '正在整理文书资料（模拟）'}
+                  ? `生成${DOCUMENT_CATEGORIES.find((category) => category.code === generatingCode)?.name} · 正在编排红头文书`
+                  : '正在整理文书资料'}
             </Typography.Text>
             <Skeleton active paragraph={{ rows: 8 }} />
           </div>
@@ -440,7 +442,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
             document={selectedMock}
             onClose={onClose}
             onOpenLibrary={onOpenLibrary}
-            onSave={(document) => useMockDocumentStore.getState().update(libraryScope, document)}
+            onSave={(document, meta) => useMockDocumentStore.getState().update(libraryScope, document, meta)}
             onDirtyChange={onDirtyChange}
           />
         ) : selectedDraft ? (
@@ -473,19 +475,12 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
         )
       ) : (
         <div className="doc-center-list">
-          <div className="doc-library-heading">
-            <div>
-              <h3>全部文书 <span>{drafts.length + mockDocuments.length}</span></h3>
-              <p>选择文书查看详情，或按分类生成新文书</p>
-            </div>
-          </div>
-
           <div className="doc-category-grid">
             {DOCUMENT_CATEGORIES.map((category) => (
               <section className="doc-category" key={category.code}>
                 <div className="doc-library-row">
                   <span className={`doc-category-icon doc-category-icon--${category.code}`}>
-                    {category.code === 'DUTY_DAILY' ? <Calendar /> : category.code === 'EMERGENCY_BRIEF' ? <TriangleAlert /> : category.code === 'MEETING_MINUTES' ? <Users /> : <ChartColumn />}
+                    {category.code === 'DUTY_DAILY' ? <Calendar /> : category.code === 'EMERGENCY_BRIEF' ? <TriangleAlert /> : category.code === 'MEETING_MINUTES' ? <Users /> : category.code === 'WORK_SUMMARY' ? <ClipboardCheck /> : <ChartColumn />}
                   </span>
                   <span className="doc-library-copy">
                     <strong>{category.name}</strong>
@@ -507,7 +502,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
                       <span className="doc-file-mark"><FileText /></span>
                       <span className="doc-file-copy">
                         <span>{doc.title}</span>
-                        <small>{doc.date}<span className="doc-file-status">模拟稿</span></small>
+                        <small>{doc.date}</small>
                       </span>
                       <ChevronRight className="doc-file-arrow" aria-hidden />
                     </button>
@@ -519,7 +514,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
 
           {drafts.length > 0 && (
             <div className="doc-library-drafts">
-              <div className="doc-library-heading"><div><h3>业务草稿 <span>{drafts.length}</span></h3><p>由对话任务生成，可校核、送审、签发和导出（模拟数据）</p></div></div>
+              <div className="doc-library-heading"><div><h3>业务草稿 <span>{drafts.length}</span></h3><p>由对话任务生成，可校核、送审、签发和导出</p></div></div>
               {drafts.map((draft) => renderDraftActions(draft))}
             </div>
           )}

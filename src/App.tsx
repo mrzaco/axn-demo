@@ -18,7 +18,7 @@
  * ≤1024px 只收缩助理区列宽，侧栏依旧常驻。
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Drawer } from 'antd';
+import { Drawer, Spin } from 'antd';
 import { Menu } from 'lucide-react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useUrlNavSync } from '@/components/nav/navRoutes';
@@ -29,6 +29,8 @@ import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import ChatPanel from '@/components/chat/ChatPanel';
 import GlobalSidebar from '@/components/nav/GlobalSidebar';
 import WorkspaceSync from '@/components/workspace/WorkspaceSync';
+import SplitResizer from '@/components/workspace/SplitResizer';
+import SelectionAssist from '@/components/doc/SelectionAssist';
 
 // URL 路径 → NavPage 映射表与「URL → store」单向同步都放在 navRoutes.ts，
 // 路由表与代码内跳转共用同一套路径。
@@ -40,6 +42,8 @@ const ResourcePanel = lazy(() => import('@/components/workspace/ResourcePanel'))
 const KnowledgePanel = lazy(() => import('@/components/workspace/KnowledgePanel'));
 const NavPageContent = lazy(() => import('@/components/nav/NavPages').then(m => ({ default: m.NavPageContent })));
 const PrintView = lazy(() => import('@/components/doc/PrintView'));
+const ChatControlsPage = lazy(() => import('@/components/settings/ChatControlsPage'));
+const ChatBubbleExamplesPage = lazy(() => import('@/components/settings/ChatBubbleExamplesPage'));
 
 /** 工作区抽屉目标（资源/知识面板由对话任务卡触发的抽屉承载）。 */
 export type WorkspaceTab = 'resource' | 'knowledge';
@@ -201,14 +205,26 @@ export default function AppRoot() {
               <div className="axn-chat-pane">
                 <ChatPanel compact={workspaceOpen} onOpenDrawer={(target: 'resource' | 'knowledge') => setPanelDrawer(target)} />
               </div>
+              {workspaceOpen && <SplitResizer />}
               {workspaceOpen && (
                 <div className="axn-workspace-pane">
                   <Suspense><DocumentWorkspace /></Suspense>
+                  <SelectionAssist scope=".axn-workspace-pane .axn-redhead-paper, .axn-workspace-pane .doc-paper-editing" />
                 </div>
               )}
             </div>
           } />
           <Route path="/library" element={<Suspense><DocumentLibraryPage /></Suspense>} />
+          <Route path="/settings/chat-controls" element={
+            <div className="axn-controls-route" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Suspense fallback={<Spin />}><ChatControlsPage /></Suspense>
+            </div>
+          } />
+          <Route path="/settings/chat-controls/examples" element={
+            <div className="axn-controls-route" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Suspense fallback={<Spin />}><ChatBubbleExamplesPage /></Suspense>
+            </div>
+          } />
           <Route path="/projects" element={
             <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Suspense><NavPageContent page="projects" /></Suspense>
@@ -233,10 +249,10 @@ export default function AppRoot() {
         </Routes>
       </main>
 
-      <Drawer title="资源与态势（模拟）" size={760} open={panelDrawer === 'resource'} onClose={() => setPanelDrawer(null)} destroyOnHidden>
+      <Drawer title="资源与态势" size={760} open={panelDrawer === 'resource'} onClose={() => setPanelDrawer(null)} destroyOnHidden>
         <Suspense>{panelDrawer === 'resource' && <ResourcePanel />}</Suspense>
       </Drawer>
-      <Drawer title="建议与知识（模拟）" size={560} open={panelDrawer === 'knowledge'} onClose={() => setPanelDrawer(null)} destroyOnHidden>
+      <Drawer title="建议与知识" size={560} open={panelDrawer === 'knowledge'} onClose={() => setPanelDrawer(null)} destroyOnHidden>
         <Suspense>{panelDrawer === 'knowledge' && <KnowledgePanel />}</Suspense>
       </Drawer>
       <Suspense><PrintView /></Suspense>

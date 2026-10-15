@@ -76,12 +76,12 @@ export default function SchematicMap({
       <svg
         viewBox={viewBoxStr}
         role="img"
-        aria-label="救援力量空间示意图（模拟）"
+        aria-label="救援力量空间示意图"
         onClick={() => onSelectResourceId?.(null)}
       >
         {/* 河道 */}
-        <path d={riverPath} fill="none" stroke="#a8cdf5" strokeWidth={18} strokeLinecap="round" opacity={0.7} />
-        <path d={riverPath} fill="none" stroke="#69a5ef" strokeWidth={8} strokeLinecap="round" opacity={0.8} />
+        <path d={riverPath} fill="none" stroke="var(--axn-map-water)" strokeWidth={18} strokeLinecap="round" opacity={0.7} />
+        <path d={riverPath} fill="none" stroke="var(--axn-map-water-deep)" strokeWidth={8} strokeLinecap="round" opacity={0.8} />
 
         {/* 水位站（菱形） */}
         {station.eventId === eventId && <g>
@@ -99,7 +99,7 @@ export default function SchematicMap({
           <g key={m.id}>
             <title>{`${m.name}（模拟事件）`}</title>
             <circle cx={m.x} cy={m.y} r={9} fill="var(--axn-legend-event)" stroke={token.colorBgContainer} strokeWidth={2} />
-            <text x={m.x + 13} y={m.y + 4} fontSize={12} fill="#ad4e00">
+            <text x={m.x + 13} y={m.y + 4} fontSize={12} fill="var(--axn-warning-text)">
               {m.name}
             </text>
           </g>
@@ -117,7 +117,7 @@ export default function SchematicMap({
                 stroke={selected ? 'var(--axn-map-active)' : token.colorPrimaryActive}
                 strokeWidth={selected ? 3 : 1.5}
               />
-              <text x={m.x} y={m.y + 22} fontSize={11} textAnchor="middle" fill="#1c4d80">
+              <text x={m.x} y={m.y + 22} fontSize={11} textAnchor="middle" fill="var(--axn-primary-text)">
                 {m.name}
               </text>
             </g>
@@ -132,7 +132,7 @@ export default function SchematicMap({
           const strokeWidth = selected ? 3 : highlighted ? 2.5 : 1.5;
           return (
             <g key={m.id} onClick={pickMarker(m.id)}>
-              <title>{`${m.name}${highlighted ? ' · 候选力量（≠已调派）' : ''}（模拟）`}</title>
+              <title>{`${m.name}${highlighted ? ' · 候选力量（≠已调派）' : ''}`}</title>
               {highlighted && <rect x={m.x - 12} y={m.y - 12} width={24} height={24} rx={5} fill="none" stroke={token.colorPrimary} strokeWidth={1.2} opacity={0.6} />}
               <rect
                 x={m.x - 9}
@@ -144,7 +144,7 @@ export default function SchematicMap({
                 stroke={stroke}
                 strokeWidth={strokeWidth}
               />
-              <text x={m.x} y={m.y + 24} fontSize={11} textAnchor="middle" fill="#26641a">
+              <text x={m.x} y={m.y + 24} fontSize={11} textAnchor="middle" fill="var(--axn-success-text)">
                 {m.name}
               </text>
             </g>

@@ -53,7 +53,7 @@ export default function PrintView() {
       onClose={() => setOpen(false)}
       extra={
         <Space>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
             在打印对话框中选择“另存为 PDF”
           </Typography.Text>
           <Button type="primary" icon={<Printer />} disabled={!!guard} onClick={() => { const reason = revisionId ? useDocumentStore.getState().getRevisionGuard(revisionId, 'export') : '请选择版本'; if (reason) message.warning(reason); else window.print(); }}>
@@ -63,18 +63,18 @@ export default function PrintView() {
       }
     >
       <Typography.Paragraph type="warning" style={{ fontSize: 'var(--fs-body)' }}>
-        打印内容来自你选定的版本（{rendered?.version ?? '工作副本'}），与 Word 导出同源；全部为模拟数据。
+        打印内容来自你选定的版本（{rendered?.version ?? '工作副本'}），与 Word 导出同源。
         本按钮不会直接生成 PDF 文件，请在系统打印对话框中选择“另存为 PDF”。
       </Typography.Paragraph>
       {rendered && draft && (
         <div style={{ border: '1px solid var(--axn-border)', borderRadius: 8, padding: 24, background: 'var(--axn-surface)' }}>
-          <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 700 }}>{rendered.title}</div>
+          <div style={{ textAlign: 'center', fontSize: 'var(--fs-h1)', fontWeight: 600 }}>{rendered.title}</div>
           <div style={{ textAlign: 'center', color: 'var(--axn-muted)', fontSize: 'var(--fs-meta)', margin: '4px 0 16px' }}>
             {rendered.templateName} · {rendered.version} · 内容指纹 {rendered.contentHash}
           </div>
           {rendered.sections.map((s) => (
             <div key={s.sectionId} style={{ marginBottom: 8 }}>
-              <div style={{ fontWeight: 700, margin: '10px 0 4px' }}>{s.title}</div>
+              <div style={{ fontWeight: 600, margin: '10px 0 4px' }}>{s.title}</div>
               {s.paragraphs.map((t, i) => (
                 <p key={i} style={{ margin: '4px 0', textIndent: '2em', lineHeight: 1.8 }}>
                   {t}

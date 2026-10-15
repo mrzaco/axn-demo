@@ -140,7 +140,7 @@ const FactChip = Node.create<{ snapshot: SourceSnapshot | null }>({
         'data-fact-chip': factId,
         tabindex: '0', role: 'button',
         class: missing ? 'fact-chip fact-chip--missing' : 'fact-chip',
-        title: '点击查看数据来源（模拟）',
+        title: '点击查看数据来源',
       },
       `${fact ? formatFactValue(fact.value, fact.unit, fact.sourceFieldKey) : '（来源缺失）'}${suffix}`,
     ];
@@ -204,7 +204,7 @@ const KnowledgeRef = Node.create({
     const label = typeof node.attrs.label === 'string' && node.attrs.label.length > 0 ? node.attrs.label : '知识条目';
     return [
       'span',
-      { 'data-knowledge-chunk': String(node.attrs.chunkId ?? ''), class: 'doc-knowledge-ref', title: '知识引用（模拟）' },
+      { 'data-knowledge-chunk': String(node.attrs.chunkId ?? ''), class: 'doc-knowledge-ref', title: '知识引用' },
       `『${label}』`,
     ];
   },
@@ -529,7 +529,7 @@ function EditorSurface({ draft, locked, signedVersion, onCloseRequest, onDirtyCh
         window.dispatchEvent(new CustomEvent('axn:doc-open', { detail: { documentId: newDraft.documentId } }));
         onCloseRequest();
       } catch (err) {
-        message.error(err instanceof Error ? err.message : '修订创建失败（模拟）');
+        message.error(err instanceof Error ? err.message : '修订创建失败');
       }
       return;
     }
@@ -548,7 +548,7 @@ function EditorSurface({ draft, locked, signedVersion, onCloseRequest, onDirtyCh
     });
     setDirty(false);
     onDirtyChange(false);
-    message.success('工作副本已保存（模拟）；原校核结果已失效，请重新校核');
+    message.success('工作副本已保存；原校核结果已失效，请重新校核');
   };
 
   return (
@@ -576,8 +576,8 @@ function EditorSurface({ draft, locked, signedVersion, onCloseRequest, onDirtyCh
               <Tag color="orange">数据过期</Tag>
             </Tooltip>
           )}
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            来源快照：{draft.snapshot.label} · {fmtTime(draft.snapshot.takenAt)}（模拟）
+          <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
+            来源快照：{draft.snapshot.label} · {fmtTime(draft.snapshot.takenAt)}
           </Typography.Text>
         </Space>
       </div>
@@ -604,7 +604,7 @@ function EditorSurface({ draft, locked, signedVersion, onCloseRequest, onDirtyCh
           >
             <Button size="small">插入派生值</Button>
           </Dropdown>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
             点击正文中的蓝色数据芯片可查看来源
           </Typography.Text>
         </Space>
@@ -634,8 +634,8 @@ function EditorSurface({ draft, locked, signedVersion, onCloseRequest, onDirtyCh
           {dirty && <Tag color="blue">有未保存修改</Tag>}
           <ValidationStatusTag status={draft.validation.status} />
           {!editable && <Tag color="red">已锁定</Tag>}
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            模拟数据 · 编辑后旧校核立即失效，需重新校核才能提交
+          <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
+            编辑后旧校核立即失效，需重新校核才能提交
           </Typography.Text>
         </Space>
       </div>

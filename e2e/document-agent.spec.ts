@@ -98,7 +98,7 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
     if (name === '应急要情') {
       await expect(figures).toBeVisible();
       await expect(figures.locator('figure')).toHaveCount(2);
-      await expect(figures).toContainText('图2　现场指挥组与抢险队伍会商处置方案（模拟）');
+      await expect(figures).toContainText('图2　现场指挥组与抢险队伍会商处置方案');
     } else {
       await expect(figures).toHaveCount(0);
     }
@@ -177,6 +177,26 @@ test('周工作动态：先在气泡卡片里上传参考文档与附件，再�
   await expect(tables).toContainText('61.35');    // 附件3：三局新疆公司合同金额
   // 附件1 的「分类」列是真件里的合并单元格（每组跳三行）
   await expect(tables.locator('th[rowspan="3"]')).toHaveCount(5);
+});
+
+test('文书停止输入后自动保存，刷新后内容保留', async ({ page }) => {
+  await page.goto('/');
+  await openLibrary(page);
+  await page.getByTestId('document-library').locator('.doc-sample-row').first().click();
+  const panel = page.getByTestId('document-workspace');
+  const title = panel.getByRole('textbox', { name: '文书标题', exact: true });
+  await title.fill('南堤情况报告（自动保存验证）');
+  await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
+  await expect(panel.getByTestId('document-toolbar')).toContainText('已自动保存', { timeout: 8000 });
+  await expect(page.getByTestId('mock-dirty-note')).toHaveCount(0);
+  await expect(panel.getByTestId('doc-version-toggle')).toHaveText('V2');
+  await title.fill('南堤情况报告（再次自动保存）');
+  await expect(panel.getByTestId('document-toolbar')).toContainText('已自动保存', { timeout: 8000 });
+  await expect(panel.getByTestId('doc-version-toggle')).toHaveText('V2');
+  await page.reload();
+  await openLibrary(page);
+  await page.getByTestId('document-library').locator('.doc-sample-row').filter({ hasText: '南堤情况报告（再次自动保存）' }).click();
+  await expect(title).toHaveValue('南堤情况报告（再次自动保存）');
 });
 
 test('模拟文书详情就是编辑态：边改边存、放弃修改、导出为预览', async ({ page }) => {

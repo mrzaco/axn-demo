@@ -36,7 +36,7 @@ test('空白对话提示关联灾情，关联后可正常生成摘要', async ({
   await expect(card).toContainText('待补充信息');
   await expect(card).not.toContainText('INTERNAL');
   await page.getByTestId('chat-link-incident').click();
-  await page.locator('.ant-select-item-option', { hasText: '清河段堤防险情' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
   await clickQuickTask(page, '态势感知', '灾情摘要');
   await expect(page.getByTestId('agent-summon-card').last()).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
   await expect(page.getByTestId('agent-summon-card').last()).toContainText('人员伤亡情况');

@@ -33,7 +33,7 @@ import {
   missingBriefFields,
   missingDailyFields,
 } from '../documentFactory.js';
-import { ensureQaLoaded, getQaItem, matchQa, qaStatusLabel } from '../qaKnowledge.js';
+import { ensureQaLoaded, getQaItem, matchQa } from '../qaKnowledge.js';
 
 /**
  * 未命中任何演示意图（输入框自由文本）时的默认回复。
@@ -686,10 +686,11 @@ async function* runQaKnowledge(req: Ctx, signal: AbortSignal, paceMs: number): A
       },
     },
   };
-  // 答案全文已在 QA 知识卡中展示，流式文本仅补充来源提示，避免同一回答出现两次
+  // 答案全文已在 QA 知识卡中展示；流式文本只做一句引导语（渲染在卡片之上），
+  // 不重复置信度、也不再写「见上方」这类与实际位置相反的指代。
   yield {
     type: 'text_delta',
-    text: `以上为结构化回答（模拟数据），来源与依据见上方知识卡；置信度 ${Math.round(item.confidence * 100)}%，${qaStatusLabel(item.answerStatus)}。`,
+    text: `已检索 ${item.sources.length} 份知识文档，结论与处置要点如下。`,
   };
   await sleep(paceMs, signal);
   assertActive(req);

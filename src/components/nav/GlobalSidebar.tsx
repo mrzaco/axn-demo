@@ -1,8 +1,8 @@
 /**
  * 全局导航 + 对话历史管理侧栏（UI 改版）：
- * 区域：品牌（左上，保留安小能身份与模拟环境标识）/ 一级功能导航（含独立「文书库」）/
+ * 区域：品牌（左上，保留安小能身份）/ 一级功能导航（含独立「文书库」）/
  * 新建（新建对话=对话模式；「新建任务」工作模式入口暂时下线）/ 搜索 / 历史会话 / 底部账户区
- * （当前用户头像 + 名称 + 设置菜单：切换用户身份、对话与通知设置）。
+ * （当前用户头像 + 名称 + 设置菜单：切换用户身份、聊天标准控件）。
  * 改版要点：原全宽业务页头移除，其承载项下移至侧栏底部；折叠与收藏功能保持移除状态。
  * 全部数据为模拟数据。
  */
@@ -18,15 +18,14 @@ import {
   // LayoutGrid, // 恢复「应急项目」侧栏入口时一并取回
   Pin,
   Plus,
-  RotateCcw,
   Search,
   Settings,
   Sparkles,
   Trash2,
   X,
 } from 'lucide-react'
-import { App as AntdApp, Avatar, Button, Divider, Drawer, Dropdown, Empty, Input, Popconfirm, Radio, Tooltip } from 'antd';
-import type { Conversation, ConversationSettings, NavPage } from '@/domain/types';
+import { App as AntdApp, Avatar, Button, Dropdown, Empty, Input, Popconfirm, Tooltip } from 'antd';
+import type { Conversation, NavPage } from '@/domain/types';
 import {
   GROUP_LABEL,
   groupOf,
@@ -37,8 +36,8 @@ import {
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore, type WorkMode } from '@/store/workspaceStore';
-import { resetDemoData } from '@/store/resetDemo';
 import { actors } from '@/seed/scenario';
+import BrandMark from '@/components/brand/BrandMark';
 import './sidebar.css';
 
 type NavKey = NavPage;
@@ -58,76 +57,6 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
 ];
 
-/** 对话与通知设置（轻量展示，需求 2.6）+ 演示数据重置入口（现场一键回到初始场景）。 */
-export function ConversationSettingsPanel({ onDone }: { onDone?: () => void } = {}) {
-  const settings = useConversationStore((s) => s.settings);
-  const updateSettings = useConversationStore((s) => s.updateSettings);
-  const { message } = AntdApp.useApp();
-  const navigate = useNavigate();
-  const items: { key: keyof ConversationSettings; label: string; desc: string }[] = [
-    { key: 'openRecentOnStart', label: '默认进入最近会话', desc: '打开工作台时自动恢复上次的活跃会话' },
-    { key: 'notifyTaskDone', label: '任务完成提醒', desc: '模拟任务完成时在会话列表更新状态' },
-    { key: 'notifyDocReady', label: '文书生成提醒', desc: '生成文书后标记会话状态为处理中' },
-    { key: 'demoMode', label: '模拟模式', desc: '显示环境横幅与模拟数据标识（始终为模拟环境）' },
-  ];
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 4 }}>
-      {items.map((item) => {
-        const patch: Partial<ConversationSettings> = {};
-        return (
-          <div key={item.key}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 'var(--fs-body)', fontWeight: 600, color: 'var(--axn-text)' }}>{item.label}</span>
-              <Radio.Group
-                size="small"
-                value={settings[item.key] ? 'on' : 'off'}
-                onChange={(e) => {
-                  patch[item.key] = e.target.value === 'on';
-                  updateSettings(patch);
-                }}
-              >
-                <Radio.Button value="on">开</Radio.Button>
-                <Radio.Button value="off">关</Radio.Button>
-              </Radio.Group>
-            </div>
-            <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)', marginTop: 4 }}>{item.desc}</div>
-          </div>
-        );
-      })}
-      <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)' }}>
-        以上均为模拟环境的轻量设置（模拟数据），不连接真实通知渠道。
-      </div>
-
-      <Divider style={{ margin: 0 }} />
-
-      <div>
-        <div style={{ fontSize: 'var(--fs-body)', fontWeight: 600, color: 'var(--axn-text)' }}>演示数据</div>
-        <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)', margin: '4px 0 8px' }}>
-          把模拟会话、文书与工作台状态全部恢复为初始场景，便于重新演示（不可撤销）。
-        </div>
-        <Popconfirm
-          title="重置演示数据？"
-          description="当前模拟会话、文书、审计记录与工作台状态都会回到初始场景。"
-          okText="确认重置"
-          cancelText="取消"
-          okButtonProps={{ danger: true }}
-          onConfirm={() => {
-            resetDemoData();
-            // 重置后导航也回到首页；URL 是唯一权威，所以这里显式跳转（store 不再回推 URL）。
-            navigate(NAV_PATH.assistant);
-            message.success('已恢复为初始演示数据。');
-            onDone?.();
-          }}
-        >
-          <Button danger size="small" icon={<RotateCcw />}>
-            重置演示数据
-          </Button>
-        </Popconfirm>
-      </div>
-    </div>
-  );
-}
-
 export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
   const { message, modal } = AntdApp.useApp();
   const conversations = useConversationStore((s) => s.conversations);
@@ -141,12 +70,10 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
   const actorId = useDemoStore((s) => s.actorId);
   const setActor = useDemoStore((s) => s.setActor);
   const actor = useDemoStore((s) => s.getActor());
-  const globalBanner = useDemoStore((s) => s.globalBanner);
   const scope = useActiveScope();
   const setMode = useWorkspaceStore((s) => s.setMode);
 
   const [keyword, setKeyword] = useState('');
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   /** 未保存编辑保护：关闭 / 切换文书、会话或导航前确认（取消保留编辑；继续也不丢弃，工作副本仍在 store 里）。 */
   const guardDirty = useCallback(
@@ -216,12 +143,11 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
     // 但它们只挂在侧栏这个 div 上 —— <main> 里的 NavPages 与 portal 出去的抽屉内容
     // 都继承不到，那些引用实际取不到值（颜色静默回退到继承色）。已整体并入 --axn-*。
     <div className="axn-global-sidebar" data-testid="global-sidebar">
-      {/* 1. 品牌区（左上，保留安小能身份与模拟环境标识） */}
+      {/* 1. 品牌区（左上，保留安小能身份） */}
       <div className="axn-gs-brand">
-        <span className="axn-gs-brand-mark">安</span>
+        <span className="axn-gs-brand-mark"><BrandMark /></span>
         <span className="axn-gs-brand-copy">
           <span className="axn-gs-brand-name">安小能 · 应急智能工作台</span>
-          <span className="axn-gs-brand-sub">{globalBanner}</span>
         </span>
         {/* 抽屉形态下的关闭出口：桌面侧栏是常驻列、不存在「关闭」，所以由父级决定是否传入。
             在此之前只能点遮罩关闭，而窄屏上遮罩只剩 60px（320 - 260），手机上又没有 Esc。 */}
@@ -278,7 +204,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
               }
               // 知识库：占位入口，暂不跳转 /knowledge（仅提示）
               if (item.key === 'knowledge') {
-                message.info('知识库功能建设中（模拟演示）');
+                message.info('知识库功能建设中');
                 return;
               }
               guardDirty('切换导航页', () => navigate(`/${item.key}`));
@@ -336,7 +262,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
 
       {/*
        * 6. 底部账户区：左侧当前用户（头像 + 两行：上行模拟用户名、下行身份），右侧设置按钮。
-       * 设置按钮承载两项：切换用户身份（原底部角色下拉）与对话与通知设置（原底部入口），
+       * 设置按钮承载两项：切换用户身份（原底部角色下拉）与聊天标准控件，
        * 避免底部堆叠多个入口。（关联事件改在对话区头部显示，不占侧栏）
        */}
       <div className="axn-gs-footer">
@@ -365,10 +291,15 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
                   children: actors.map((a) => ({ key: a.actorId, label: <span title={a.name}>{a.name}</span> })),
                 },
                 { type: 'divider' },
-                { key: 'conversation-settings', icon: <Settings size={14} />, label: '对话与通知设置' },
+                { key: 'chat-controls', icon: <FlaskConical size={14} />, label: '聊天标准控件' },
               ],
               onClick: ({ key }) => {
-                if (key === 'conversation-settings') setSettingsOpen(true);
+                if (key === 'chat-controls') {
+                  guardDirty('查看聊天标准控件', () => {
+                    navigate(NAV_PATH.controls);
+                    onClose?.();
+                  });
+                }
                 else setActor(key);
               },
             }}
@@ -380,18 +311,6 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         </div>
       </div>
 
-      {/*
-       * 设置属于「有内容的二级视图」→ 用 Drawer 承载（Modal 仅用于轻量确认与短表单）。
-       * 反馈范式：message=瞬时结果 / notification=需处理的失败 / Popconfirm·Modal.confirm=破坏性确认。
-       */}
-      <Drawer
-        title="对话与通知设置"
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        size={440}
-      >
-        <ConversationSettingsPanel onDone={() => setSettingsOpen(false)} />
-      </Drawer>
     </div>
   );
 }

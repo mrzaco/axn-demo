@@ -132,9 +132,9 @@ function RevisionActions({ rev }: RevisionActionsProps) {
       // 否则打开文书区就会连同文书工作区一起白下这一大块。
       const { exportRevision } = await import('@/services/docxExport');
       await exportRevision(rev.revisionId);
-      message.success(`已导出 Word：${rev.displayVersion}（模拟导出，基于该版本冻结数据渲染）`);
+      message.success(`已导出 Word：${rev.displayVersion}（基于该版本冻结数据渲染）`);
     } catch (error) {
-      message.error(`导出失败（模拟环境）：${error instanceof Error ? error.message : '未知错误'}`);
+      message.error(`导出失败：${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setExporting(false);
     }
@@ -214,15 +214,15 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
             type="info"
             showIcon
             style={{ marginBottom: 12 }}
-            title="版本说明（模拟）"
+            title="版本说明"
             description="保存/提交/签发都会形成不可变版本快照；导出与打印严格基于所选版本的冻结来源快照渲染，监测数据更新不会影响已存版本。"
           />
 
           {revisions.length === 0 && (
             <Empty
               description={
-                <span style={{ fontSize: 13 }}>
-                  暂无版本：保存或提交工作副本后，这里会出现第一个版本快照（模拟）。
+                <span style={{ fontSize: 'var(--fs-body)' }}>
+                  暂无版本：保存或提交工作副本后，这里会出现第一个版本快照。
                 </span>
               }
             />
@@ -244,13 +244,13 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
                   ) : (
                     <Tag>草稿保存</Tag>
                   )}
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-meta)' }}>
                     {fmtTime(rev.createdAt)} · {rev.createdBy}
                   </Typography.Text>
                 </Space>
                 <RevisionActions rev={rev} />
               </div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>
+              <div style={{ fontSize: 'var(--fs-body)', marginTop: 4 }}>
                 变更说明：{rev.changeNote ?? '（无）'}
               </div>
               <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--axn-muted)', marginTop: 4 }}>
@@ -258,7 +258,7 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
                 {rev.signedRecord && (
                   <>
                     {' '}· 签发指纹一致
-                    {rev.signedRecord.contentHash === rev.contentHash ? ' ✓' : '（不一致，模拟数据异常）'}
+                    {rev.signedRecord.contentHash === rev.contentHash ? ' ✓' : '（不一致，数据异常）'}
                   </>
                 )}
               </div>
@@ -271,7 +271,7 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
                 版本差异对比
               </Typography.Title>
               <Space size={8} wrap style={{ marginBottom: 8 }}>
-                <span style={{ fontSize: 13 }}>基准版本：</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>基准版本：</span>
                 <Select
                   size="small"
                   style={{ minWidth: 230 }}
@@ -280,7 +280,7 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
                   onChange={setBaseId}
                   placeholder="选择基准版本"
                 />
-                <span style={{ fontSize: 13 }}>对比版本：</span>
+                <span style={{ fontSize: 'var(--fs-body)' }}>对比版本：</span>
                 <Select
                   size="small"
                   style={{ minWidth: 230 }}
@@ -291,14 +291,14 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
                 />
               </Space>
               {baseRev && targetRev && baseRev.revisionId === targetRev.revisionId && (
-                <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 'var(--fs-body)' }}>
                   基准与对比为同一版本，暂无差异。
                 </Typography.Text>
               )}
               {baseRev && targetRev && baseRev.revisionId !== targetRev.revisionId && (
                 <>
                   <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)', marginBottom: 8 }}>
-                    {baseRev.displayVersion} → {targetRev.displayVersion}：绿色为新增内容、红色为删除内容（行级简化对比，模拟）。
+                    {baseRev.displayVersion} → {targetRev.displayVersion}：绿色为新增内容、红色为删除内容（行级简化对比）。
                   </div>
                   <DiffView rows={diffRows} />
                 </>
@@ -307,7 +307,7 @@ export default function VersionDrawer({ documentId, open, onClose }: VersionDraw
           )}
 
           {draft.lifecycle === 'signed' && (
-            <Typography.Paragraph type="secondary" style={{ marginTop: 12, fontSize: 12 }}>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 12, fontSize: 'var(--fs-meta)' }}>
               该文书已签发：已签发版本被锁定，不可覆盖修改；如需修订请在文书中心「修订」生成新草稿版本。
             </Typography.Paragraph>
           )}

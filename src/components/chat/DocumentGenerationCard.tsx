@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
 import { REQUIRED_ATTACHMENTS, submitDynamicsSources } from '@/services/weeklyDynamicsWorkflow';
 import { formatSize } from '@/shared/format';
-import { Bot, CircleCheck, FileText, LoaderCircle, Paperclip, X } from 'lucide-react';
-import { Button, Input, Space, Tag, Typography, Upload } from 'antd';
+import { FileText, LoaderCircle, Paperclip, X } from 'lucide-react';
+import { Button, Input, Space, Typography, Upload } from 'antd';
+import { agentIcon } from './agentIcons';
 import type { ChatMessage } from '@/domain/types';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
@@ -52,8 +53,18 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
   };
   /** 卡片里交材料：和输入框那条路走同一个服务（都把材料记进对话流，再进要素整理）。 */
   const submitSources = () => void submitDynamicsSources(message.sessionId, message.messageId, sources);
-  return <div className="axn-document-workflow" data-testid="document-generation-card" aria-live="polite">
-    <Space wrap className="axn-document-workflow-head"><Bot /><Typography.Text strong>文书生成智能体</Typography.Text><Tag color={completed ? 'blue' : interrupted ? 'error' : 'processing'}>{completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : uploading ? '待上传素材' : '执行中'}</Tag></Space>
+  const DocIcon = agentIcon('agent-doc');
+  const statusText = completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : uploading ? '待上传素材' : '执行中';
+  const tone = completed ? 'ok' : interrupted ? 'err' : waiting || uploading ? 'warn' : 'busy';
+  // 与 AgentSummonCard 同一版式：头像列 + 内容列（身份行 → 要素收集面板）
+  return <section className={`axn-agent-execution axn-document-workflow${collecting ? ' is-running' : ''}`} data-testid="document-generation-card" aria-live="polite">
+    <span className="axn-agent-summon-avatar" aria-hidden><DocIcon size={16} /></span>
+    <div className="axn-agent-summon-body">
+    <div className="axn-agent-summon-head">
+      <span className="axn-agent-summon-name">文书生成智能体</span>
+      <span className="axn-agent-summon-role">文书撰写</span>
+      <span className={`axn-status axn-status--${tone}`}><i aria-hidden />{statusText}</span>
+    </div>
     <div className="axn-document-collect">
       <Typography.Text strong>{title}</Typography.Text>
       {uploading && <>
@@ -85,7 +96,7 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
       {workflow.collection && <Typography.Text type="secondary">前五项为模拟资料，下一步改进由你补充</Typography.Text>}
       {rounds.length > 0 && <div className="axn-summary-collection">{rounds.map((round, index) => <div key={round.question} className={`axn-summary-round${collecting && index === collected ? ' is-collecting' : ''}`}>
         <Typography.Text strong>{index + 1}. {round.question}</Typography.Text>
-        {index < collected ? <Typography.Paragraph><Tag color="blue">{index === 5 ? '用户补充 · 已确认' : '模拟补充 · 已确认'}</Tag>{round.answer}</Typography.Paragraph> : waiting ? <div className="axn-summary-input">
+        {index < collected ? <Typography.Paragraph><span className="axn-round-source">{index === 5 ? '用户补充' : '资料提取'}</span>{round.answer}</Typography.Paragraph> : waiting ? <div className="axn-summary-input">
           <Typography.Paragraph type="secondary">请填写下一步改进措施，可包含通信或服装采购、餐食保障、人员轮换机制，以及责任人和完成时限。</Typography.Paragraph>
           <Input.TextArea aria-label="下一步改进措施" placeholder="请输入你的改进计划…" autoSize={{ minRows: 3, maxRows: 8 }} value={improvement} onChange={event => setImprovement(event.target.value)} />
           <Button type="primary" disabled={!improvement.trim()} onClick={() => void submitWorkSummaryImprovement(message.sessionId, message.messageId, improvement)}>提交并生成工作总结</Button>
@@ -98,7 +109,12 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
         <Typography.Text type="secondary"><LoaderCircle size={14} className="axn-spin" /> 正在逐项核对要素，收齐即开始编制…</Typography.Text>
       </>}
       {interrupted && <Typography.Text type="warning">页面刷新中断了模拟过程，请重新点击生成。</Typography.Text>}
-      {completed && <Space wrap className="axn-document-collect-done" data-testid="doc-collect-done"><CircleCheck size={14} /><Typography.Text>已生成{document ? `《${document.title}》` : '（模拟文书）'}</Typography.Text>{document && <Button size="small" type="link" icon={<FileText size={14} />} aria-label="查看文书" onClick={openInWorkspace}>查看文书</Button>}</Space>}
+      {completed && <div className="axn-document-collect-done" data-testid="doc-collect-done">
+        <span className="axn-doc-done-icon" aria-hidden><FileText size={16} /></span>
+        <span className="axn-doc-done-text">已生成{document ? `《${document.title}》` : '文书'}</span>
+        {document && <Button size="small" aria-label="查看文书" onClick={openInWorkspace}>查看文书</Button>}
+      </div>}
     </div>
-  </div>;
+    </div>
+  </section>;
 }

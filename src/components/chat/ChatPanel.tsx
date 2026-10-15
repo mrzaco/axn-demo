@@ -13,19 +13,19 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, use
 import { useSessionTasks } from '@/hooks/useSessionTasks';
 import {
   ArrowUp,
+  ChevronDown,
   ChevronRight,
-  FileCheck,
-  Flame,
-  Lightbulb,
+  LifeBuoy,
+  MapPin,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Paperclip,
-  ShieldCheck,
-  Wrench,
+  ShieldAlert,
+  Waves,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Alert, App as AntdApp, Button, Input, Select, Space, Tag, Typography, Upload, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Space, Tag, Typography, Upload, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -36,11 +36,15 @@ import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import { sendMessage, cancelTask } from '@/services/taskRunner';
 import { AGENT_QUICK_TASKS } from '@/seed/agentQuickTasks';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
-import { factText, incidentById, incidents } from '@/seed/scenario';
+import { factText, incidentById } from '@/seed/scenario';
 import { eventDisplayName } from '@/services/factLookup';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
 import AgentSummonCard from './AgentSummonCard';
+import { AGENT_ICONS } from './agentIcons';
+import IncidentPickerModal from './IncidentPickerModal';
+import BrandMark from '@/components/brand/BrandMark';
+import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
 import './chat.css';
 
 const { Text } = Typography;
@@ -50,7 +54,7 @@ export interface ChatPanelProps {
   compact?: boolean;
 }
 
-const AVATAR = <div className="axn-chat-avatar">安</div>;
+const AVATAR = <div className="axn-chat-avatar"><BrandMark size={28} /></div>;
 
 // 语音输入模拟用的示例话语（标注 vibe_1791960862035）：点麦克风逐字「转写」这句话。
 const SPEECH_SAMPLE = '请汇总南堤堤防管涌险情的最新处置进展，并生成一份情况报告';
@@ -61,13 +65,7 @@ const SPEECH_SAMPLE = '请汇总南堤堤防管涌险情的最新处置进展，
 
 // 能力块图标（标注 vibe_1791862025042：每个块各配一个图标）。
 // 与智能体能力页 NavPages 的 AGENTS[].icon 同源选型，改那边时这里跟着改。
-const AGENT_CHIP_ICONS: Record<string, LucideIcon> = {
-  'agent-doc': FileCheck,
-  'agent-situation': Flame,
-  'agent-resource': Wrench,
-  'agent-plan': Lightbulb,
-  'agent-eval': ShieldCheck,
-};
+const AGENT_CHIP_ICONS = AGENT_ICONS;
 
 // 文书生成智能体：点能力块不再就地展开子按钮（父按钮也不带右箭头），改成在对话里
 // 「召唤它 + 自我介绍 + 文书类型选项 + 一句提示」（用户 m00263）。
@@ -81,6 +79,14 @@ const DOC_AGENT = {
   hint: '您也可以直接把生成要求告诉我；需要参考的文件、要写进文书的图片，都可以上传给我。',
   options: AGENT_QUICK_TASKS.flatMap((agent) => (agent.agentId === 'agent-doc' ? agent.tasks : [])),
 };
+
+// 首页推荐卡：与 WELCOME_QUESTIONS 按下标一一对应的图标与分类（问题本身取自知识库原文）。
+const QUESTION_META: { icon: LucideIcon; tag: string }[] = [
+  { icon: ShieldAlert, tag: '险情识别' },
+  { icon: Waves, tag: '水情研判' },
+  { icon: MapPin, tag: '路线规划' },
+  { icon: LifeBuoy, tag: '现场急救' },
+];
 
 /** 文书生成智能体气泡里的选项：三个文书类型 + 一句「也可以直接提要求」的提示。 */
 function DocAgentChoices({ options, hint, disabled, onPick }: {
@@ -119,6 +125,21 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
 
   const [input, setInput] = useState('');
   const [clarifyValue, setClarifyValue] = useState('');
+  // 文书选区 AI 操作条（SelectionAssist）把「指令 + 原文」送进输入框，等用户确认后再发
+  useEffect(() => {
+    const onCompose = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      if (typeof text !== 'string') return;
+      setInput(text);
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLTextAreaElement>('.axn-composer textarea, .ant-sender textarea');
+        el?.focus();
+        el?.setSelectionRange(el.value.length, el.value.length);
+      });
+    };
+    window.addEventListener(COMPOSE_EVENT, onCompose);
+    return () => window.removeEventListener(COMPOSE_EVENT, onCompose);
+  }, []);
   // 当前就地展开子任务的能力块（一次只展开一个；null = 都收着）
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const chipsRef = useRef<HTMLDivElement | null>(null);
@@ -277,15 +298,15 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     useSessionStore.getState().appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text, taskId: null });
     const elements = [
       { label: '文书类型', value: code === 'DUTY_DAILY' ? '值班日报' : '应急要情' },
-      { label: '编制单位', value: '应急指挥中心（模拟）' },
-      { label: '报送对象', value: '相关应急工作部门（模拟）' },
-      { label: code === 'DUTY_DAILY' ? '值班时段' : '关联事项', value: code === 'DUTY_DAILY' ? '当日 08:00—20:00（模拟）' : eventTitle },
+      { label: '编制单位', value: '应急指挥中心' },
+      { label: '报送对象', value: '相关应急工作部门' },
+      { label: code === 'DUTY_DAILY' ? '值班时段' : '关联事项', value: code === 'DUTY_DAILY' ? '当日 08:00—20:00' : eventTitle },
       { label: code === 'DUTY_DAILY' ? '交接要求' : '内容要求', value: code === 'DUTY_DAILY' ? '持续跟踪重点风险、核实待报信息并做好交接' : '汇总基本情况、先期处置和下一步工作；未核实信息保留待核实标记' },
       { label: '文书格式', value: '红头格式，包含标题、正文与落款' },
     ];
     const invocation = useSessionStore.getState().appendMessage(sessionId, {
       sessionId, role: 'assistant', kind: 'agent', text: '根据已收集的文书要素生成红头文书', taskId: null,
-      agentName: '文书生成智能体', agentRole: text,
+      agentId: 'agent-doc', agentName: '文书生成智能体', agentRole: text,
       documentWorkflow: { stage: 'collecting', elements },
     });
     const document = await useMockDocumentStore.getState().generate(sessionId, code, {
@@ -308,7 +329,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     const { sessionId } = session;
     useSessionStore.getState().appendMessage(sessionId, {
       sessionId, role: 'assistant', kind: 'agent', taskId: null,
-      agentName: DOC_AGENT.name, agentRole: DOC_AGENT.role,
+      agentId: 'agent-doc', agentName: DOC_AGENT.name, agentRole: DOC_AGENT.role,
       text: DOC_AGENT.intro, choices: DOC_AGENT.options, hint: DOC_AGENT.hint,
     });
   };
@@ -337,15 +358,6 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     !activeConversation || !activeConversation.eventId || activeConversation.eventId.startsWith('evt-blank-')
       ? BLANK
       : activeConversation.eventId;
-  const linkOptions = useMemo(
-    () => [
-      // 下拉里的「解除关联」项；未关联时触发器显示的是 placeholder（见下），不用这个文案
-      // （标注 vibe_1791787570681）
-      { value: BLANK, label: '未关联事件' },
-      ...incidents.map((i) => ({ value: i.eventId, label: eventDisplayName(i.eventId) })),
-    ],
-    [],
-  );
   const handleLinkChange = (value: string) => {
     if (!activeConversation) return;
     // undefined → 会话回到专属虚拟事件（保留其独立消息）
@@ -362,24 +374,30 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     });
   };
 
-  // 关联灾情选择器：与发送/语音按钮同排，位于其左侧。
-  // 原外层 Tooltip（「关联后使用该事件的业务资料，对话消息保持独立」）会随鼠标悬停
-  // 在输入区弹出遮挡，按要求移除；语义仍由 aria-label 提供。
+  // 关联灾情：输入框右下角的关联按钮，点开屏幕居中的选择弹窗（带事件名称搜索）。
+  // 未关联时显示 placeholder「选择关联灾情事件」（标注 vibe_1791787570681）。
+  const [incidentPickerOpen, setIncidentPickerOpen] = useState(false);
   const incidentSelect = (
-    <Select
-      size="small"
-      variant="borderless"
-      className="axn-cp-select"
-      // 未关联时传 undefined 而非 BLANK：让触发器显示 placeholder「选择关联灾情事件」。
-      // BLANK 仍是合法选中值（handleLinkChange 里转成「解除关联」），只是不再当触发器文案用
-      // （标注 vibe_1791787570681）
-      value={linkValue === BLANK ? undefined : linkValue}
-      onChange={handleLinkChange}
-      placeholder="选择关联灾情事件"
-      options={linkOptions}
-      aria-label="关联灾情"
-      data-testid="chat-link-incident"
-    />
+    <>
+      <button
+        type="button"
+        className={`axn-cp-select${linkValue === BLANK ? ' is-empty' : ''}`}
+        onClick={() => setIncidentPickerOpen(true)}
+        aria-label="关联灾情"
+        aria-haspopup="dialog"
+        data-testid="chat-link-incident"
+      >
+        <MapPin size={14} aria-hidden />
+        <span className="axn-cp-select-text">{linkValue === BLANK ? '选择关联灾情事件' : eventDisplayName(linkValue)}</span>
+        <ChevronDown size={12} aria-hidden className="axn-cp-select-caret" />
+      </button>
+      <IncidentPickerModal
+        open={incidentPickerOpen}
+        value={linkValue === BLANK ? 'none' : linkValue}
+        onClose={() => setIncidentPickerOpen(false)}
+        onSelect={(id) => { if (id !== linkValue) handleLinkChange(id === 'none' ? BLANK : id); }}
+      />
+    </>
   );
 
   const items: BubbleItemType[] = useMemo(() => {
@@ -403,7 +421,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             task ? (
               <TaskCard task={task} onOpenDrawer={onOpenDrawer} />
             ) : (
-              <Tag color="error">任务数据缺失（模拟数据）</Tag>
+              <Tag color="error">任务数据缺失</Tag>
             ),
         };
       }
@@ -420,6 +438,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
           },
           contentRender: () => m.documentWorkflow ? <DocumentGenerationCard message={m} /> : (
             <AgentSummonCard
+              agentId={m.agentId}
               agentName={m.agentName ?? '智能体协同'}
               agentRole={m.agentRole ?? ''}
               action={m.text ?? ''}
@@ -512,12 +531,14 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               placement: 'start',
               variant: 'filled',
               avatar: AVATAR,
-              styles: { content: { background: token.colorBgContainer, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: '4px 14px 14px 14px', padding: '12px 14px', lineHeight: 1.85, maxWidth: '100%', overflowWrap: 'anywhere' } },
+              // AI 回答不套框：直接铺在白底上，层级靠排版而不是边框（参考 Claude / ChatGPT）
+              styles: { content: { background: 'transparent', padding: '4px 0 0', fontSize: 'var(--fs-lead)', lineHeight: 1.75, maxWidth: '100%', overflowWrap: 'anywhere' } },
             },
             user: {
               placement: 'end',
               variant: 'filled',
-              styles: { content: { background: token.colorPrimary, color: token.colorTextLightSolid, borderRadius: '14px 14px 4px 14px', padding: '11px 15px', lineHeight: 1.8, fontSize: 13, overflowWrap: 'anywhere' } },
+              // 用户气泡：中性浅灰底 + 正文色，不再用整块主蓝（主色留给唯一的主操作）
+              styles: { content: { background: token.colorFillQuaternary, color: token.colorText, borderRadius: '18px 18px 6px 18px', padding: '10px 16px', lineHeight: 1.7, fontSize: 'var(--fs-lead)', overflowWrap: 'anywhere' } },
             },
             system: { placement: 'start', variant: 'borderless' },
             task: {
@@ -541,35 +562,43 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         <div className="chat-scroll axn-home">
           <div className="axn-home-inner">
             <div className="axn-home-hero">
-              {/* 标注 vibe_1791788298951：原「有什么我能帮你的吗？」+ 下方 secondary 问候语合并成这一句 */}
-              <Typography.Title level={1} className="axn-home-title">您好，我是安小能，您的应急智能助手</Typography.Title>
+              <BrandMark size={44} className="axn-home-mark" />
+              {/* 标注 vibe_1791788298951：原「有什么我能帮你的吗？」+ 下方 secondary 问候语合并成这一句。
+                  两段各自 inline-block：窄屏只在逗号处折行，不会把「应急」拆成两行。 */}
+              <Typography.Title level={1} className="axn-home-title">
+                <span>您好，我是安小能，</span><span>您的应急智能助手</span>
+              </Typography.Title>
+              {/* 标注 vibe_1791788359448 */}
+              <Typography.Paragraph className="axn-home-copy">
+                您可以问我问题，也可以让我帮您写公文，或者我也可以帮您执行应急相关的任务。
+              </Typography.Paragraph>
             </div>
-            {/* 标注 vibe_1791788359448 */}
-            <Typography.Paragraph className="axn-home-copy">
-              您可以问我问题，也可以让我帮您写公文，或者我也可以帮您执行应急相关的任务。
-            </Typography.Paragraph>
 
             <div className="axn-home-block" data-testid="home-chat-recommend">
-              <Text type="secondary" className="axn-tc-fs13">为你推荐</Text>
+              <Text type="secondary" className="axn-home-block-label">为你推荐</Text>
               <ul className="axn-question-list">
-                {WELCOME_QUESTIONS.map((q) => (
-                  <li key={q}>
-                    <button
-                      type="button"
-                      className="axn-question-item"
-                      disabled={!session || busy}
-                      onClick={() => { void handleQuickTask(q); }}
-                    >
-                      {q}
-                    </button>
-                  </li>
-                ))}
+                {WELCOME_QUESTIONS.map((q, i) => {
+                  const meta = QUESTION_META[i % QUESTION_META.length];
+                  const QIcon = meta.icon;
+                  return (
+                    <li key={q}>
+                      <button
+                        type="button"
+                        className="axn-question-item"
+                        disabled={!session || busy}
+                        onClick={() => { void handleQuickTask(q); }}
+                      >
+                        <span className="axn-question-head" aria-hidden>
+                          <QIcon size={15} />
+                          <span>{meta.tag}</span>
+                        </span>
+                        <span className="axn-question-text">{q}</span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
-
-            <Text type="secondary" className="axn-tc-fs12">
-              也可直接输入指令，或在下方输入区使用快捷任务。
-            </Text>
           </div>
         </div>
       )}
@@ -716,26 +745,33 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
               </span>
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
-              <>
+              <div className="axn-composer-actions">
                 {incidentSelect}
                 {/* 空输入→语音，有文字→发送，运行中→停止（可取消当前任务）；模拟转写中保持语音按钮，
                     再点一下可中途停下（此时输入框已有字，否则会被换成发送按钮）
                     同一位置同一动作槽：语音按钮与发送按钮同形（实心圆形主色容器）。
                     只传了附件时不走 Sender 的提交（空文本会被它内部的 submitDisabled 拦住），
                     所以等材料期间这里换成自己这个按钮把附件交出去，不然“传完没反应”。 */}
-                {runningTask != null ? <LoadingButton /> : submittingSources
+                {runningTask != null ? <LoadingButton aria-label="停止生成" title="停止生成" /> : submittingSources
                   ? <Button type="primary" shape="circle" icon={<ArrowUp size={16} />} aria-label="发送附件并开始生成" data-testid="composer-submit-sources" onClick={startDynamicsWithSources} />
-                  : transcribing || !input.trim()
-                    ? <SpeechButton
-                        variant="solid"
-                        color="primary"
-                        shape="circle"
-                        aria-label={transcribing ? '停止语音输入' : '语音输入'}
-                        title={transcribing ? '停止语音输入' : '语音输入'}
-                        data-testid="composer-speech"
-                      />
-                    : <SendButton />}
-              </>
+                  : (
+                    // 发送按钮常驻（空输入时禁用）——主操作位置固定；语音降为次要的文字按钮，
+                    // 输入框有字后收起（转写中保留，可中途停下）
+                    <>
+                      {(transcribing || !input.trim()) && (
+                        <SpeechButton
+                          type="text"
+                          shape="circle"
+                          className="axn-composer-speech"
+                          aria-label={transcribing ? '停止语音输入' : '语音输入'}
+                          title={transcribing ? '停止语音输入' : '语音输入'}
+                          data-testid="composer-speech"
+                        />
+                      )}
+                      <SendButton aria-label="发送" title="发送" />
+                    </>
+                  )}
+              </div>
             )}
             /* 最小 2 行 = 54px（用户 m01370 要求输入框再高一些；1 行只有 32px 显得太扁）。
                输入框独占第一行（见 chat.css 的 .ant-sender-input { flex: 1 1 100% }），

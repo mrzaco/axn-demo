@@ -9,6 +9,7 @@
  * “会话未初始化”提示（原先文案让用户去重置，但界面上没有入口）。
  */
 import { useConversationStore } from './conversationStore';
+import { useMockDocumentStore } from './mockDocumentStore';
 import { useSessionStore } from './sessionStore';
 import { useWorkspaceStore } from './workspaceStore';
 
@@ -16,4 +17,6 @@ export function resetDemoData(): void {
   useSessionStore.getState().resetAll();
   useConversationStore.getState().resetAll();
   useWorkspaceStore.getState().resetAll();
+  // 红头公文库与版本历史（不在 sessionStore 级联内）
+  useMockDocumentStore.getState().reset();
 }

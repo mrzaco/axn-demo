@@ -2,7 +2,7 @@
  * 模拟文书编辑缓冲回归（task #4）：未保存的工作副本放在 store 里，
  * 离开详情页再回来不丢，只有「保存」或「放弃修改」才让它消失。
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import MockDocumentDetail from '@/components/doc/MockDocumentDetail';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
@@ -27,6 +27,46 @@ function mount(onSave = vi.fn(), onDirtyChange = vi.fn()) {
 
 beforeEach(() => {
   useMockDocumentStore.setState({ libraries: {} });
+});
+
+describe('模拟文书自动保存', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('停止输入两秒后保存最新内容，连续输入会重新计时', () => {
+    const { onSave } = mount();
+    fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '编辑第一轮' } });
+    act(() => vi.advanceTimersByTime(1500));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '编辑后的完整标题' } });
+    act(() => vi.advanceTimersByTime(1999));
+    expect(onSave).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0].title).toBe('编辑后的完整标题');
+    expect(onSave.mock.calls[0][1]).toMatchObject({ source: 'autosave' });
+  });
+
+  it('放弃修改或离开后不会由旧计时器写回内容', () => {
+    const { view, onSave } = mount();
+    fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '不要保存' } });
+    fireEvent.click(screen.getByRole('button', { name: '放弃修改' }));
+    act(() => vi.advanceTimersByTime(2500));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '离开前编辑' } });
+    view.unmount();
+    act(() => vi.advanceTimersByTime(2500));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(workingOf()?.title).toBe('离开前编辑');
+  });
+
+  it('标题空缺时保留工作副本，不覆盖已保存文书', () => {
+    const { onSave } = mount();
+    fireEvent.change(screen.getByLabelText('文书标题'), { target: { value: '' } });
+    act(() => vi.advanceTimersByTime(2500));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(workingOf()?.title).toBe('');
+  });
 });
 
 describe('模拟文书编辑缓冲', () => {

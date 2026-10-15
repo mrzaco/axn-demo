@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Button, Modal, Tag, Tooltip, Typography } from 'antd';
+import { Button, Modal, Tooltip, Typography } from 'antd';
 import {
   FileText,
   FileType,
   FolderOpen,
+  History,
   Save,
   SquarePen,
   Undo2,
@@ -13,8 +14,10 @@ import {
 /** 文书标题和所有阅读操作收在一条工具栏。
  * 按钮可见文案按产品要求叫「下载」，但落在弹层里的说明照旧写明不生成实际文件；
  * aria-label 保持「导出 Word / PDF」——可访问名描述的是动作本身，且 e2e/document-agent.spec.ts 用它定位。 */
-export default function DocumentDetailToolbar({ title, subtitle, editing = false, dirty = false, onBack, onOpenLibrary, onEdit, onSave, onDiscard, editDisabled = false, onVersions, previewExports = true }: {
+export default function DocumentDetailToolbar({ title, subtitle, editing = false, dirty = false, onBack, onOpenLibrary, onEdit, onSave, onDiscard, editDisabled = false, onVersions, previewExports = true, versionLabel, versionsOpen = false, onToggleVersions }: {
   title: string; subtitle?: string; editing?: boolean; dirty?: boolean;
+  /** 红头公文的版本入口：显示当前版本号，点击开关版本记录侧栏 */
+  versionLabel?: string; versionsOpen?: boolean; onToggleVersions?: () => void;
   onBack: () => void; onOpenLibrary?: () => void; onEdit?: () => void;
   onSave?: () => void; onDiscard?: () => void; editDisabled?: boolean;
   onVersions?: () => void; previewExports?: boolean;
@@ -23,14 +26,15 @@ export default function DocumentDetailToolbar({ title, subtitle, editing = false
   return <>
     <header className="doc-detail-toolbar doc-detail-toolbar--full" data-testid="document-toolbar">
       <div className="doc-toolbar-heading">
-        <div className="doc-toolbar-title"><h2 title={title}>{title}</h2><Tag variant="filled">模拟</Tag></div>
-        {subtitle && <div className="doc-toolbar-subtitle">{subtitle}</div>}
+        <div className="doc-toolbar-title"><h2 title={title}>{title}</h2></div>
+        {subtitle && <div className="doc-toolbar-subtitle" aria-live="polite">{subtitle}</div>}
       </div>
       <div className="doc-toolbar-actions">
         {editing ? <>
           {onDiscard && <Button aria-label="放弃修改" icon={<Undo2 />} onClick={onDiscard} disabled={!dirty}>放弃修改</Button>}
           <Button aria-label="保存修改" type="primary" icon={<Save />} onClick={onSave}>保存修改</Button>
         </> : onEdit && <Button aria-label="在线编辑" type="primary" icon={<SquarePen />} onClick={onEdit} disabled={editDisabled}>在线编辑</Button>}
+        {onToggleVersions && <Button aria-label={`版本记录 ${versionLabel ?? ""}`.trim()} aria-pressed={versionsOpen} className={versionsOpen ? 'is-active' : undefined} icon={<History />} onClick={onToggleVersions} data-testid="doc-version-toggle">{versionLabel ?? '版本'}</Button>}
         {onVersions ? <Button icon={<FileText />} onClick={onVersions}>版本与导出</Button> : previewExports && <>
           <Button aria-label="导出 Word" icon={<FileText />} onClick={() => setExportFormat('Word')}>Word 下载</Button>
           <Button aria-label="导出 PDF" icon={<FileType />} onClick={() => setExportFormat('PDF')}>PDF 下载</Button>

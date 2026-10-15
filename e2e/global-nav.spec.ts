@@ -24,12 +24,12 @@ async function sendInChat(page: Page, text: string) {
 /** 打开“资源与态势”抽屉（资源/知识页签已按标注移除，改为对话任务卡触发的抽屉）。 */
 async function openResourceDrawer(page: Page) {
   await page.getByRole('button', { name: '查看资源与态势' }).first().click();
-  await expect(page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' })).toBeVisible();
+  await expect(page.locator('.ant-drawer', { hasText: '资源与态势' })).toBeVisible();
 }
 
 async function closeDrawer(page: Page) {
   await page.keyboard.press('Escape');
-  await expect(page.locator('.ant-drawer', { hasText: '资源与态势（模拟）' })).toBeHidden({ timeout: 5000 });
+  await expect(page.locator('.ant-drawer', { hasText: '资源与态势' })).toBeHidden({ timeout: 5000 });
 }
 
 /** 执行资源查询并打开抽屉等待表格出现（表格仅在抽屉内渲染）。 */
@@ -68,14 +68,14 @@ test('1. 新建对话 → 直接创建空白对话并激活（无弹窗，标注
 test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', async ({ page }) => {
   await newConversation(page);
   await page.getByTestId('chat-link-incident').click();
-  await page.locator('.ant-select-item-option', { hasText: '清河段堤防险情' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
   await page.waitForTimeout(500);
   // 上下文切到关联事件：无消息时由关联灾情选择器承载，头部事件标题不显示（标注 vibe_1791303121889）
   await expect(page.getByTestId('chat-link-incident')).toContainText('清河段堤防险情');
   await expect(page.getByTestId('header-event')).toHaveCount(0);
   // 取消关联 → 回到未关联（专属虚拟事件）
   await page.getByTestId('chat-link-incident').click();
-  await page.locator('.ant-select-item-option', { hasText: '未关联事件' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
   await page.waitForTimeout(500);
   await expect(page.getByTestId('chat-link-incident')).toContainText('选择关联灾情事件');
 });
@@ -189,7 +189,7 @@ test('10b. 「应急项目 / 智能体与 Skill / 定时任务」侧栏入口已
   const knowledgeNav = page.locator('.axn-gs-nav-item', { hasText: '知识库' });
   await expect(knowledgeNav).toBeEnabled();
   await knowledgeNav.click();
-  await expect(page.getByText('知识库功能建设中（模拟演示）')).toBeVisible();
+  await expect(page.getByText('知识库功能建设中')).toBeVisible();
   await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 

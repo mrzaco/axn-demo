@@ -212,7 +212,7 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.getByTestId('chat-link-incident').click();
-  await page.getByTitle('未关联事件', { exact: true }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
