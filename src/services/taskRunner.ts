@@ -4,7 +4,7 @@
 import type { TaskEvent } from '@/domain/types';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
-import { mockProvider, recognize, TaskFault, UNKNOWN_REPLY_TEXT } from './mock/provider.js';
+import { mockProvider, recognize, agentForIntent, TaskFault, UNKNOWN_REPLY_TEXT } from './mock/provider.js';
 import { ensureQaLoaded } from './qaKnowledge.js';
 
 import { registerRun, isActiveRun, finishRun, invalidateRun } from './taskRuns.js';
@@ -15,6 +15,8 @@ function sleepZero(): Promise<void> {
 
 export interface SendOptions {
   text: string;
+  /** 定时任务可指定执行智能体；不传时保持按内容分配。 */
+  agentId?: string;
   commandId?: string | null;
   /** 随消息附带的文件（仅记录文件名/大小，演示环境不读取内容） */
   attachments?: { name: string; size: number }[];
@@ -42,6 +44,11 @@ export async function sendMessage(sessionId: string, options: SendOptions): Prom
     lastResourceResultIds: session.lastResourceResultIds,
     candidateResourceIds: session.candidateResourceIds,
   });
+  if (options.agentId && agentForIntent(recognized.intent)?.agentId !== options.agentId) {
+    throw new Error(recognized.intent === 'unknown'
+      ? '未匹配到该智能体可演示的任务，请参考执行内容示例后重试'
+      : '执行内容与指定智能体的能力不匹配，请调整执行内容或选择其他智能体');
+  }
   // 审查 minor-1：stop 意图先于运行守卫 —— 有运行任务则真实取消（FR-002/AC-023 文本停止路径），无则如实回复。
   if (recognized.intent === 'stop') {
     if (existingRunning) {

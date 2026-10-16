@@ -540,7 +540,6 @@
 .axn-schedule-search { width: 100%; max-width: 420px; }
 .axn-schedule-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
 .axn-schedule-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
-.axn-schedule-card .axn-np-desc { margin: var(--space-4) 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .axn-schedule-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-2); color: var(--axn-muted); font-size: var(--fs-meta); }
 .axn-schedule-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); }
 .axn-schedule-list > .ant-empty { grid-column: 1 / -1; }

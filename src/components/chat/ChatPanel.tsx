@@ -16,6 +16,7 @@ import {
   Globe,
   LifeBuoy,
   MapPin,
+  Plus,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
@@ -24,7 +25,7 @@ import {
   Waves,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Alert, App as AntdApp, Button, Input, Space, Switch, Tag, Tooltip, Typography, Upload, theme } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Popover, Space, Switch, Tag, Tooltip, Typography, Upload, theme } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import type { BubbleItemType } from '@ant-design/x';
 import { useConversationStore } from '@/store/conversationStore';
@@ -38,13 +39,13 @@ import ResponseFeedback from './ResponseFeedback';
 import { summonAgentInConversation } from '@/services/agentConversation';
 import { AGENT_ICONS } from './agentIcons';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
-import { factText, incidentById } from '@/seed/scenario';
 import { eventDisplayName } from '@/services/factLookup';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
 import { DocumentReviewCard } from '@/components/doc/DocumentReview';
 import AgentSummonCard from './AgentSummonCard';
 import IncidentPickerModal from './IncidentPickerModal';
+import ComposerKnowledgePicker from './ComposerKnowledgePicker';
 import BrandMark from '@/components/brand/BrandMark';
 import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
 import './chat.css';
@@ -106,6 +107,14 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   const scope = useActiveScope();
 
   const [input, setInput] = useState('');
+  const [mobileComposer, setMobileComposer] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const update = () => { setMobileComposer(media.matches); setToolsOpen(false); };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   const [clarifyValue, setClarifyValue] = useState('');
   // 文书选区 AI 操作条（SelectionAssist）把「指令 + 原文」送进输入框，等用户确认后再发
   useEffect(() => {
@@ -276,13 +285,8 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     setClarifyValue('');
   };
 
-  const incident = incidentById.get(currentEventId);
   const isBlankEvent = currentEventId.startsWith('evt-blank-');
-  const eventTitle = incident
-    ? factText(incident.factRefs.title) || currentEventId
-    : isBlankEvent
-      ? '空白对话（未关联事件）'
-      : currentEventId;
+  const eventTitle = isBlankEvent ? '空白对话（未关联事件）' : eventDisplayName(currentEventId);
 
   // 关联灾情（对话界面内切换）：evt-blank- 前缀或未绑定 → 未关联；否则为绑定事件
   const linkConversationToEvent = useConversationStore((s) => s.linkConversationToEvent);
@@ -317,11 +321,12 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         className={`axn-cp-select${linkValue === BLANK ? ' is-empty' : ''}`}
         onClick={() => setIncidentPickerOpen(true)}
         aria-label="关联灾情"
+        aria-description={linkValue === BLANK ? '未关联灾情' : eventDisplayName(linkValue)}
         aria-haspopup="dialog"
         data-testid="chat-link-incident"
       >
         <MapPin size={14} aria-hidden />
-        <span className="axn-cp-select-text">{linkValue === BLANK ? '选择关联灾情事件' : eventDisplayName(linkValue)}</span>
+        <span className="axn-cp-select-text">{mobileComposer ? '灾情' : linkValue === BLANK ? '选择关联灾情事件' : eventDisplayName(linkValue)}</span>
         <ChevronDown size={12} aria-hidden className="axn-cp-select-caret" />
       </button>
       <IncidentPickerModal
@@ -332,6 +337,51 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       />
     </>
   );
+
+  const composerTools = (<>
+              {/* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上。
+                 周工作动态的上传入口在对话气泡的卡里（用户 m00994），所以这里不再挂箭头提示、也不再挂弹出层；
+                 但文件依旧可以在这里交给智能体（上传门开着时＝交材料）。
+                 外面这层 span 只给 Upload 收 ref（antd Upload 不转 ref，直接当 child 会告警）。 */}
+              <span className="axn-composer-upload-wrap">
+              <Upload
+                multiple
+                showUploadList={false}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,.png,.jpg,.jpeg"
+                beforeUpload={(file) => {
+                  addAttachments([file]);
+                  return false; // 没有上传接口：只拦下文件，不让 antd 发起请求
+                }}
+              >
+                <Button
+                  type="text"
+                  className="axn-composer-upload"
+                  icon={<Paperclip size={18} />}
+                  aria-label="上传文件"
+                  title="上传文件"
+                  data-testid="composer-upload"
+                />
+              </Upload>
+              </span>
+              <Tooltip classNames={{ root: 'axn-composer-web-search-tooltip' }} title="当前为原型演示，暂未接入真实联网检索">
+                <label className={`axn-composer-web-search${webSearchEnabled ? ' is-on' : ''}`}>
+                  <Globe size={14} aria-hidden />
+                  <span className="axn-composer-web-search-label">联网<span className="axn-composer-web-search-full">搜索</span></span>
+                  <Switch
+                    size="small"
+                    checked={webSearchEnabled}
+                    onChange={(on) => {
+                      setWebSearchEnabled(on);
+                      // 触屏上看不到悬停提示：开 / 关时用一句轻提示交代状态与演示边界
+                      if (window.matchMedia?.('(hover: none)').matches) {
+                        message.open({ key: 'web-search', type: 'info', content: on ? '已开启联网搜索（演示环境暂未接入真实检索）' : '已关闭联网搜索' });
+                      }
+                    }}
+                    aria-label="联网搜索"
+                  />
+                </label>
+              </Tooltip>
+  </>);
 
   const items: BubbleItemType[] = useMemo(() => {
     const messages = session?.messages ?? [];
@@ -586,7 +636,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       </div>
       {/* 关联灾情与发送、语音操作位于输入框右下角。 */}
       <div className="axn-composer">
-        <div className="axn-composer-shell">
+        <div className={`axn-composer-shell${mobileComposer ? ' is-mobile' : ''}`}>
           {/* 已选文件：输入框上方一行可移除的 chip（上传按钮在输入框左下角） */}
           {attachments.length > 0 && (
             <ul className="axn-attach-list" data-testid="composer-attachments">
@@ -624,53 +674,21 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             }}
             prefix={(
               <div className="axn-composer-tools">
-              {/* 上传文件（输入框左下角，标注见本行）：演示环境不落盘也不上传，只把文件名/大小附在消息上。
-                 周工作动态的上传入口在对话气泡的卡里（用户 m00994），所以这里不再挂箭头提示、也不再挂弹出层；
-                 但文件依旧可以在这里交给智能体（上传门开着时＝交材料）。
-                 外面这层 span 只给 Upload 收 ref（antd Upload 不转 ref，直接当 child 会告警）。 */}
-              <span className="axn-composer-upload-wrap">
-              <Upload
-                multiple
-                showUploadList={false}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,.png,.jpg,.jpeg"
-                beforeUpload={(file) => {
-                  addAttachments([file]);
-                  return false; // 没有上传接口：只拦下文件，不让 antd 发起请求
-                }}
-              >
-                <Button
-                  type="text"
-                  className="axn-composer-upload"
-                  icon={<Paperclip size={18} />}
-                  aria-label="上传文件"
-                  title="上传文件"
-                  data-testid="composer-upload"
-                />
-              </Upload>
-              </span>
-              <Tooltip classNames={{ root: 'axn-composer-web-search-tooltip' }} title="当前为原型演示，暂未接入真实联网检索">
-                <label className={`axn-composer-web-search${webSearchEnabled ? ' is-on' : ''}`}>
-                  <Globe size={14} aria-hidden />
-                  <span className="axn-composer-web-search-label">联网<span className="axn-composer-web-search-full">搜索</span></span>
-                  <Switch
-                    size="small"
-                    checked={webSearchEnabled}
-                    onChange={(on) => {
-                      setWebSearchEnabled(on);
-                      // 触屏上看不到悬停提示：开 / 关时用一句轻提示交代状态与演示边界
-                      if (window.matchMedia?.('(hover: none)').matches) {
-                        message.open({ key: 'web-search', type: 'info', content: on ? '已开启联网搜索（演示环境暂未接入真实检索）' : '已关闭联网搜索' });
-                      }
-                    }}
-                    aria-label="联网搜索"
-                  />
-                </label>
-              </Tooltip>
+              {mobileComposer ? <Popover trigger="click" placement="topLeft" open={toolsOpen}
+                onOpenChange={setToolsOpen} content={<div className="axn-composer-tool-menu">
+                  <div className="axn-composer-tool-menu-heading">输入工具</div>
+                  {composerTools}
+                </div>}>
+                <Button type="text" className="axn-composer-more" icon={<Plus size={20} />}
+                  aria-label="输入工具" aria-expanded={toolsOpen} />
+              </Popover> : composerTools}
+              <ComposerKnowledgePicker conversationId={activeConversationId ?? ''} disabled={!session || busy} compact={mobileComposer} />
+              {mobileComposer && incidentSelect}
               </div>
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
               <div className="axn-composer-actions">
-                {incidentSelect}
+                {!mobileComposer && incidentSelect}
                 {/* 空输入→语音，有文字→发送，运行中→停止（可取消当前任务）；模拟转写中保持语音按钮，
                     再点一下可中途停下（此时输入框已有字，否则会被换成发送按钮）
                     同一位置同一动作槽：语音按钮与发送按钮同形（实心圆形主色容器）。
@@ -682,7 +700,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                     // 发送按钮常驻（空输入时禁用）——主操作位置固定；语音降为次要的文字按钮，
                     // 输入框有字后收起（转写中保留，可中途停下）
                     <>
-                      {(transcribing || !input.trim()) && (
+                      {(mobileComposer || transcribing || !input.trim()) && (
                         <SpeechButton
                           type="text"
                           shape="circle"

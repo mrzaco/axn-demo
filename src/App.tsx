@@ -250,7 +250,7 @@ export default function AppRoot() {
               <Suspense><NavPageContent page="schedules" /></Suspense>
             </div>
           } />
-          <Route path="/knowledge" element={
+          <Route path="/knowledge/*" element={
             <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Suspense><NavPageContent page="knowledge" /></Suspense>
             </div>

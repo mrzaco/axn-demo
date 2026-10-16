@@ -49,12 +49,9 @@ const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   { key: 'skills', label: '技能管理', icon: <Puzzle /> },
   { key: 'files', label: '我的文件', icon: <FolderClosed /> },
   { key: 'schedules', label: '定时任务', icon: <Clock /> },
+  { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
   // 「应急项目」入口隐藏，页面与深链保留。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
-];
-
-const PLACEHOLDER_NAV = [
-  { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
 ];
 
 export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
@@ -203,18 +200,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
             <span>{item.label}</span>
           </button>
         ))}
-        {PLACEHOLDER_NAV.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            className={`axn-gs-nav-item${activeNav === item.key ? ' is-active' : ''}`}
-            aria-current={activeNav === item.key ? 'page' : undefined}
-            onClick={() => message.info(`${item.label}功能建设中`)}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
+
       </nav>
 
       {/* 4. 对话搜索 */}

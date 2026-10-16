@@ -50,7 +50,7 @@ export function useUrlNavSync(): void {
   const setActiveNav = useConversationStore((s) => s.setActiveNav);
 
   useEffect(() => {
-    const page = PATH_TO_NAV[location.pathname];
+    const page = location.pathname.startsWith('/knowledge/') ? 'knowledge' : PATH_TO_NAV[location.pathname];
     if (page && page !== activeNav) {
       setActiveNav(page);
     }

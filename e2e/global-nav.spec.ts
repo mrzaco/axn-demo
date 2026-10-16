@@ -82,6 +82,24 @@ test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', a
   await expect(page.getByTestId('chat-link-incident')).toContainText('选择关联灾情事件');
 });
 
+test('失效的历史关联事件显示中文提示，可重新选择有效事件', async ({ page }) => {
+  await newConversation(page);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => {
+    const key = 'anneng-demo:v1:conversation';
+    const saved = JSON.parse(localStorage.getItem(key)!);
+    saved.data.conversations[saved.data.activeConversationId].eventId = 'evt-sim-landslide';
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload();
+  const trigger = page.getByTestId('chat-link-incident');
+  await expect(trigger).toContainText('关联事件不可用');
+  await expect(trigger).not.toContainText('evt-sim-landslide');
+  await trigger.click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+  await expect(trigger).toContainText('清河段堤防险情');
+});
+
 test('3. 搜索"南堤"→过滤；清空→恢复', async ({ page }) => {
   await page.getByPlaceholder('搜索对话或事件').fill('南堤');
   const visible = await page.locator('.axn-gs-conversation').allTextContents();
@@ -179,7 +197,7 @@ test('10. 折叠功能已按标注移除（无折叠按钮，侧栏固定宽度�
   expect(width).toBeGreaterThan(200);
 });
 
-test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知识库为占位', async ({ page }) => {
+test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知识库管理可访问', async ({ page }) => {
   for (const label of ['文书库', '应急项目', '智能体与 Skill']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
@@ -187,12 +205,12 @@ test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知
   for (const label of ['安小能', '数字专家', '定时任务', '技能管理', '我的文件', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
-  // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转
+  // 知识库入口进入管理模块
   const knowledgeNav = page.locator('.axn-gs-nav-item', { hasText: '知识库' });
   await expect(knowledgeNav).toBeEnabled();
   await knowledgeNav.click();
-  await expect(page.getByText('知识库功能建设中')).toBeVisible();
-  await expect(page.locator('.axn-chat-page')).toBeVisible();
+  await expect(page.getByTestId('knowledge-page')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '知识库管理', exact: true })).toBeVisible();
 });
 
 test('数字专家展示已有能力，召唤回到原对话并能选择任务', async ({ page }) => {

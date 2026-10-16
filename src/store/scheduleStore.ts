@@ -1,8 +1,9 @@
 import { create } from 'zustand';
+import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
 import { clearPersist, loadPersist, schedulePersist } from './persistence';
 
 export type ScheduleInput = {
-  name: string; prompt: string; eventId: string; frequency: 'once' | 'daily' | 'weekly';
+  name: string; prompt: string; eventId: string; agentId: string | null; frequency: 'once' | 'daily' | 'weekly';
   time: string; date: string; weekday: number; enabled: boolean;
 };
 export type ScheduleRun = { id: string; startedAt: string; finishedAt?: string; status: 'running' | 'succeeded' | 'waiting_input' | 'failed' | 'cancelled'; conversationId?: string; taskId?: string; detail?: string };
@@ -30,10 +31,10 @@ const defaults = (): ScheduledTask[] => [
   { id: 'sched-daily', name: '每日灾情摘要', prompt: '生成灾情摘要', eventId: 'evt-demo-001', frequency: 'daily', time: '08:00', date: '', weekday: 1, enabled: true },
   { id: 'sched-patrol', name: '重点河段态势巡检', prompt: '生成灾情摘要', eventId: 'evt-demo-002', frequency: 'daily', time: '09:00', date: '', weekday: 1, enabled: true },
   { id: 'sched-resource', name: '资源状态检查', prompt: '查询周边救援资源', eventId: 'evt-demo-001', frequency: 'weekly', time: '07:30', date: '', weekday: 1, enabled: false },
-].map(plan => ({ ...plan, frequency: plan.frequency as ScheduleInput['frequency'], createdAt: '2026-09-28T00:00:00Z', runs: [] }));
+].map(plan => ({ ...plan, agentId: plan.id === 'sched-resource' ? 'agent-resource' : 'agent-situation', frequency: plan.frequency as ScheduleInput['frequency'], createdAt: '2026-09-28T00:00:00Z', runs: [] }));
 
-export function restoreSchedules(rows: ScheduledTask[]): ScheduledTask[] {
-  return rows.map(plan => ({ ...plan, runs: (plan.runs ?? []).map(run => run.status === 'running'
+export function restoreSchedules(rows: (Omit<ScheduledTask, 'agentId'> & { agentId?: string | null })[]): ScheduledTask[] {
+  return rows.map(plan => ({ ...plan, agentId: plan.agentId && plan.agentId !== 'auto' ? plan.agentId : null, runs: (plan.runs ?? []).map(run => run.status === 'running'
     ? { ...run, status: 'failed', finishedAt: new Date().toISOString(), detail: '页面已刷新，本次演示执行已中断，可重新执行。' } : run) }));
 }
 interface ScheduleState {
@@ -49,8 +50,9 @@ const persisted = loadPersist<{ schedules: ScheduledTask[] }>('schedules');
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   schedules: persisted?.schedules ? restoreSchedules(persisted.schedules) : defaults(),
   save: (input, id) => {
-    const value = { ...input, name: input.name.trim(), prompt: input.prompt.trim() };
+    const value = { ...input, agentId: input.agentId ?? null, name: input.name.trim(), prompt: input.prompt.trim() };
     if (!value.name || !value.prompt || !value.eventId || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time)) throw new Error('请完整填写任务名称、执行内容、关联事件和时间');
+    if (value.agentId && !AGENT_INVITATIONS.some(agent => agent.agentId === value.agentId)) throw new Error('请选择有效的执行智能体');
     if (value.frequency === 'once' && !nextScheduledAt({ ...value, enabled: true })) throw new Error('单次任务的计划时间必须晚于当前时间');
     const existing = get().schedules.find(plan => plan.id === id);
     if (id && !existing) throw new Error('任务已删除，请重新创建');

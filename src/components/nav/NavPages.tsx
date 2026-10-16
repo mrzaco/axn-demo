@@ -2,27 +2,17 @@
  * 一级导航对应的业务页面（需求七）：应急项目 / 智能体与 Skill / 定时任务 / 知识库。
  * 轻量展示页：企业级浅色卡片，全部数据为模拟数据。
  */
-import { useMemo, useState } from 'react';
-import {
-  BookOpen,
-  FileCheck,
-  Heart,
-  Network,
-  Presentation,
-  Search,
-  Wrench,
-  Zap,
-} from 'lucide-react'
-import { Button, Card, Drawer, Empty, Input, Space, Tag, Timeline, Typography } from 'antd';
+import { Presentation } from 'lucide-react';
+import { Button, Card, Space, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from './navRoutes';
 import type { NavPage } from '@/domain/types';
 import { useConversationStore } from '@/store/conversationStore';
-import { knowledgeChunks } from '@/seed/scenario';
 import PageHeader from '@/components/common/PageHeader';
 import SkillsPage from './SkillsPage';
 import MyFilesPage from './MyFilesPage';
 import SchedulesPage from './SchedulesPage';
+import KnowledgeModule from '@/components/knowledge/KnowledgeModule';
 import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
 import { agentIcon } from '@/components/chat/agentIcons';
 import { summonAgentFromManagement } from '@/services/agentConversation';
@@ -181,126 +171,6 @@ export function AgentsPage() {
   );
 }
 
-/* ================= 知识库 ================= */
-
-interface KnowledgeLibrary {
-  libraryId: string;
-  name: string;
-  icon: React.ReactNode;
-  desc: string;
-  count: number;
-}
-
-const LIBRARIES: KnowledgeLibrary[] = [
-  { libraryId: 'lib-plan', name: '预案库', icon: <FileCheck />, desc: '应急预案与处置流程文档', count: 12 },
-  { libraryId: 'lib-law', name: '法规规范库', icon: <BookOpen />, desc: '相关法规、规程与标准条目', count: 8 },
-  { libraryId: 'lib-case', name: '历史案例库', icon: <Network />, desc: '历史事件处置案例与复盘', count: 15 },
-  { libraryId: 'lib-tactic', name: '救援技战法', icon: <Zap />, desc: '典型场景技战法与操作要点', count: 10 },
-  { libraryId: 'lib-equipment', name: '装备知识库', icon: <Wrench />, desc: '救援装备参数与使用要点', count: 22 },
-  { libraryId: 'lib-team', name: '队伍能力库', icon: <Heart />, desc: '救援队伍能力档案与擅长场景', count: 6 },
-];
-
-export function KnowledgePage() {
-  const [keyword, setKeyword] = useState('');
-  const [detail, setDetail] = useState<KnowledgeLibrary | null>(null);
-
-  const filteredLibs = useMemo(
-    () => LIBRARIES.filter((l) => !keyword.trim() || l.name.includes(keyword.trim()) || l.desc.includes(keyword.trim())),
-    [keyword],
-  );
-
-  return (
-    <div className="axn-np-section" data-testid="knowledge-page">
-      <PageHeader
-        title="知识库"
-        sub="六大领域知识，是问答与文书生成的依据来源"
-        extra={
-          <Space>
-            <Input
-              allowClear
-              size="small"
-              prefix={<Search className="axn-np-icon-gray" />}
-              placeholder="搜索知识库"
-              className="axn-np-search"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              data-testid="knowledge-search"
-            />
-          </Space>
-        }
-      />
-      <div className="axn-np-grid-wide">
-        {filteredLibs.map((lib) => (
-          <Card
-            key={lib.libraryId}
-            size="small"
-            hoverable
-            onClick={() => setDetail(lib)}
-            styles={{ body: { display: 'flex', gap: 12, alignItems: 'flex-start' } }}
-          >
-            <span className="axn-np-icon-tile">{lib.icon}</span>
-            <div className="axn-np-flex-1">
-              <div className="axn-np-flex-row">
-                <Typography.Text strong className="axn-np-fs14">
-                  {lib.name}
-                </Typography.Text>
-                <span className="axn-np-count">{lib.count} 条</span>
-              </div>
-              <div className="axn-np-meta">{lib.desc}</div>
-            </div>
-          </Card>
-        ))}
-        {filteredLibs.length === 0 && (
-          <div className="axn-np-full-span">
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`未找到与「${keyword}」匹配的知识库`} />
-          </div>
-        )}
-      </div>
-
-      {!keyword.trim() && (
-        <section className="axn-np-recent" aria-label="近期被引用的条目">
-          <h2 className="axn-np-subhead">近期被引用</h2>
-          <ul className="axn-np-recent-list">
-            {knowledgeChunks.map((k) => (
-              <li key={k.chunkId}>
-                <span className="axn-np-recent-title">{k.title}</span>
-                <span className="axn-np-recent-meta">{k.category} · {k.version}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <Drawer
-        title={detail ? `${detail.name} · 详情` : ''}
-        size={480}
-        open={!!detail}
-        onClose={() => setDetail(null)}
-      >
-        {detail && (
-          <div>
-            <Timeline
-              items={knowledgeChunks.map((k) => ({
-                color: 'blue',
-                children: (
-                  <div>
-                    <div className="axn-np-k-title">{k.title}</div>
-                    <div className="axn-np-meta">{k.content}</div>
-                    <div className="axn-np-meta">
-                      {k.category} · {k.version} · {k.sourceLabel}
-                    </div>
-                    <div className="axn-np-k-notice">{k.notice}</div>
-                  </div>
-                ),
-              }))}
-            />
-          </div>
-        )}
-      </Drawer>
-    </div>
-  );
-}
-
 /** 主工作区按导航页分发。 */
 export function NavPageContent({ page }: { page: NavPage }) {
   switch (page) {
@@ -315,7 +185,7 @@ export function NavPageContent({ page }: { page: NavPage }) {
     case 'schedules':
       return <SchedulesPage />;
     case 'knowledge':
-      return <KnowledgePage />;
+      return <KnowledgeModule />;
     default:
       return null;
   }

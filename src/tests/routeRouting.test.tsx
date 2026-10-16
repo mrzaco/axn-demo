@@ -8,26 +8,15 @@
  * 4. 映射表完整性（从源码导入，不自建副本）
  */
 import { act, render, waitFor } from '@testing-library/react';
-import { useEffect } from 'react';
-import { MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useConversationStore } from '@/store/conversationStore';
 import { resetDemoData } from '@/store/resetDemo';
-import { PATH_TO_NAV, NAV_PATH } from '@/components/nav/navRoutes';
+import { PATH_TO_NAV, NAV_PATH, useUrlNavSync } from '@/components/nav/navRoutes';
 
 /** 精简版路由外壳，不含 antd/lazy 依赖，只验证路由同步逻辑。 */
 function RoutingShell() {
-  const location = useLocation();
-  const activeNav = useConversationStore((s) => s.activeNav);
-  const setActiveNav = useConversationStore((s) => s.setActiveNav);
-
-  // URL→store 单向同步（与 App.tsx 的 useUrlNavSync 一致；store 从不推回 URL）。
-  useEffect(() => {
-    const page = PATH_TO_NAV[location.pathname];
-    if (page && page !== activeNav) {
-      setActiveNav(page);
-    }
-  }, [location.pathname, activeNav, setActiveNav]);
+  useUrlNavSync();
 
   return (
     <Routes>
@@ -36,7 +25,7 @@ function RoutingShell() {
       <Route path="/projects" element={<div data-testid="page" className="page-projects">Projects</div>} />
       <Route path="/agents" element={<div data-testid="page" className="page-agents">Agents</div>} />
       <Route path="/schedules" element={<div data-testid="page" className="page-schedules">Schedules</div>} />
-      <Route path="/knowledge" element={<div data-testid="page" className="page-knowledge">Knowledge</div>} />
+      <Route path="/knowledge/*" element={<div data-testid="page" className="page-knowledge">Knowledge</div>} />
       <Route path="*" element={<Navigate to="/assistant" replace />} />
     </Routes>
   );
@@ -87,6 +76,12 @@ describe('HashRouter 路由同步', () => {
   it('4. URL→store 同步：URL 改变后 activeNav 跟随更新', () => {
     renderRouting(['/projects']);
     expect(useConversationStore.getState().activeNav).toBe('projects');
+  });
+
+  it('知识库子页保持知识库导航选中', () => {
+    renderRouting(['/knowledge/files/kf-1/chunks']);
+    expect(document.querySelector('.page-knowledge')).toBeTruthy();
+    expect(useConversationStore.getState().activeNav).toBe('knowledge');
   });
 
   it('5. store→URL 不同步：setActiveNav 不应改变渲染的页面', () => {

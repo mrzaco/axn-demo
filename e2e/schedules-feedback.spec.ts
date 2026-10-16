@@ -7,6 +7,10 @@ test('定时任务可创建、编辑、暂停、恢复、删除并在刷新后�
   await page.getByRole('button', { name: '新建定时任务', exact: true }).click();
   const modal = page.getByRole('dialog');
   await modal.getByLabel('任务名称', { exact: true }).fill('每周资源核对');
+  await expect(modal.getByText('请选择智能体（选填）', { exact: true })).toBeVisible();
+  await modal.getByLabel('执行智能体（选填）', { exact: true }).click();
+  await expect(page.getByRole('option')).toHaveCount(5);
+  await page.getByRole('option', { name: '救援资源管理智能体', exact: true }).click();
   await modal.getByLabel('执行内容', { exact: true }).fill('查询周边救援资源');
   await modal.getByLabel('重复周期', { exact: true }).click();
   await page.getByRole('option', { name: '每周', exact: true }).click();
@@ -16,13 +20,17 @@ test('定时任务可创建、编辑、暂停、恢复、删除并在刷新后�
   await modal.getByRole('button', { name: '保存任务', exact: true }).click();
   let card = page.locator('.axn-schedule-card', { hasText: '每周资源核对' });
   await expect(card).toContainText('每周二 09:30');
+  await expect(card).toContainText('智能体：救援资源管理智能体');
   await card.getByRole('switch', { name: '启用每周资源核对', exact: true }).click();
   await expect(card).toContainText('已暂停');
   await page.reload();
   await expect(card).toContainText('已暂停');
+  await expect(card).toContainText('智能体：救援资源管理智能体');
   await card.getByRole('switch', { name: '启用每周资源核对', exact: true }).click();
   await expect(card.getByRole('switch')).toBeChecked();
   await card.getByRole('button', { name: '编辑每周资源核对', exact: true }).click();
+  await expect(page.getByRole('dialog').getByLabel('执行智能体（选填）', { exact: true })).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('dialog')).toContainText('救援资源管理智能体');
   await page.getByRole('dialog').getByLabel('任务名称', { exact: true }).fill('每周资源复核');
   await page.getByRole('dialog').getByRole('button', { name: '保存任务', exact: true }).click();
   card = page.locator('.axn-schedule-card', { hasText: '每周资源复核' });

@@ -152,12 +152,12 @@ export function factDisplay(factId: string, scope?: FactQueryScope): string {
   return formatFactValue(f.value, f.unit, f.sourceFieldKey);
 }
 
-/** 事件显示名（取 incident 标题事实，供导航/会话列表使用）。无标题时回退事件 ID。 */
+/** 事件显示名（取 incident 标题事实，供导航/会话列表使用）。缺失或失效时使用中文提示，避免暴露内部事件 ID。 */
 export function eventDisplayName(eventId: string): string {
   const incident = incidentById.get(eventId);
-  if (!incident) return eventId;
+  if (!incident) return '关联事件不可用';
   const resolved = resolveFact(incident.factRefs.title, { kind: 'event', eventId });
-  return resolved ? String(resolved.value) : eventId;
+  return resolved?.value != null && String(resolved.value).trim() ? String(resolved.value) : '未命名灾情事件';
 }
 
 export function latestWaterLevelFactId(eventId: string = useDemoStore.getState().currentEventId): string | null {

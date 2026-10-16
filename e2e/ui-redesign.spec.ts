@@ -353,7 +353,7 @@ test('语音按钮：转写中再点一下可停止，文字不再增长', async
 
 
 for (const width of [1440, 390]) {
-  test(`关联灾情恢复到输入框内部右下方 ${width}px`, async ({ page }) => {
+  test(`关联灾情保留在输入框内部 ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
@@ -363,14 +363,15 @@ for (const width of [1440, 390]) {
     const button = (await trigger.boundingBox())!;
     const shell = (await page.locator('.axn-composer-shell').boundingBox())!;
     expect(button.x).toBeGreaterThan(shell.x);
-    expect(button.y).toBeGreaterThan(shell.y + shell.height / 2);
+    const textInput = (await page.locator('.axn-composer-shell textarea').boundingBox())!;
+    expect(button.y).toBeGreaterThanOrEqual(textInput.y + textInput.height);
     expect(button.y + button.height).toBeLessThanOrEqual(shell.y + shell.height);
     await trigger.click();
     await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-    await expect(trigger).toContainText('选择关联灾情事件');
+    await expect(trigger).toHaveAttribute('aria-description', '未关联灾情');
     await trigger.click();
     await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
-    await expect(trigger).toContainText('清河段堤防险情');
+    await expect(trigger).toHaveAttribute('aria-description', '清河段堤防险情');
     await expect(page.getByTestId('incident-picker')).not.toBeVisible();
     await page.screenshot({ path: `artifacts/ui-polish/incident-inside-composer-${width}.png` });
   });

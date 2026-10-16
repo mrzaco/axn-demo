@@ -179,7 +179,7 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
  * 意图 → 协同智能体映射（模拟协同）：任务执行前先在对话中展示召唤效果。
  * 知识问答/解释/停止/未知不召唤（直接回答或兜底）。
  */
-function summonFor(intent: Ctx['intent']):
+export function agentForIntent(intent: Ctx['intent']):
   | { agentId: string; agentName: string; agentRole: string; action: string }
   | null {
   switch (intent) {
@@ -228,7 +228,7 @@ function summonFor(intent: Ctx['intent']):
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
   const demo = useDemoStore.getState();
   const paceMs = demo.pace === 'fast' ? 130 : 620;
-  const summon = summonFor(req.intent);
+  const summon = agentForIntent(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
   if (['summary', 'proposal', 'doc_brief', 'evaluation'].includes(req.intent) && !incidentById.has(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };
