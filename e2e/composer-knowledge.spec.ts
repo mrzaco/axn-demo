@@ -113,3 +113,35 @@ for (const width of [1440, 390]) {
     expect(errors).toEqual([]);
   });
 }
+
+for (const width of [1366, 1680]) {
+  test(`工作区展开后输入框按分栏宽度切换布局 ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 928 });
+    await page.goto('/');
+    const shell = page.locator('.axn-composer-shell');
+    await expect(shell).not.toHaveClass(/is-mobile/);
+    await page.goto('/#/library');
+    await page.getByTestId('document-library').locator('.doc-sample-row').first().click();
+    await expect(page.getByTestId('document-workspace')).toBeVisible();
+    await expect(shell).toHaveClass(/is-mobile/);
+    const boxes = await Promise.all([
+      page.getByRole('button', { name: '输入工具', exact: true }),
+      page.getByTestId('composer-knowledge-picker'),
+      page.getByTestId('chat-link-incident'),
+      page.getByTestId('composer-speech'),
+      page.getByRole('button', { name: '发送', exact: true }),
+    ].map(locator => locator.boundingBox()));
+    const boundary = (await shell.boundingBox())!;
+    for (let index = 0; index < boxes.length; index++) {
+      const box = boxes[index]!;
+      expect(box.x).toBeGreaterThanOrEqual(boundary.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(boundary.x + boundary.width);
+      if (index > 0) expect(box.x).toBeGreaterThan(boxes[index - 1]!.x + boxes[index - 1]!.width);
+      expect(Math.abs(box.y + box.height / 2 - boxes[0]!.y - boxes[0]!.height / 2)).toBeLessThan(1);
+    }
+    await page.screenshot({ path: `/tmp/axn-workspace-composer-${width}.png` });
+    await page.getByTestId('workspace-close-btn').click();
+    await expect(shell).not.toHaveClass(/is-mobile/);
+    await expect(page.getByTestId('composer-upload')).toBeVisible();
+  });
+}

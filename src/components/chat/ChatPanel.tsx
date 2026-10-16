@@ -107,14 +107,20 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   const scope = useActiveScope();
 
   const [input, setInput] = useState('');
+  const composerRef = useRef<HTMLDivElement>(null);
   const [mobileComposer, setMobileComposer] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   const [toolsOpen, setToolsOpen] = useState(false);
+  // 工作区展开会压缩对话栏：按输入框实际宽度切换，不能只判断浏览器宽度。
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 767px)');
-    const update = () => { setMobileComposer(media.matches); setToolsOpen(false); };
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
+    const shell = composerRef.current;
+    if (!shell) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setMobileComposer(entry.contentRect.width <= 820);
+    });
+    observer.observe(shell);
+    return () => observer.disconnect();
   }, []);
+  useEffect(() => { setToolsOpen(false); }, [mobileComposer]);
   const [clarifyValue, setClarifyValue] = useState('');
   // 文书选区 AI 操作条（SelectionAssist）把「指令 + 原文」送进输入框，等用户确认后再发
   useEffect(() => {
@@ -636,7 +642,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
       </div>
       {/* 关联灾情与发送、语音操作位于输入框右下角。 */}
       <div className="axn-composer">
-        <div className={`axn-composer-shell${mobileComposer ? ' is-mobile' : ''}`}>
+        <div ref={composerRef} className={`axn-composer-shell${mobileComposer ? ' is-mobile' : ''}`}>
           {/* 已选文件：输入框上方一行可移除的 chip（上传按钮在输入框左下角） */}
           {attachments.length > 0 && (
             <ul className="axn-attach-list" data-testid="composer-attachments">
