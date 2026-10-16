@@ -10,14 +10,16 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from './navRoutes';
 import {
-  // Bot, // 恢复「智能体与 Skill」侧栏入口时一并取回
+  Bot,
   // Clock, // 恢复「定时任务」侧栏入口时一并取回
   // FilePlus, // 恢复「新建任务」按钮时一并取回
   FlaskConical,
   FolderOpen,
+  FolderClosed,
   // LayoutGrid, // 恢复「应急项目」侧栏入口时一并取回
   Pin,
   Plus,
+  Puzzle,
   Search,
   Settings,
   Sparkles,
@@ -45,16 +47,16 @@ type NavKey = NavPage;
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   { key: 'library', label: '文书库', icon: <FolderOpen /> },
   { key: 'assistant', label: '安小能', icon: <Sparkles /> },
-  // 「知识库」按下线标注恢复入口，样式与其它导航项一致（正常态深灰、可点击）；
-  // 但暂不接功能：点击只给 toast 提示，不跳转（/knowledge 页面与路由保持不变）。
-  // 需要真正启用（正常导航、选中变蓝）时，删除下方 onClick 里的 knowledge 分支即可。
-  { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
-  // 「应急项目」「智能体与 Skill」「定时任务」三个入口按下线标注从侧栏隐藏：
-  // 页面（NavPages）与路由（/projects、/agents、/schedules）全部保留，深链直达仍可用；
-  // 取消下列注释并取回对应图标导入（LayoutGrid / Bot / Clock）即可恢复侧栏入口。
+  { key: 'agents', label: '智能体管理', icon: <Bot /> },
+  { key: 'skills', label: '技能管理', icon: <Puzzle /> },
+  // 「应急项目」「定时任务」入口隐藏，页面与深链保留。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
-  // { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
+];
+
+const PLACEHOLDER_NAV = [
+  { key: 'my-files', label: '我的文件', icon: <FolderClosed /> },
+  { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
 ];
 
 export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
@@ -202,13 +204,20 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
                 openLibrary();
                 return;
               }
-              // 知识库：占位入口，暂不跳转 /knowledge（仅提示）
-              if (item.key === 'knowledge') {
-                message.info('知识库功能建设中');
-                return;
-              }
               guardDirty('切换导航页', () => navigate(`/${item.key}`));
             }}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        ))}
+        {PLACEHOLDER_NAV.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`axn-gs-nav-item${activeNav === item.key ? ' is-active' : ''}`}
+            aria-current={activeNav === item.key ? 'page' : undefined}
+            onClick={() => message.info(`${item.label}功能建设中`)}
           >
             {item.icon}
             <span>{item.label}</span>

@@ -5,6 +5,7 @@
  * 前置：playwright.config webServer = preview(4173)，需先 pnpm build。
  */
 import { expect, test, type Page } from '@playwright/test';
+import { AGENT_INVITATIONS } from '../src/seed/agentInvitations';
 
 async function openNav(page: Page, label: string) {
   await page.locator('.axn-gs-nav-item', { hasText: label }).first().click();
@@ -193,7 +194,35 @@ test('10b. 「应急项目 / 智能体与 Skill / 定时任务」侧栏入口已
   await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 
-test('11. 智能体与 Skill / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
+test('智能体管理展示已有能力，召唤回到原对话并能选择任务', async ({ page }) => {
+  await newConversation(page);
+  const activeConversation = page.locator('.axn-gs-conversation.is-active');
+  const conversationId = await activeConversation.getAttribute('data-testid');
+  const count = await page.locator('.axn-gs-conversation').count();
+  for (const agent of AGENT_INVITATIONS) {
+    await openNav(page, '智能体管理');
+    await expect(page.getByRole('heading', { name: '智能体管理', exact: true })).toBeVisible();
+    await expect(page.locator('.axn-gs-nav-item', { hasText: '智能体管理' })).toHaveAttribute('aria-current', 'page');
+    const card = page.locator(`.axn-agent-card[data-agent-id="${agent.agentId}"]`);
+    await expect(card.getByRole('heading', { name: agent.name, exact: true })).toBeVisible();
+    await expect(card.locator('.axn-np-desc')).not.toBeEmpty();
+    await card.getByRole('button', { name: `召唤${agent.name}`, exact: true }).click();
+    await expect(page.locator('.axn-chat-page')).toBeVisible();
+    const invitation = page.getByTestId('agent-summon-card').filter({ has: page.locator(`[data-agent-id="${agent.agentId}"].axn-doc-choices`) }).last();
+    await expect(invitation).toContainText(agent.intro);
+    for (const option of agent.options) {
+      await expect(invitation.getByRole('button', { name: option.label, exact: true })).toBeEnabled();
+    }
+    await expect(activeConversation).toHaveAttribute('data-testid', conversationId!);
+    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count);
+  }
+  await page.reload();
+  await expect(page.getByTestId('agent-summon-card')).toHaveCount(AGENT_INVITATIONS.length);
+  await page.locator('.axn-doc-choices[data-agent-id="agent-resource"]').getByRole('button', { name: '周边救援资源', exact: true }).click();
+  await expect(page.locator('.axn-task-card').first()).toBeVisible();
+});
+
+test('11. 智能体管理 / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
   // 侧栏入口已按下线标注隐藏，页面本身仍可通过深链直达。
   // 应用用 HashRouter，深链形式为 /#/agents
   await page.goto('/#/agents');

@@ -25,6 +25,7 @@ function Shell() {
       <Routes>
         <Route path="/assistant" element={<div>助理页</div>} />
         <Route path="/library" element={<div>文书库页</div>} />
+        <Route path="/skills" element={<div>技能管理页</div>} />
       </Routes>
     </div>
   );
@@ -36,6 +37,12 @@ beforeEach(() => {
 });
 
 describe('URL → store 单向同步', () => {
+  it('技能页深链同步导航高亮', () => {
+    render(<MemoryRouter initialEntries={[NAV_PATH.skills]}><Shell /></MemoryRouter>);
+    expect(screen.getByText('技能管理页')).toBeTruthy();
+    expect(useConversationStore.getState().activeNav).toBe('skills');
+  });
+
   it('路径表与 NavPage 一一对应（互反）', () => {
     for (const [path, nav] of Object.entries(PATH_TO_NAV)) {
       expect(NAV_PATH[nav]).toBe(path);

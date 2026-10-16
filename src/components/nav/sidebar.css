@@ -518,6 +518,20 @@
 .axn-np-icon-tile svg { width: 16px; height: 16px; }
 .axn-np-count { font-size: var(--fs-meta); color: var(--axn-muted); }
 .axn-np-skill.ant-tag { color: var(--axn-text); background: var(--axn-soft); border-color: transparent; }
+.axn-agents-grid { margin-top: var(--space-4); }
+.axn-agent-card .ant-card-body { display: flex; flex-direction: column; height: 100%; }
+.axn-agent-card-heading { display: flex; align-items: center; gap: var(--space-3); }
+.axn-agent-card-heading .axn-np-status { flex-shrink: 0; }
+.axn-agent-card .axn-np-desc { margin: var(--space-4) 0; }
+.axn-agent-card-footer { margin-top: auto; padding-top: var(--space-5); }
+.axn-agent-card-footer .ant-btn { width: 100%; }
+.axn-skills-search-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+.axn-skills-search { width: 100%; max-width: 420px; }
+.axn-skills-create { margin-left: auto; }
+.axn-skill-details dt { margin-top: var(--space-5); color: var(--axn-muted); font-size: var(--fs-meta); }
+.axn-skill-details dd { margin: var(--space-2) 0 0; line-height: var(--lh-normal); }
+.axn-skill-detail-name { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.axn-skill-detail-name svg { flex-shrink: 0; color: var(--axn-muted); }
 .axn-np-status { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--fs-meta); color: var(--axn-success-text); }
 .axn-np-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .axn-np-status.is-idle { color: var(--axn-faint); }
