@@ -9,16 +9,18 @@ export function useDocumentNavigation() {
   const scope = useActiveScope();
   const { modal } = App.useApp();
   const navigate = useNavigate();
-  return useCallback((targetScope: string, selection: WorkspaceSelection) => {
+  return useCallback((targetScope: string, selection: WorkspaceSelection, onOpened?: () => void) => {
     const workspace = useWorkspaceStore.getState();
     const current = workspace.selectionOf(scope);
     if (targetScope === scope && current?.kind === selection.kind && current.id === selection.id) {
       navigate(NAV_PATH.assistant);
+      onOpened?.();
       return;
     }
     const open = () => {
       workspace.select(targetScope, selection);
       navigate(NAV_PATH.assistant);
+      onOpened?.();
     };
     if (!workspace.isDirty(scope)) { open(); return; }
     modal.confirm({

@@ -130,7 +130,7 @@ test('5. 菜单切换不丢 active 会话', async ({ page }) => {
   // 侧栏仅保留「文书库 / 智能助理」两个入口（其余除深链外已隐藏）。
   await openNav(page, '文书库');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
-  await openNav(page, '智能助理');
+  await openNav(page, '安小能');
   await expect(page.locator('.axn-gs-conversation.is-active .axn-gs-conv-title-text').first()).toHaveText(activeTitle ?? '');
 });
 
@@ -182,7 +182,7 @@ test('10b. 「应急项目 / 智能体与 Skill / 定时任务」侧栏入口已
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
   // 保留的入口仍在（含已恢复的「知识库」）
-  for (const label of ['文书库', '智能助理', '知识库']) {
+  for (const label of ['文书库', '安小能', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
   // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转
@@ -207,7 +207,7 @@ test('11. 智能体与 Skill / 定时任务 / 知识库导航页可访问，文�
   await openNav(page, '文书库');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
-  await openNav(page, '智能助理');
+  await openNav(page, '安小能');
   await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 

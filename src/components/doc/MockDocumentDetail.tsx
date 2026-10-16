@@ -20,6 +20,7 @@ import RichTextEditor from './RichText';
 import RichTextToolbar from './RichTextToolbar';
 import { useDocumentReviewStore } from '@/store/documentReviewStore';
 import { DocumentReviewDetails } from './DocumentReview';
+import { useReviewIssueLocations } from './useReviewIssueLocations';
 
 /** 附件表的合并首列（真件里的「分类」跨三行）：从这一行往后数到下一个带 group 的行。 */
 function groupSpan(rows: readonly { group?: string }[], index: number) {
@@ -168,6 +169,8 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
   const validWorking = working.title.trim() && working.sections.every(([heading, body]) => heading.trim() && richTextToPlain(body).trim());
   const saveStatus = dirty ? (validWorking ? '有未保存修改 · 等待自动保存' : '请补齐内容后自动保存') : latest.source === 'autosave' ? '已自动保存' : '已保存';
 
+  const reviewPaperRef = useReviewIssueLocations(scope, working, review, !reviewOpen && !(view && target));
+
   return <div className="doc-detail-view">
     <DocumentDetailToolbar title={document.title} subtitle={`${categoryName} · ${document.date} · V${latest.no}${latest.final ? ' 定稿' : ''} · ${saveStatus}`} editing dirty={dirty} onBack={onClose} onOpenLibrary={onOpenLibrary}
       onSave={save} onDiscard={discard}
@@ -228,7 +231,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
     {reviewOpen ? <div className="doc-detail-scroll"><DocumentReviewDetails scope={scope} document={working} /></div> : view && target ? <div className="doc-detail-scroll" ref={compareRef}>
       <DocVersionCompare base={base} target={target} onlyChanges={onlyChanges} />
     </div> : <div className="doc-detail-scroll">
-      <article className="axn-redhead-paper doc-paper-editing" data-testid="mock-redhead-document">
+      <article ref={reviewPaperRef} className="axn-redhead-paper doc-paper-editing" data-testid="mock-redhead-document">
         {redhead?.platform && <PaperText className="axn-redhead-platform" ariaLabel="平台行" {...paperField('platform', redhead.platform)} />}
         <PaperText className="axn-redhead-org" ariaLabel="发文机关标志" {...paperField('org', redhead?.org ?? REDHEAD_ORG_DEFAULT)} />
         <PaperText className="axn-redhead-type" ariaLabel="文种" {...paperField('type', redhead?.type ?? categoryName)} />
@@ -241,7 +244,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
         </div>
         <div className="axn-redhead-rule" />
         <input className="doc-edit-title doc-inline-edit" aria-label="文书标题" value={working.title} onChange={event => applyWorking({ ...working, title: event.target.value })} />
-        <div className="axn-redhead-body">{working.sections.map(([heading, body], index) => heading === HIDDEN_SECTION ? null : <section key={index}>
+        <div className="axn-redhead-body">{working.sections.map(([heading, body], index) => heading === HIDDEN_SECTION ? null : <section key={index} data-review-section={index}>
           <input className="doc-edit-heading doc-inline-edit" aria-label={`第${index + 1}节标题`} value={heading} onChange={event => sectionChange(index, 0, event.target.value)} /><RichTextEditor ariaLabel={`第${index + 1}节正文`} autoFocus={index === 0} value={body} onChange={next => sectionChange(index, 1, next)} />
         </section>)}</div>
         {/* 正文尾部附图（只有挂了 figures 的样稿才有；用户 m01044 的两张现场照片） */}

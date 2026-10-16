@@ -68,7 +68,7 @@ test('文书任务生成真实草稿与重新打开', async ({ page }) => {
     await page.getByPlaceholder(/向安小能发送指令/).fill(text);
     await page.keyboard.press('Enter');
   };
-  await page.locator('.axn-gs-nav-item', { hasText: '智能助理' }).first().click();
+  await page.locator('.axn-gs-nav-item', { hasText: '安小能' }).first().click();
   await send('生成应急要情');
   await expect(page.locator('.axn-task-card', { hasText: '生成应急要情' }).last()).toContainText('待补充信息', { timeout: 20000 });
   await send('报送单位是清河防汛分指挥部值班室');
@@ -117,7 +117,7 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
     await openLibrary(page);
     await page.getByTestId('document-library').getByRole('tab', { name: new RegExp(`^${name} `) }).click();
     await expect(page.getByTestId('document-library').locator('.doc-sample-row')).toHaveCount(3);
-    await page.locator('.axn-gs-nav-item', { hasText: '智能助理' }).first().click();
+    await page.locator('.axn-gs-nav-item', { hasText: '安小能' }).first().click();
   }
 });
 

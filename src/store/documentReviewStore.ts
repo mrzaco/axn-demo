@@ -29,6 +29,8 @@ type Reviews = Record<string, Record<string, DocumentReview>>;
 type ReviewState = {
   reviews: Reviews;
   detailsTarget: { scope: string; documentId: string } | null;
+  issueTarget: { scope: string; documentId: string; issueId: string; requestId: number } | null;
+  focusIssue: (scope: string, documentId: string, issueId: string) => void;
   start: (scope: string, document: MockDocument) => void;
   advance: (scope: string, documentId: string, runId: string, now?: number) => void;
   invalidate: (scope: string, document: MockDocument) => void;
@@ -48,6 +50,8 @@ let serial = 0;
 export const useDocumentReviewStore = create<ReviewState>((set) => ({
   reviews: restoreReviews(),
   detailsTarget: null,
+  issueTarget: null,
+  focusIssue: (scope, documentId, issueId) => set({ detailsTarget: null, issueTarget: { scope, documentId, issueId, requestId: ++serial } }),
   start: (scope, document) => set(state => ({ reviews: {
     ...state.reviews,
     [scope]: { ...state.reviews[scope], [document.id]: {
@@ -71,6 +75,6 @@ export const useDocumentReviewStore = create<ReviewState>((set) => ({
     return { reviews: { ...state.reviews, [scope]: { ...state.reviews[scope], [document.id]: { ...review, status: 'stale' } } } };
   }),
   showDetails: detailsTarget => set({ detailsTarget }),
-  reset: () => { clearPersist('docreview'); set({ reviews: {}, detailsTarget: null }); },
+  reset: () => { clearPersist('docreview'); set({ reviews: {}, detailsTarget: null, issueTarget: null }); },
 }));
 useDocumentReviewStore.subscribe(state => schedulePersist('docreview', { reviews: state.reviews }));

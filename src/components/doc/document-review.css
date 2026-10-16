@@ -1,11 +1,20 @@
-.doc-review-title { display: block; margin-top: var(--space-2); font-size: var(--fs-body); }
-.doc-review-stages { display: flex; flex-direction: column; gap: var(--space-2); margin: var(--space-3) 0; }
-.doc-review-stage { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); font-size: var(--fs-body); }
-.doc-review-stage > .ant-typography:last-child:not(:nth-child(2)) { font-size: var(--fs-meta); }
-.doc-review-stage.is-done > svg, .doc-review-check.is-done > svg { color: var(--axn-success-text); }
-.doc-review-stage.is-active > svg, .doc-review-check.is-active > svg { color: var(--axn-primary); }
-.doc-review-stage.is-pending > svg, .doc-review-check.is-pending > svg { color: var(--axn-faint); }
-.doc-review-card .doc-review-summary { margin-bottom: var(--space-3); font-size: var(--fs-body); color: var(--axn-muted); }
+.doc-review-title { display: block; font-size: var(--fs-meta); color: var(--axn-muted); line-height: var(--lh-normal); }
+.doc-review-stages { display: flex; flex-direction: column; }
+.doc-review-stage { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding: var(--space-2-5) var(--space-4); font-size: var(--fs-body); }
+.doc-review-stage + .doc-review-stage { border-top: 1px solid var(--axn-divider); }
+.doc-review-stage-label.ant-typography { font-size: var(--fs-meta); color: var(--axn-muted); }
+.doc-review-stage-value { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--axn-muted); font-size: var(--fs-meta); }
+.doc-review-stage-value svg { flex-shrink: 0; width: 14px; height: 14px; }
+.doc-review-stage-detail { color: var(--axn-faint); font-size: var(--fs-caption); }
+.doc-review-stage.is-done .doc-review-stage-value, .doc-review-check.is-done > svg { color: var(--axn-success-text); }
+.doc-review-stage.is-active .doc-review-stage-value, .doc-review-check.is-active > svg { color: var(--axn-primary); }
+.doc-review-stage.is-pending .doc-review-stage-value, .doc-review-check.is-pending > svg { color: var(--axn-faint); }
+.doc-review-card .doc-review-summary { margin: 0; font-size: var(--fs-body); line-height: var(--lh-normal); color: var(--axn-text); }
+.doc-review-report.axn-artifact { margin-top: var(--space-1); }
+.doc-review-report .axn-artifact-actions { gap: var(--space-2); }
+.doc-review-findings { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--axn-divider); }
+.doc-review-findings-label { display: flex; align-items: center; gap: var(--space-1-5); color: var(--axn-muted); font-size: var(--fs-meta); }
+.doc-review-findings-label > span { color: var(--axn-error-text); font-variant-numeric: tabular-nums; }
 .doc-review-details { max-width: var(--measure-doc); margin: 0 auto; padding: var(--space-5); border: 1px solid var(--axn-border); border-radius: var(--radius-lg); background: var(--axn-surface); }
 .doc-review-result-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-5); }
 .doc-review-result-head h4.ant-typography { margin: 0 0 var(--space-1); font-size: var(--fs-title-sm); }
@@ -26,11 +35,14 @@
   .doc-review-details { padding: var(--space-3); }
   .doc-review-tabs.ant-tabs { padding-inline: var(--space-3); }
 }
-.doc-review-stage.is-issue > svg, .doc-review-check.is-issue > svg { color: var(--axn-error-text); }
+.doc-review-stage.is-issue .doc-review-stage-value, .doc-review-check.is-issue > svg { color: var(--axn-error-text); }
 .doc-review-result-head.has-issues .doc-review-result-icon { background: var(--axn-error-bg); color: var(--axn-error-text); }
-.doc-review-issue-summary { list-style: none; padding: 0; margin: 0 0 var(--space-3); display: grid; gap: var(--space-2); font-size: var(--fs-body); }
-.doc-review-issue-summary li { color: var(--axn-error-text); }
-.doc-review-issue-summary span { display: block; margin-top: var(--space-0-5); color: var(--axn-muted); font-size: var(--fs-meta); }
+.doc-review-issue-summary { list-style: none; counter-reset: review-issue; padding: 0; margin: var(--space-3) 0 0; display: grid; gap: var(--space-3); }
+.doc-review-issue-summary li { counter-increment: review-issue; display: flex; align-items: flex-start; gap: var(--space-2); }
+.doc-review-issue-summary li::before { content: counter(review-issue, decimal-leading-zero); color: var(--axn-faint); font-size: var(--fs-meta); line-height: var(--lh-normal); font-variant-numeric: tabular-nums; }
+.doc-review-issue-summary li > div { display: flex; flex-direction: column; gap: var(--space-0-5); min-width: 0; }
+.doc-review-issue-summary strong { color: var(--axn-text); font-size: var(--fs-body); line-height: var(--lh-normal); font-weight: 600; }
+.doc-review-issue-summary span { color: var(--axn-muted); font-size: var(--fs-meta); line-height: var(--lh-normal); }
 .doc-review-problems { margin-top: var(--space-5); }
 .doc-review-problems h5.ant-typography { font-size: var(--fs-body); }
 .doc-review-problem { margin-bottom: var(--space-3); padding: var(--space-4); border: 1px solid var(--axn-border); border-radius: var(--radius-md); }
@@ -40,3 +52,22 @@
 .doc-review-suggestion { padding-top: var(--space-2); font-size: var(--fs-body); }
 .doc-review-suggestion .ant-typography { font-size: var(--fs-body); }
 .doc-review-suggestion .ant-typography:last-child { margin: var(--space-1) 0 0; color: var(--axn-muted); }
+
+/* 检查项状态与项目标题同排，说明文字独立放在下一行。 */
+.doc-review-check-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+
+.doc-review-issue-link { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; gap: var(--space-0-5); padding: 0; border: 0; border-radius: var(--radius-sm); text-align: left; background: transparent; font: inherit; cursor: pointer; }
+.doc-review-issue-link strong { display: flex; align-items: center; gap: var(--space-2); }
+.doc-review-issue-link strong svg { color: var(--axn-muted); flex-shrink: 0; }
+.doc-review-issue-link:hover strong, .doc-review-issue-link:hover strong svg { color: var(--axn-primary); }
+.doc-review-issue-link:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.doc-review-problem > .ant-btn-link { padding-inline: 0; margin-top: var(--space-1); }
+.doc-paper-editing ::highlight(doc-review-error) { color: var(--axn-error-text); background-color: var(--axn-error-bg); text-decoration: underline; }
+.doc-paper-editing [data-review-focused] { outline: 2px solid var(--axn-error); outline-offset: 4px; border-radius: var(--radius-sm); scroll-margin-block: var(--space-8); }
+@supports not selector(::highlight(doc-review-error)) {
+  .doc-paper-editing [data-review-issue] { color: var(--axn-error-text); background: var(--axn-error-bg); }
+}
+@media print {
+  .doc-paper-editing ::highlight(doc-review-error) { color: inherit; background-color: transparent; text-decoration: none; }
+  .doc-paper-editing [data-review-focused] { outline: none; }
+}

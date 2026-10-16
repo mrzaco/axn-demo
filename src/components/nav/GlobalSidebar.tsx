@@ -44,7 +44,7 @@ type NavKey = NavPage;
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   { key: 'library', label: '文书库', icon: <FolderOpen /> },
-  { key: 'assistant', label: '智能助理', icon: <Sparkles /> },
+  { key: 'assistant', label: '安小能', icon: <Sparkles /> },
   // 「知识库」按下线标注恢复入口，样式与其它导航项一致（正常态深灰、可点击）；
   // 但暂不接功能：点击只给 toast 提示，不跳转（/knowledge 页面与路由保持不变）。
   // 需要真正启用（正常导航、选中变蓝）时，删除下方 onClick 里的 knowledge 分支即可。
