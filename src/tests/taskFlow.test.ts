@@ -7,7 +7,7 @@ import { recognize } from '@/services/mock/provider';
 import { useSessionStore } from '@/store/sessionStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useDocumentStore } from '@/store/documentStore';
-import { DEFAULT_EVENT_ID, factText } from '@/seed/scenario';
+import { DEFAULT_EVENT_ID, factText, incidentById, factById } from '@/seed/scenario';
 import { sendMessage, cancelTask } from '@/services/taskRunner';
 import { ensureQaLoaded } from '@/services/qaKnowledge';
 
@@ -75,11 +75,11 @@ describe('任务链路', () => {
     return useSessionStore.getState().ensureSessionForEvent(eventId);
   }
 
-  it('重新关联灾情时切换会话上下文并保留原会话', () => {
+  it('重新关联灾情时原地更新事件并保留同一会话', () => {
     const store = useSessionStore.getState();
     const blankId = store.ensureSessionForConversation('relink-test', 'evt-blank-relink');
     const linkedId = store.ensureSessionForConversation('relink-test', DEFAULT_EVENT_ID);
-    expect(linkedId).not.toBe(blankId);
+    expect(linkedId).toBe(blankId);
     expect(useSessionStore.getState().sessions[linkedId].eventId).toBe(DEFAULT_EVENT_ID);
     expect(store.ensureSessionForConversation('relink-test', 'evt-blank-relink')).toBe(blankId);
     expect(useSessionStore.getState().sessions[blankId].eventId).toBe('evt-blank-relink');
@@ -127,7 +127,7 @@ describe('任务链路', () => {
     expect(tasks[0].intent).toBe('summary');
   });
 
-  it('摘要任务引用已补齐的模拟影响范围和伤亡情况', async () => {
+  it('摘要任务引用当前事件的影响范围和伤亡事实并保留待核标记', async () => {
     useDemoStore.getState().setPace('fast');
     const sessionId = sessionIdFor();
     sendMessage(sessionId, { text: '生成灾情摘要' });
@@ -138,9 +138,11 @@ describe('任务链路', () => {
     if (summary && summary.payload.kind === 'summary') {
       const casualtyRow = summary.payload.rows.find((r) => r.label.includes('伤亡'));
       expect(casualtyRow?.factId).toBeTruthy();
-      expect(factText(casualtyRow!.factId!)).toContain('2人轻伤');
-      expect(summary.payload.pendingKeys).not.toContain(casualtyRow!.factId);
-      expect(factText('fact-incident-001-impactScope')).toContain('约120名群众');
+      const refs = incidentById.get(DEFAULT_EVENT_ID)!.factRefs;
+      expect(casualtyRow!.factId).toBe(refs.casualty);
+      expect(factText(refs.casualty)).not.toBe('');
+      expect(summary.payload.pendingKeys.includes(refs.casualty)).toBe(factById.get(refs.casualty)?.verification === 'pending');
+      expect(summary.payload.rows.find(row => row.label === '影响范围')?.factId).toBe(refs.impactScope);
     }
   }, 10000);
 

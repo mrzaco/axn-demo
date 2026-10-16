@@ -13,9 +13,10 @@ import {
   AgentMessage, AssistantMessage, ChoiceChips, Cite, Confidence, FileRow, InlineFlag, KvTable, Notice,
   NumberedSteps, Prose, ResourceList, RunBar, Section, SourceList, StatusPill, UserMessage,
 } from './ChatSpecimens';
+import { ColumnChart, DonutChart, HorizontalBarChart, MetricCards, TrendChart } from './ChatChartSpecimens';
 import './chat-controls.css';
 
-const GROUPS = ['全部', '内容展示', '信息反馈', '交互操作'] as const;
+const GROUPS = ['全部', '内容展示', '统计图表', '信息反馈', '交互操作'] as const;
 type Group = typeof GROUPS[number];
 type Control = { id: string; name: string; group: Exclude<Group, '全部'>; description: string; preview: ReactNode };
 
@@ -140,6 +141,37 @@ export default function ChatControlsPage() {
         <p>发现管涌应立即抢筑反滤围井<Cite n={1} />，现场已有 2 支队伍进场<Cite n={2} />。</p>
         <SourceList sources={SOURCES} onOpen={index => setDetail({ kind: 'source', index })} />
       </Prose>,
+    },
+    {
+      id: 'metrics', name: '指标卡', group: '统计图表',
+      description: '突出关键数值、单位和变化说明，用于汇总人员、装备、转移人数等核心指标。',
+      preview: <MetricCards />,
+    },
+    {
+      id: 'line-chart', name: '折线图', group: '统计图表',
+      description: '展示随时间变化的趋势，支持切换时间范围；悬停或聚焦数据点查看具体数值。',
+      preview: <TrendChart />,
+    },
+    {
+      id: 'column-chart', name: '柱状图', group: '统计图表',
+      description: '比较不同区域、队伍或类别的数量，保留零基线和数值标注，便于直观对比。',
+      preview: <ColumnChart title="各区域救援力量" unit="人" data={[
+        { label: '城东', value: 24 }, { label: '清河', value: 36 }, { label: '河西', value: 18 }, { label: '南堤', value: 30 },
+      ]} />,
+    },
+    {
+      id: 'donut-chart', name: '环形图', group: '统计图表',
+      description: '展示少量类别的构成占比，中心显示总量，图例同时列出数量和比例。',
+      preview: <DonutChart title="救援资源构成" unit="项" data={[
+        { label: '救援队伍', value: 12 }, { label: '救援装备', value: 18 }, { label: '物资仓库', value: 6 },
+      ]} />,
+    },
+    {
+      id: 'bar-chart', name: '横向条形图', group: '统计图表',
+      description: '适合标签较长的项目对比，统一量程；示例展示各项处置任务的完成率。',
+      preview: <HorizontalBarChart title="处置任务完成率" data={[
+        { label: '现场排查', value: 100 }, { label: '群众转移', value: 90 }, { label: '围井抢筑', value: 75 }, { label: '物资调配', value: 60 },
+      ]} />,
     },
     {
       id: 'status', name: '状态', group: '信息反馈',

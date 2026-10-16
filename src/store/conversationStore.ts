@@ -3,8 +3,8 @@
  *
  * 设计决策：
  * - Conversation 是"交互上下文"（导航/历史/收藏），Event 是"业务对象"。
- *   消息、候选资源、文书、任务等业务数据仍挂在 session（按 Event 隔离）上，
- *   切换 Conversation = 切换到其 eventId 对应的事件与 session，不另建第二套数据。
+ *   消息与文书挂在会话专属 session 上；关联事件只更新业务上下文，不替换聊天记录。
+ *   切换 Conversation = 恢复其专属 session，并同步关联事件。
  * - 一个 Event 可对应多个 Conversation；未绑事件的会话（空白对话）创建时分配专属虚拟事件 evt-blank-<id>，
  *   拥有独立空 session，不与任何业务事件共享消息。
  * - 持久化复用 persistence.ts（anneng-demo:v1:conversation），刷新后恢复历史与 active。
@@ -156,7 +156,7 @@ interface ConversationState {
 
   createConversation: (input: CreateConversationInput) => Conversation;
   selectConversation: (conversationId: string) => void;
-  /** 在对话界面内切换关联灾情：绑定事件共享 session；取消关联则回到会话专属虚拟事件 */
+  /** 在对话界面内切换关联灾情：绑定或取消关联事件时保留当前 session 与消息 */
   linkConversationToEvent: (conversationId: string, eventId: string | undefined) => void;
   deleteConversation: (conversationId: string) => void;
   /** 置顶/取消置顶：仅切换 pinned（视图属性，不碰 updatedAt，取消置顶后回到原时间分组）。 */
@@ -287,7 +287,7 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
   },
 }));
 
-/** 切换 Conversation 后同步业务上下文：切事件（含 run 失效）+ 恢复该事件 session。 */
+/** 切换 Conversation 后同步业务上下文：切事件（含 run 失效）+ 恢复会话专属 session。 */
 function syncBusinessContext(conversation: Conversation): void {
   const demo = useDemoStore.getState();
   if (conversation.eventId && conversation.eventId !== demo.currentEventId) {

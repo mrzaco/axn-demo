@@ -38,7 +38,7 @@ export async function clickQuickTask(page: Page, labelOrTask: string, task?: str
   const chips = page.locator('.axn-chips');
 
   if (task != null) {
-    const parent = PARENTS.find((p) => p.label === labelOrTask);
+    const parent = PARENTS.find((p) => p.label === labelOrTask.replace(/智能体$/, ''));
     expect(parent, `未知能力块：${labelOrTask}`).toBeTruthy();
     await parentButton(chips, parent!.agentId).click();
     await page.getByTestId('agent-invite-choices').last().getByRole('button', { name: task, exact: true }).click();
@@ -81,5 +81,5 @@ export async function clickQuickTask(page: Page, labelOrTask: string, task?: str
 
 /** 文书生成：先点能力块，再点气泡选项（展示名）。 */
 export async function clickDocTask(page: Page, name: string) {
-  await clickQuickTask(page, '文书生成', name);
+  await clickQuickTask(page, `生成${name}`);
 }

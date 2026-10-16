@@ -220,6 +220,8 @@ export interface SessionMaterial {
 }
 
 export interface ChatMessage {
+  /** 生成后的独立文书检查气泡，进度按会话和文书存储。 */
+  reviewDocumentId?: string;
   messageId: string;
   sessionId: string;
   role: 'user' | 'assistant' | 'system';

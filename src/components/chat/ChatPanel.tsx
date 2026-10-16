@@ -108,6 +108,7 @@ import { documentGeneratedReply, glanceFromSections } from '@/services/documentG
 import { scheduleAutoSituationReport } from '@/services/autoSituationReport';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
+import { DocumentReviewCard } from '@/components/doc/DocumentReview';
 import AgentSummonCard from './AgentSummonCard';
 import EventSwitchBriefingCard from './EventSwitchBriefingCard';
 import SessionMaterialsDrawer from './SessionMaterialsDrawer';
@@ -121,7 +122,7 @@ export interface ChatPanelProps {
   compact?: boolean;
 }
 
-const AVATAR = <div className="axn-chat-avatar">安</div>;
+const AVATAR = <div className="axn-chat-avatar"><BrandMark size={28} /></div>;
 
 const QUESTION_META: { icon: LucideIcon; tag: string }[] = [
   { icon: ShieldAlert, tag: '险情识别' },
@@ -811,6 +812,12 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     const messages = (session?.messages ?? []).filter(m => !isDutyContent(m.taskId ? tasks[m.taskId]?.intent ?? '' : ''));
     const summonedTasks = new Set(messages.filter(message => message.kind === 'agent' && message.taskId && tasks[message.taskId]).map(message => message.taskId));
     return messages.filter(message => !(message.kind === 'task' && summonedTasks.has(message.taskId))).map((m) => {
+      if (m.reviewDocumentId) {
+        return {
+          key: m.messageId, role: 'task', content: '文书检查', avatar: null,
+          contentRender: () => <DocumentReviewCard scope={m.sessionId} documentId={m.reviewDocumentId!} />,
+        };
+      }
       if (m.kind === 'task' && m.taskId) {
         const task = tasks[m.taskId];
         return {

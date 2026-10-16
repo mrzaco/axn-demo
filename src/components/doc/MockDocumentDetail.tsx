@@ -2,7 +2,7 @@ import { orderReportSections } from '@/services/reportSectionOrder';
 import { useEffect, useMemo, useRef, useState } from 'react';
 // message 反馈走 AntdApp.useApp()：antd v5 静态方法不消费 ConfigProvider 主题，会退回默认 token。
 // useApp() 在 <App> 之外（如直接渲染本组件的单元测试）返回空实现，故调用点用可选链避免抛错。
-import { App as AntdApp, Button, Select, Switch } from 'antd';
+import { App as AntdApp, Button, Select, Switch, Tabs } from 'antd';
 import { ChevronDown, ChevronUp, FileText, GitCompareArrows, RotateCcw } from 'lucide-react';
 import { sameMockDocument, type MockDocument } from '@/seed/mockDocuments';
 import { baselineVersion, useMockDocumentStore, type SaveMeta, type VersionAuthor } from '@/store/mockDocumentStore';
@@ -19,6 +19,8 @@ import DocVersionPanel, { authorText, versionTime, type VersionTarget } from './
 import PaperText from './PaperText';
 import RichTextEditor from './RichText';
 import RichTextToolbar from './RichTextToolbar';
+import { useDocumentReviewStore } from '@/store/documentReviewStore';
+import { DocumentReviewDetails } from './DocumentReview';
 
 /** 附件表的合并首列（真件里的「分类」跨三行）：从这一行往后数到下一个带 group 的行。 */
 function groupSpan(rows: readonly { group?: string }[], index: number) {
@@ -37,6 +39,9 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
   const savedWorking = useMockDocumentStore((s) => s.libraries[scope]?.working[document.id]);
   const baseline = useMemo(() => ({ ...document, sections: orderReportSections(document.sections) }), [document]);
   const working = useMemo(() => savedWorking ? { ...savedWorking, sections: orderReportSections(savedWorking.sections) } : baseline, [savedWorking, baseline]);
+  const review = useDocumentReviewStore(s => s.reviews[scope]?.[document.id]);
+  const detailsTarget = useDocumentReviewStore(s => s.detailsTarget);
+  const reviewOpen = !!review && detailsTarget?.scope === scope && detailsTarget.documentId === document.id;
   const applyWorking = (next: MockDocument) => {
     const store = useMockDocumentStore.getState();
     // 改回原文即视为没有未保存修改，顺手清掉工作副本。
@@ -169,8 +174,15 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
     <DocumentDetailToolbar title={document.title} subtitle={`${categoryName} · ${document.date} · V${latest.no}${latest.final ? ' 定稿' : ''} · ${saveStatus}`} editing dirty={dirty} onBack={onClose} onOpenLibrary={onOpenLibrary}
       onSave={save} onDiscard={discard}
       versionLabel={`V${latest.no}`} versionsOpen={panelOpen}
-      onToggleVersions={() => { setPanelOpen(open => !open); if (panelOpen) setView(null); }} />
-    {view && target ? <div className="doc-compare-bar" role="region" aria-label="版本对比">
+      onToggleVersions={() => {
+        if (reviewOpen) useDocumentReviewStore.getState().showDetails(null);
+        setPanelOpen(open => reviewOpen || !open); if (panelOpen) setView(null);
+      }} />
+    {review && <Tabs className="doc-review-tabs" activeKey={reviewOpen ? 'review' : 'document'} onChange={key => {
+      useDocumentReviewStore.getState().showDetails(key === 'review' ? { scope, documentId: document.id } : null);
+      setView(null); setPanelOpen(false);
+    }} items={[{ key: 'document', label: '正文' }, { key: 'review', label: '检查结果' }]} />}
+    {reviewOpen ? null : view && target ? <div className="doc-compare-bar" role="region" aria-label="版本对比">
       <div className="doc-compare-title">
         <GitCompareArrows size={16} aria-hidden />
         {view.base != null ? <>
@@ -215,7 +227,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
       </div>}
     </>}
     <div className="doc-detail-body" ref={bodyRef}>
-    {view && target ? <div className="doc-detail-scroll" ref={compareRef}>
+    {reviewOpen ? <div className="doc-detail-scroll"><DocumentReviewDetails scope={scope} document={working} /></div> : view && target ? <div className="doc-detail-scroll" ref={compareRef}>
       <DocVersionCompare base={base} target={target} onlyChanges={onlyChanges} />
     </div> : <div className="doc-detail-scroll">
       <article className="axn-redhead-paper doc-paper-editing" data-testid="mock-redhead-document">
@@ -281,7 +293,7 @@ export default function MockDocumentDetail({ scope, document, onClose, onOpenLib
       </article>
       <div className="doc-reading-footer"><FileText /> {categoryName} · 红头格式<span>{working.sections.reduce((count, [heading, body]) => count + heading.length + richTextToPlain(body).length, working.title.length)} 字</span></div>
     </div>}
-    {panelOpen && <DocVersionPanel
+    {panelOpen && !reviewOpen && <DocVersionPanel
       versions={versions}
       working={workingDiff}
       selected={view?.target ?? null}

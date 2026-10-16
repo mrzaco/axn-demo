@@ -119,6 +119,7 @@ test('生成文书自动打开工作区；关闭后同一完成不再自动弹�
 test('待补充的工作总结在刷新后恢复到文书工作区', async ({ page }) => {
   await page.goto('/');
   await openLibrary(page);
+  await page.getByTestId('document-library').getByRole('tab', { name: /^抢险总结 / }).click();
   await page.getByTestId('document-library').getByRole('button', { name: '生成抢险总结', exact: true }).click();
   await expect(page.getByTestId('document-generation-card').last()).toContainText('待补充', { timeout: 30000 });
   await page.reload();
@@ -319,4 +320,63 @@ test('语音按钮：转写中再点一下可停止，文字不再增长', async
   expect(frozen).not.toBe(SPEECH_SAMPLE);
   await page.waitForTimeout(700);
   expect(await input.inputValue()).toBe(frozen); // 已停下，不再增长
+});
+
+
+for (const width of [1440, 390]) {
+  test(`关联灾情恢复到输入框内部右下方 ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const trigger = page.getByTestId('chat-link-incident');
+    await expect(trigger).toBeVisible();
+    await expect(page.locator('.axn-composer-shell').getByTestId('chat-link-incident')).toHaveCount(1);
+    const button = (await trigger.boundingBox())!;
+    const shell = (await page.locator('.axn-composer-shell').boundingBox())!;
+    expect(button.x).toBeGreaterThan(shell.x);
+    expect(button.y).toBeGreaterThan(shell.y + shell.height / 2);
+    expect(button.y + button.height).toBeLessThanOrEqual(shell.y + shell.height);
+    await trigger.click();
+    await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
+    await expect(trigger).toContainText('选择关联灾情事件');
+    await trigger.click();
+    await page.getByTestId('incident-picker').locator('#axn-incident-opt-evt-sim-landslide').click();
+    await expect(trigger).toContainText('青岭村山体滑坡');
+    await expect(page.getByTestId('incident-picker')).not.toBeVisible();
+    await page.screenshot({ path: `artifacts/ui-polish/incident-inside-composer-${width}.png` });
+  });
+}
+
+
+test('文书库分类列表支持筛选、搜索、窄屏和打开文书', async ({ page }) => {
+  await page.goto('/');
+  await openLibrary(page);
+  const library = page.getByTestId('document-library');
+  await expect(library.locator('.doc-sample-row')).toHaveCount(10);
+  await expect(library.locator('.doc-category-grid')).toHaveCount(0);
+  await library.getByRole('button', { name: '新建文书', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: '生成值班日报', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  for (const name of ['值班日报', '应急抢险要情', '应急救援周工作动态', '会议纪要', '抢险总结']) {
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
+    await expect(library.locator('.doc-sample-row')).toHaveCount(2);
+    await expect(library.locator('.doc-file-type-cell').filter({ hasText: name })).toHaveCount(2);
+    await expect(library.getByRole('button', { name: `生成${name}`, exact: true })).toBeVisible();
+  }
+  const search = library.getByPlaceholder('搜索文书名称或文号');
+  await search.fill('不存在的文书');
+  await expect(library).toContainText('没有找到匹配的文书');
+  await expect(library.locator('.doc-sample-row')).toHaveCount(0);
+  await search.fill('');
+  await library.getByRole('tab', { name: /^全部文书 / }).click();
+  await expect(library.locator('.doc-sample-row')).toHaveCount(10);
+  await page.screenshot({ path: 'artifacts/ui-polish/document-library-list.png' });
+  await library.getByRole('tab', { name: /^应急抢险要情 / }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(library.locator('.doc-sample-row').first()).toBeInViewport();
+  expect((await library.getByRole('heading', { name: '文书库', exact: true }).boundingBox())!.y).toBeGreaterThan(40);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({ path: 'artifacts/ui-polish/document-library-list-mobile.png' });
+  await library.locator('.doc-sample-row').first().click();
+  await expect(page.getByTestId('mock-redhead-document')).toBeVisible();
 });

@@ -10,6 +10,7 @@ import { ensureWorkSummaryDocument } from '@/services/workSummaryWorkflow';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
+import DocumentReviewSync from '@/components/doc/DocumentReviewSync';
 
 /**
  * 常驻观察所有会话的产物迁移；可见视图仍只读取当前会话作用域。
@@ -170,5 +171,5 @@ export default function WorkspaceSync() {
     }
   }, [tasks, sessions, libraries]);
 
-  return null;
+  return <DocumentReviewSync />;
 }

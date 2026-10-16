@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from '@/components/nav/navRoutes';
 // message 反馈走 AntdApp.useApp()：antd v5 静态方法不消费 ConfigProvider 主题，会退回默认 token。
-import { App as AntdApp, Button, Skeleton, Space, Spin, Tag, Tooltip, Typography } from 'antd';
+import { App as AntdApp, Button, Dropdown, Empty, Input, Skeleton, Space, Spin, Tabs, Tag, Tooltip, Typography } from 'antd';
 import { useDocumentStore } from '@/store/documentStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useConversationStore } from '@/store/conversationStore';
@@ -33,18 +33,13 @@ import type { DocumentDraft, ValidationReport } from '@/domain/types';
 import MockDocumentDetail from '@/components/doc/MockDocumentDetail';
 import DocumentDetailToolbar from '@/components/doc/DocumentDetailToolbar';
 import DocumentEditor from '@/components/doc/DocumentEditor';
+import PageHeader from '@/components/common/PageHeader';
 import { flattenRuns } from '@/services/contentRuns';
 import {
-  Bot,
-  Calendar,
-  ClipboardCheck,
-  ChartColumn,
   ChevronRight,
   FileText,
   Inbox,
   Plus,
-  TriangleAlert,
-  Users,
 } from 'lucide-react'
 import VersionDrawer from '@/components/doc/VersionDrawer';
 import SourceDrawer from '@/components/doc/SourceDrawer';
@@ -122,10 +117,14 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
   const [sourceFactId, setSourceFactId] = useState<string | null>(null);
   const [sourceDocumentId, setSourceDocumentId] = useState<string | null>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
+  const [libraryCategory, setLibraryCategory] = useState('all');
+  const [libraryQuery, setLibraryQuery] = useState('');
 
   const library = useMockDocumentStore((s) => s.libraries[libraryScope] ?? EMPTY_LIBRARY);
   const { generatingCode } = library;
   const mockDocuments = library.documents.filter(d => !isHiddenPrototypeAction(`${d.code} ${d.title}`));
+  const activeCategory = DOCUMENT_CATEGORIES.find(category => category.code === libraryCategory);
+  const visibleDocuments = mockDocuments.filter(doc => (libraryCategory === 'all' || doc.code === libraryCategory) && `${doc.title} ${doc.number}`.includes(libraryQuery.trim()));
   const selectedMock = selection?.kind === 'mock' ? mockDocuments.find((d) => d.id === selection.id) ?? null : null;
 
   /** 打开文书：显式切换到助理页并写入选择状态（库/对话预览共用同一入口，不触发重新生成）。 */
@@ -173,6 +172,8 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)),
     [draftsMap, currentEventId],
   );
+
+  const visibleDrafts = drafts.filter(draft => (libraryCategory === 'all' || libraryCategory === 'drafts' || draft.templateCode === libraryCategory) && `${draft.title} ${draft.documentId}`.includes(libraryQuery.trim()));
 
   // 切换事件/会话时关闭抽屉，但不清空业务数据（工作区可见性由 workspaceStore 按作用域维护）。
   useEffect(() => {
@@ -424,11 +425,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       data-testid={view === 'library' ? 'document-library' : 'document-workspace'}
     >
       {customerAction && sessionId && <CustomerRequestPanel key={`${sessionId}:${customerAction}`} action={customerAction} sessionId={sessionId} eventId={currentEventId} onClose={() => setCustomerAction(null)} />}
-      {view === 'library' && <header className="doc-agent-header">
-        <span className="doc-agent-avatar"><Bot /></span>
-        <div className="doc-agent-heading"><h2>文书库</h2><p>规范成文，让每一份文书清晰有据</p></div>
-        <Tag className="doc-demo-badge">模拟</Tag>
-      </header>}
+      {view === 'library' && <PageHeader title="文书库" sub="规范成文，让每一份文书清晰有据" extra={<Tag className="doc-demo-badge">模拟</Tag>} />}
 
       {view === 'workspace' ? (
         generating ? (
@@ -490,49 +487,44 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
         )
       ) : (
         <div className="doc-center-list">
-          <div className="doc-category-grid">
-            {DOCUMENT_CATEGORIES.filter(category => !isHiddenPrototypeAction(category.code) && isStandaloneDocumentCode(category.code)).map((category) => (
-              <section className="doc-category" key={category.code}>
-                <div className="doc-library-row">
-                  <span className={`doc-category-icon doc-category-icon--${category.code}`}>
-                    {category.code === 'DUTY_DAILY' ? <Calendar /> : category.code === 'EMERGENCY_BRIEF' ? <TriangleAlert /> : category.code === 'MEETING_MINUTES' ? <Users /> : category.code === 'WORK_SUMMARY' ? <ClipboardCheck /> : <ChartColumn />}
-                  </span>
-                  <span className="doc-library-copy">
-                    <strong>{category.name}</strong>
-                    <span className="doc-count-pill">{mockDocuments.filter((doc) => doc.code === category.code).length} 份文书</span>
-                  </span>
-                  <Button
-                    className="doc-create-button"
-                    size="small"
-                    icon={<Plus />}
-                    aria-label={`生成${category.name}`}
-                    onClick={() => generateMock(category.code)}
-                  >
-                    生成
-                  </Button>
-                </div>
-                <div className="doc-category-items">
-                  {mockDocuments.filter((doc) => doc.code === category.code).map((doc) => (
-                    <button className="doc-sample-row" key={doc.id} onClick={() => openDocument({ kind: 'mock', id: doc.id })}>
-                      <span className="doc-file-mark"><FileText /></span>
-                      <span className="doc-file-copy">
-                        <span>{doc.title}</span>
-                        <small>{doc.date}</small>
-                      </span>
-                      <ChevronRight className="doc-file-arrow" aria-hidden />
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))}
+          <Tabs className="doc-library-tabs" activeKey={libraryCategory} onChange={setLibraryCategory}
+            aria-label="文书分类" items={[
+              { key: 'all', label: `全部文书 ${mockDocuments.length + drafts.length}` },
+              ...DOCUMENT_CATEGORIES.filter(category => !isHiddenPrototypeAction(category.code) && isStandaloneDocumentCode(category.code)).map(category => ({ key: category.code, label: `${category.name} ${mockDocuments.filter(doc => doc.code === category.code).length + drafts.filter(draft => draft.templateCode === category.code).length}` })),
+              ...(drafts.length ? [{ key: 'drafts', label: `业务草稿 ${drafts.length}` }] : []),
+            ]} />
+          <div className="doc-library-toolbar">
+            <span className="doc-library-result-count">{activeCategory?.name ?? (libraryCategory === 'drafts' ? '业务草稿' : '全部文书')} · {visibleDocuments.length + visibleDrafts.length} 份</span>
+            <Input.Search placeholder="搜索文书名称或文号" allowClear value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} />
+            {activeCategory ? <Button type="primary" icon={<Plus size={15} />} aria-label={`生成${activeCategory.name}`} onClick={() => generateMock(activeCategory.code)}>生成{activeCategory.name}</Button>
+              : <Dropdown trigger={['click']} menu={{ items: DOCUMENT_CATEGORIES.filter(category => !isHiddenPrototypeAction(category.code) && isStandaloneDocumentCode(category.code)).map(category => ({ key: category.code, label: `生成${category.name}` })), onClick: ({ key }) => generateMock(key) }}>
+                <Button type="primary" icon={<Plus size={15} />}>新建文书</Button>
+              </Dropdown>}
+          </div>
+          <div className="doc-library-file-list">
+            <div className="doc-file-table-head" aria-hidden><span>文书名称</span><span>文书类型</span><span>日期</span><span>来源</span><span /></div>
+            {visibleDocuments.map(doc => {
+              const type = DOCUMENT_CATEGORIES.find(category => category.code === doc.code)?.name ?? doc.code;
+              const source = doc.id.startsWith('generated-') ? '生成文书' : '预置样稿';
+              return <button className="doc-sample-row doc-library-file-row" key={doc.id} onClick={() => openDocument({ kind: 'mock', id: doc.id })}>
+                <span className="doc-file-name-cell"><span className="doc-file-mark"><FileText size={15} /></span><span className="doc-file-copy"><span>{doc.title}</span><small>{type} · {doc.date} · {source}</small></span></span>
+                <span className="doc-file-type-cell">{type}</span>
+                <span className="doc-file-date-cell">{doc.date}</span>
+                <span className="doc-file-source-cell">{source}</span>
+                <ChevronRight className="doc-file-arrow" size={15} aria-hidden />
+              </button>;
+            })}
+            {visibleDrafts.map(draft => <button className="doc-sample-row doc-library-file-row" key={draft.documentId} onClick={() => openDocument({ kind: 'draft', id: draft.documentId })}>
+              <span className="doc-file-name-cell"><span className="doc-file-mark"><FileText size={15} /></span><span className="doc-file-copy"><span>{draft.title}</span><small>{templateByCode.get(draft.templateCode)?.name ?? draft.templateCode} · {fmtTime(draft.updatedAt)} · {LIFECYCLE_TAG[draft.lifecycle].label}</small></span></span>
+              <span className="doc-file-type-cell">{templateByCode.get(draft.templateCode)?.name ?? draft.templateCode}</span>
+              <span className="doc-file-date-cell">{fmtTime(draft.updatedAt)}</span>
+              <span className="doc-file-source-cell">业务文书 · {LIFECYCLE_TAG[draft.lifecycle].label}</span>
+              <ChevronRight className="doc-file-arrow" size={15} aria-hidden />
+            </button>)}
+            {!visibleDocuments.length && !visibleDrafts.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={libraryQuery.trim() ? '没有找到匹配的文书' : '该分类暂无文书'} />}
           </div>
 
-          {drafts.length > 0 && (
-            <div className="doc-library-drafts">
-              <div className="doc-library-heading"><div><h3>业务草稿 <span>{drafts.length}</span></h3><p>由对话任务生成，可校核、送审、签发和导出</p></div></div>
-              {drafts.map((draft) => renderDraftActions(draft))}
-            </div>
-          )}
+
         </div>
       )}
 

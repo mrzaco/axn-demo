@@ -22,18 +22,16 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
   await openLibrary(page);
   const library = page.getByTestId('document-library');
   await expect(library.getByRole('heading', { name: '文书库' })).toBeVisible();
-  // 值班日报、会议纪要入口暂时隐藏；智能体物化文种仍展示分类行
-  await expect(library.getByText('会议纪要', { exact: true })).toHaveCount(0);
-  await expect(library.getByText('值班日报', { exact: true })).toHaveCount(0);
-  await expect(library.locator('.doc-sample-row')).toHaveCount(4);
+  await expect(library.locator('.doc-sample-row')).toHaveCount(10);
   for (const name of ['应急抢险要情', '抢险总结']) {
-    const category = library.locator('.doc-category').filter({ hasText: name });
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
+    const category = library;
     // 点开样稿 → 回到助理页并展示右侧文书工作区
     await category.locator('.doc-sample-row').first().click();
     await expect(page.getByTestId('document-workspace')).toBeVisible();
     await expect(page.getByTestId('mock-redhead-document')).toBeVisible();
     await expect(page.locator('.axn-redhead-org')).toHaveText('中国安能建设集团有限公司');
-    if (name === '应急要情') {
+    if (name === '应急抢险要情') {
       // 正文尾部现场图片（用户 m01044）：只给「重点河段险情处置要情」这篇样稿挂了两张模拟照片
       const figures = page.getByTestId('mock-document-figures').first();
       await expect(figures).toBeVisible();
@@ -43,6 +41,7 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
     await closeWorkspace(page);
     // 分类生成 → 生成中自动打开工作区 → 完成后回写该分类
     await openLibrary(page);
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
     await category.getByRole('button', { name: `生成${name}`, exact: true }).click();
     await expect(page.getByTestId('document-workspace')).toContainText('正在生成文书');
     if (name === '抢险总结') {
@@ -52,10 +51,15 @@ test('文书库：分类浏览、样稿与生成回写', async ({ page }) => {
     await expect(page.getByTestId('document-toolbar')).toContainText('新生成');
     await closeWorkspace(page);
     await openLibrary(page);
+    await library.getByRole('tab', { name: new RegExp(`^${name} `) }).click();
     await expect(category.locator('.doc-sample-row')).toHaveCount(3);
   }
   await page.screenshot({ path: 'artifacts/document-agent-library.png' });
 
+});
+
+test('文书任务生成真实草稿与重新打开', async ({ page }) => {
+  await page.goto('/');
   // 真实草稿：缺必填 → 补录 → 再次生成 → 草稿在文书工作区打开
   const send = async (text: string) => {
     await page.getByPlaceholder(/向安小能发送指令/).fill(text);
@@ -97,7 +101,8 @@ test('聊天文书快捷操作无需补录即可生成右侧模拟红头文书',
     await expect(page.getByText(new RegExp(`已生成《.*${name}（新生成）》`))).toBeVisible();
     await closeWorkspace(page);
     await openLibrary(page);
-    await expect(page.getByTestId('document-library').locator('.doc-category').filter({ hasText: name }).locator('.doc-sample-row')).toHaveCount(3);
+    await page.getByTestId('document-library').getByRole('tab', { name: new RegExp(`^${name} `) }).click();
+    await expect(page.getByTestId('document-library').locator('.doc-sample-row')).toHaveCount(3);
     await page.locator('.axn-gs-nav-item', { hasText: '智能助理' }).first().click();
   }
 });

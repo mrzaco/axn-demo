@@ -228,3 +228,31 @@ test('11. 智能体与 Skill / 定时任务 / 知识库导航页可访问，文�
   await openNav(page, '智能助理');
   await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
+
+
+test('关联事件保留当前智能体对话和历史，切换、取消关联及刷新后仍可见', async ({ page }) => {
+  await newConversation(page);
+  await page.locator('.axn-chips').getByRole('button', { name: '文书生成智能体', exact: true }).click();
+  const active = page.locator('.axn-gs-conversation.is-active');
+  const originalId = await active.getAttribute('data-testid');
+  const count = await page.locator('.axn-gs-conversation').count();
+  const text = '请保留这段对话记录';
+  const input = page.getByPlaceholder(/向安小能发送指令/);
+  await input.fill(text);
+  await input.press('Enter');
+  await expect(page.getByText(text, { exact: true })).toBeVisible();
+  const trigger = page.getByTestId('chat-link-incident');
+  for (const option of [/清河段堤防险情/, /漳河镇水位上涨预警/, /不关联灾情/]) {
+    await trigger.click();
+    await page.getByTestId('incident-picker').getByRole('option', { name: option }).click();
+    await expect(page.getByTestId('incident-picker')).not.toBeVisible();
+    await expect(active).toHaveAttribute('data-testid', originalId!);
+    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count);
+    await expect(page.getByTestId('doc-agent-choices')).toBeVisible();
+    await expect(page.getByText(text, { exact: true })).toBeVisible();
+  }
+  await page.reload();
+  await expect(active).toHaveAttribute('data-testid', originalId!);
+  await expect(page.getByTestId('doc-agent-choices')).toBeVisible();
+  await expect(page.getByText(text, { exact: true })).toBeVisible();
+});
