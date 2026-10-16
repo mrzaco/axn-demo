@@ -13,6 +13,7 @@ export function useDocumentNavigation() {
     const workspace = useWorkspaceStore.getState();
     const current = workspace.selectionOf(scope);
     if (targetScope === scope && current?.kind === selection.kind && current.id === selection.id) {
+      if (selection.kind === 'draft' && selection.edit) workspace.select(targetScope, selection);
       navigate(NAV_PATH.assistant);
       onOpened?.();
       return;

@@ -8,6 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { AGENT_INVITATIONS } from '../src/seed/agentInvitations';
 
 async function openNav(page: Page, label: string) {
+  if (label === '文书库') { await page.goto('/#/library'); return; }
   await page.locator('.axn-gs-nav-item', { hasText: label }).first().click();
 }
 
@@ -128,7 +129,7 @@ test('4b. 删除对话（Popconfirm 确认 → 条目移除 → active 切换）
 
 test('5. 菜单切换不丢 active 会话', async ({ page }) => {
   const activeTitle = await page.locator('.axn-gs-conversation.is-active .axn-gs-conv-title-text').first().textContent();
-  // 侧栏仅保留「文书库 / 智能助理」两个入口（其余除深链外已隐藏）。
+  // 文书库侧栏入口隐藏，通过深链验证页面仍可访问。
   await openNav(page, '文书库');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
   await openNav(page, '安小能');
@@ -178,12 +179,12 @@ test('10. 折叠功能已按标注移除（无折叠按钮，侧栏固定宽度�
   expect(width).toBeGreaterThan(200);
 });
 
-test('10b. 「应急项目 / 智能体与 Skill / 定时任务」侧栏入口已隐藏；知识库入口恢复为可点击占位', async ({ page }) => {
-  for (const label of ['应急项目', '智能体与 Skill', '定时任务']) {
+test('10b. 「文书库 / 应急项目 / 智能体与 Skill / 定时任务」侧栏入口已隐藏；知识库入口恢复为可点击占位', async ({ page }) => {
+  for (const label of ['文书库', '应急项目', '智能体与 Skill', '定时任务']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
   // 保留的入口仍在（含已恢复的「知识库」）
-  for (const label of ['文书库', '安小能', '知识库']) {
+  for (const label of ['安小能', '智能体管理', '技能管理', '我的文件', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
   // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转

@@ -8,7 +8,7 @@ import { clickDocTask } from './helpers/quickTasks';
 import { expect, test, type Page } from '@playwright/test';
 
 async function openLibrary(page: Page) {
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).first().click();
+  await page.goto('/#/library');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
 }
 

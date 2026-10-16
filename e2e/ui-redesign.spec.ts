@@ -8,7 +8,7 @@ import { clickDocTask } from './helpers/quickTasks';
 import { expect, test, type Page } from '@playwright/test';
 
 async function openLibrary(page: Page) {
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).first().click();
+  await page.goto('/#/library');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
 }
 
@@ -206,7 +206,7 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await openFirstSample(page);
   const title = page.getByRole('textbox', { name: '文书标题', exact: true });
   await title.fill('保护中的工作副本');
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
+  await page.locator('.axn-gs-nav-item', { hasText: '智能体管理' }).click();
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.locator('.axn-gs-conversation', { hasText: '漳河镇' }).first().click();
@@ -216,12 +216,14 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
+  // 多轮取消期间可能已自动保存；重新编辑以验证最后一次导航的未保存保护。
+  await title.fill('保护中的工作副本（继续导航）');
+  await page.locator('.axn-gs-nav-item', { hasText: '智能体管理' }).click();
   await page.getByRole('button', { name: /^继\s*续$/ }).click();
   // 四条切换路径（导航 / 会话 / 关联事件 / 再导航）都不回滚工作副本
   await openFirstSample(page);
   await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
-  await expect(title).toHaveValue('保护中的工作副本');
+  await expect(title).toHaveValue('保护中的工作副本（继续导航）');
   // 真正丢弃只发生在编辑器内的「放弃修改」
   await page.getByTestId('document-workspace').getByRole('button', { name: '放弃修改', exact: true }).click();
   await expect(page.getByTestId('mock-dirty-note')).toHaveCount(0);

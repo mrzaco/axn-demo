@@ -184,9 +184,12 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
     set(state => ({ libraries: { ...state.libraries, [scope]: {
       ...(state.libraries[scope] ?? EMPTY_LIBRARY), selected: null, generatingCode: code,
     } } }));
+    const stillGenerating = () => get().libraries[scope]?.generatingCode === code;
     if (options) {
       if (options.collect) {
-        if (await options.collect() === false) {
+        const collected = await options.collect();
+        if (!stillGenerating()) return null;
+        if (collected === false) {
           set(state => ({ libraries: { ...state.libraries, [scope]: { ...state.libraries[scope], generatingCode: null } } }));
           return null;
         }
@@ -195,15 +198,19 @@ export const useMockDocumentStore = create<MockDocumentState>((set, get) => ({
         // 原来这里只有一段 700ms 死等，气泡里的「收集」看不见任何过程（用户 m01044 要的动画）。
         for (let count = 1; count <= options.elements.length; count += 1) {
           await sleep(COLLECT_STEP_MS);
+          if (!stillGenerating()) return null;
           options.onCollected?.(count);
         }
       }
       await sleep(700);
+      if (!stillGenerating()) return null;
       options.onStage('calling');
       await sleep(700);
+      if (!stillGenerating()) return null;
       options.onStage('generating');
     }
     await sleep(1200);
+    if (!stillGenerating()) return null;
     const now = new Date();
     // 正文尾部附图与附件表体都按文种挂（不随上传件变）：从同文种的样稿上取。
     const sample = MOCK_DOCUMENTS.find(item => item.code === code);

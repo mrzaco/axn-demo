@@ -19,7 +19,7 @@ import { useSessionStore } from './sessionStore.js';
 
 export type WorkspaceSelection =
   | { kind: 'mock'; id: string }
-  | { kind: 'draft'; id: string };
+  | { kind: 'draft'; id: string; edit?: boolean };
 
 /** 对话 / 工作模式：改变首页可执行建议（问答问题 vs 智能体任务）。 */
 export type WorkMode = 'chat' | 'work';

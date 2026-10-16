@@ -16,6 +16,7 @@ import { clearPersist, loadPersist, schedulePersist } from './persistence.js';
 import { useDemoStore } from './demoStore.js';
 import { useSessionStore } from './sessionStore.js';
 import { DEMO_CLOCK } from '@/seed/scenario';
+import { deleteConversationOutputs } from '@/services/deleteConversationOutputs';
 
 interface ConversationPersist {
   conversations: Record<string, Conversation>;
@@ -206,7 +207,8 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
     if (!conversations[conversationId]) return;
     const remaining = Object.values(conversations).filter((c) => c.id !== conversationId);
     // 被删的是激活会话时，切换到剩余会话中最近更新的一个；全部删光则无激活会话。
-    // 业务数据（session/任务/候选）按事件共享保留，不随会话条目删除。
+    // 会话专属产物随对话删除，关联事件本身保留。
+    const sessionId = useSessionStore.getState().sessionByConversation[conversationId];
     let nextActive: string | null = null;
     if (activeConversationId === conversationId) {
       nextActive =
@@ -215,6 +217,7 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
       nextActive = activeConversationId;
     }
     set({ conversations: Object.fromEntries(remaining.map((c) => [c.id, c])), activeConversationId: nextActive });
+    if (sessionId) deleteConversationOutputs(conversationId, sessionId);
     if (nextActive) syncBusinessContext(get().conversations[nextActive]);
   },
 

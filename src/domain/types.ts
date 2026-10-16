@@ -693,7 +693,7 @@ export interface Conversation {
 }
 
 /** 一级导航页；'library' 为本次 UI 改版新增的独立文书库入口。 */
-export type NavPage = 'assistant' | 'library' | 'projects' | 'agents' | 'skills' | 'schedules' | 'knowledge' | 'controls' | 'controlExamples';
+export type NavPage = 'assistant' | 'library' | 'projects' | 'agents' | 'skills' | 'files' | 'schedules' | 'knowledge' | 'controls' | 'controlExamples';
 
 export interface ConversationSettings {
   openRecentOnStart: boolean;

@@ -37,7 +37,6 @@ import { factDisplay, resolveFact } from '@/services/factLookup';
 import { useSessionStore } from '@/store/sessionStore';
 import { useDocumentStore } from '@/store/documentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
-import { qaStatusLabel } from '@/services/qaKnowledge';
 import { factText, getFact, knowledgeById, teamById, warehouseById } from '@/seed/scenario';
 import Typewriter from './Typewriter';
 
@@ -62,13 +61,6 @@ const STATUS_META: Record<TaskStatus, { label: string; tone: 'idle' | 'busy' | '
 /** 知识文档标题去掉自带的书名号与「（模拟）」后缀——外层统一加《》，演示标识只在全局出现一次。 */
 function cleanDocTitle(title: string): string {
   return title.replace(/^《|》$/g, '').replace(/（模拟）$/, '');
-}
-
-/** 置信度分档：≥80% 高 / ≥60% 中 / 其余低——颜色只表达可信程度，不做装饰。 */
-function confidenceTone(c: number): { level: string; tone: 'high' | 'mid' | 'low' } {
-  if (c >= 0.8) return { level: '高', tone: 'high' };
-  if (c >= 0.6) return { level: '中', tone: 'mid' };
-  return { level: '低', tone: 'low' };
 }
 
 function StepIcon({ status }: { status: StepStatus }) {
@@ -252,10 +244,9 @@ function KnowledgeBlock({ payload, onOpenDrawer }: { payload: KnowledgeArtifact;
 
 /**
  * 抢险救援知识问答：不再套框，按「结论 → 建议动作 / 禁忌 / 上报 → 依据」的阅读顺序平铺；
- * 来源以编号脚注呈现，置信度做成带语义色的徽标（qa.json，模拟数据）。
+ * 来源以编号脚注呈现（qa.json，模拟数据）。
  */
 function QaKnowledgeBlock({ payload }: { payload: QaKnowledgeArtifact }) {
-  const conf = confidenceTone(payload.confidence);
   const sections = [
     { title: '建议动作', body: payload.keyActions },
     { title: '禁忌提醒', body: payload.doNot, warn: true },
@@ -263,12 +254,6 @@ function QaKnowledgeBlock({ payload }: { payload: QaKnowledgeArtifact }) {
   ].filter((x) => x.body);
   return (
     <div className="axn-qa">
-      <div className="axn-qa-meta">
-        <span className="axn-qa-category">{payload.category}</span>
-        <span className={`axn-confidence axn-confidence--${conf.tone}`} title={qaStatusLabel(payload.answerStatus)}>
-          置信度 {conf.level} · {Math.round(payload.confidence * 100)}%
-        </span>
-      </div>
       <p className="axn-qa-lead">
         {payload.summary}
         {payload.sources.map((src, i) => (
@@ -281,14 +266,6 @@ function QaKnowledgeBlock({ payload }: { payload: QaKnowledgeArtifact }) {
           <p>{sec.body}</p>
         </section>
       ))}
-      {payload.liveDataNeeded.length > 0 && (
-        <div className="axn-qa-live">
-          <span>需结合现场实时数据</span>
-          {payload.liveDataNeeded.map((d) => (
-            <span key={d} className="axn-qa-live-chip">{d}</span>
-          ))}
-        </div>
-      )}
       <div className="axn-qa-sources">
         <div className="axn-qa-sources-title">依据来源 · {payload.sources.length}</div>
         <ol>
@@ -303,9 +280,6 @@ function QaKnowledgeBlock({ payload }: { payload: QaKnowledgeArtifact }) {
           ))}
         </ol>
       </div>
-      <p className="axn-qa-disclaimer">
-        {qaStatusLabel(payload.answerStatus)}。AI 生成内容仅供参考，现场处置以指挥体系、现行标准与专业判断为准。
-      </p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * 全局导航 + 对话历史管理侧栏（UI 改版）：
- * 区域：品牌（左上，保留安小能身份）/ 一级功能导航（含独立「文书库」）/
+ * 区域：品牌（左上，保留安小能身份）/ 一级功能导航/
  * 新建（新建对话=对话模式；「新建任务」工作模式入口暂时下线）/ 搜索 / 历史会话 / 底部账户区
  * （当前用户头像 + 名称 + 设置菜单：切换用户身份、聊天标准控件）。
  * 改版要点：原全宽业务页头移除，其承载项下移至侧栏底部；折叠与收藏功能保持移除状态。
@@ -14,7 +14,6 @@ import {
   // Clock, // 恢复「定时任务」侧栏入口时一并取回
   // FilePlus, // 恢复「新建任务」按钮时一并取回
   FlaskConical,
-  FolderOpen,
   FolderClosed,
   // LayoutGrid, // 恢复「应急项目」侧栏入口时一并取回
   Pin,
@@ -45,17 +44,16 @@ import './sidebar.css';
 type NavKey = NavPage;
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'library', label: '文书库', icon: <FolderOpen /> },
   { key: 'assistant', label: '安小能', icon: <Sparkles /> },
   { key: 'agents', label: '智能体管理', icon: <Bot /> },
   { key: 'skills', label: '技能管理', icon: <Puzzle /> },
+  { key: 'files', label: '我的文件', icon: <FolderClosed /> },
   // 「应急项目」「定时任务」入口隐藏，页面与深链保留。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
 ];
 
 const PLACEHOLDER_NAV = [
-  { key: 'my-files', label: '我的文件', icon: <FolderClosed /> },
   { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
 ];
 
@@ -118,8 +116,6 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         : `已创建「${conversation.title}」（对话模式：问答建议，模拟）`,
     );
   };
-
-  const openLibrary = () => guardDirty('切换到文书库', () => navigate(NAV_PATH.library));
 
   const list = useMemo(
     () => Object.values(conversations).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)),
@@ -192,7 +188,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         </Button>
       </div>
 
-      {/* 3. 一级功能导航（含独立文书库） */}
+      {/* 3. 一级功能导航（文书库入口隐藏，页面与工作区内入口保留） */}
       <nav className="axn-gs-nav" aria-label="全局功能导航">
         {NAV.map((item) => (
           <button
@@ -200,10 +196,6 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
             className={`axn-gs-nav-item${activeNav === item.key ? ' is-active' : ''}`}
             aria-current={activeNav === item.key ? 'page' : undefined}
             onClick={() => {
-              if (item.key === 'library') {
-                openLibrary();
-                return;
-              }
               guardDirty('切换导航页', () => navigate(`/${item.key}`));
             }}
           >
@@ -371,7 +363,7 @@ function ConversationRow({
           </Tooltip>
           <Popconfirm
             title="删除该对话？"
-            description="仅移除会话条目，不影响事件业务数据。"
+            description="该对话产生的文件也会一并删除。"
             okText="删除"
             cancelText="取消"
             okButtonProps={{ danger: true }}

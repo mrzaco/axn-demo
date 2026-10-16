@@ -22,6 +22,7 @@ import { useConversationStore } from '@/store/conversationStore';
 import { knowledgeChunks } from '@/seed/scenario';
 import PageHeader from '@/components/common/PageHeader';
 import SkillsPage from './SkillsPage';
+import MyFilesPage from './MyFilesPage';
 import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
 import { agentIcon } from '@/components/chat/agentIcons';
 import { summonAgentFromManagement } from '@/services/agentConversation';
@@ -354,6 +355,8 @@ export function NavPageContent({ page }: { page: NavPage }) {
       return <AgentsPage />;
     case 'skills':
       return <SkillsPage />;
+    case 'files':
+      return <MyFilesPage />;
     case 'schedules':
       return <SchedulesPage />;
     case 'knowledge':

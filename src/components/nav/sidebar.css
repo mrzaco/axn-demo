@@ -528,6 +528,15 @@
 .axn-skills-search-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
 .axn-skills-search { width: 100%; max-width: 420px; }
 .axn-skills-create { margin-left: auto; }
+.axn-files-list { display: flex; flex-direction: column; border: 1px solid var(--axn-border); border-radius: var(--radius-md); }
+.axn-file-groups { display: flex; flex-direction: column; gap: var(--space-5); }
+.axn-file-group-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.axn-file-group-heading > svg { color: var(--axn-muted); flex-shrink: 0; }
+.axn-file-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-4); }
+.axn-file-row + .axn-file-row { border-top: 1px solid var(--axn-border); }
+.axn-file-info { flex: 1; min-width: min(240px, 100%); overflow-wrap: anywhere; }
+.axn-file-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); color: var(--axn-muted); font-size: var(--fs-meta); }
+.axn-file-preview { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: var(--lh-normal); max-height: 60vh; overflow: auto; }
 .axn-skill-details dt { margin-top: var(--space-5); color: var(--axn-muted); font-size: var(--fs-meta); }
 .axn-skill-details dd { margin: var(--space-2) 0 0; line-height: var(--lh-normal); }
 .axn-skill-detail-name { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
