@@ -179,12 +179,12 @@ test('10. 折叠功能已按标注移除（无折叠按钮，侧栏固定宽度�
   expect(width).toBeGreaterThan(200);
 });
 
-test('10b. 「文书库 / 应急项目 / 智能体与 Skill / 定时任务」侧栏入口已隐藏；知识库入口恢复为可点击占位', async ({ page }) => {
-  for (const label of ['文书库', '应急项目', '智能体与 Skill', '定时任务']) {
+test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知识库为占位', async ({ page }) => {
+  for (const label of ['文书库', '应急项目', '智能体与 Skill']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
   // 保留的入口仍在（含已恢复的「知识库」）
-  for (const label of ['安小能', '智能体管理', '技能管理', '我的文件', '知识库']) {
+  for (const label of ['安小能', '数字专家', '定时任务', '技能管理', '我的文件', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
   // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转
@@ -195,15 +195,15 @@ test('10b. 「文书库 / 应急项目 / 智能体与 Skill / 定时任务」侧
   await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 
-test('智能体管理展示已有能力，召唤回到原对话并能选择任务', async ({ page }) => {
+test('数字专家展示已有能力，召唤回到原对话并能选择任务', async ({ page }) => {
   await newConversation(page);
   const activeConversation = page.locator('.axn-gs-conversation.is-active');
   const conversationId = await activeConversation.getAttribute('data-testid');
   const count = await page.locator('.axn-gs-conversation').count();
   for (const agent of AGENT_INVITATIONS) {
-    await openNav(page, '智能体管理');
-    await expect(page.getByRole('heading', { name: '智能体管理', exact: true })).toBeVisible();
-    await expect(page.locator('.axn-gs-nav-item', { hasText: '智能体管理' })).toHaveAttribute('aria-current', 'page');
+    await page.getByRole('button', { name: '数字专家', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '数字专家', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '数字专家', exact: true })).toBeVisible();
     const card = page.locator(`.axn-agent-card[data-agent-id="${agent.agentId}"]`);
     await expect(card.getByRole('heading', { name: agent.name, exact: true })).toBeVisible();
     await expect(card.locator('.axn-np-desc')).not.toBeEmpty();
@@ -223,7 +223,7 @@ test('智能体管理展示已有能力，召唤回到原对话并能选择任�
   await expect(page.locator('.axn-task-card').first()).toBeVisible();
 });
 
-test('11. 智能体管理 / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
+test('11. 数字专家 / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
   // 侧栏入口已按下线标注隐藏，页面本身仍可通过深链直达。
   // 应用用 HashRouter，深链形式为 /#/agents
   await page.goto('/#/agents');
@@ -231,7 +231,7 @@ test('11. 智能体管理 / 定时任务 / 知识库导航页可访问，文书�
   await expect(page.getByText('态势感知智能体')).toBeVisible();
   await page.goto('/#/schedules');
   await expect(page.getByTestId('schedules-page')).toBeVisible();
-  await expect(page.getByText('每日值班日报')).toBeVisible();
+  await expect(page.getByText('每日灾情摘要', { exact: true })).toBeVisible();
   await page.goto('/#/knowledge');
   await expect(page.getByTestId('knowledge-page')).toBeVisible();
   await openNav(page, '文书库');

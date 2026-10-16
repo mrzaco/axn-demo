@@ -39,6 +39,7 @@ import { useDocumentStore } from '@/store/documentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
 import { factText, getFact, knowledgeById, teamById, warehouseById } from '@/seed/scenario';
 import Typewriter from './Typewriter';
+import ResponseFeedback from './ResponseFeedback';
 
 const { Text } = Typography;
 
@@ -462,6 +463,7 @@ export default function TaskCard({ task, onOpenDrawer }: TaskCardProps) {
         <ArtifactBlock key={artifact.artifactId} payload={artifact.payload} onOpenDrawer={onOpenDrawer} sessionId={task.sessionId} />
       ))}
 
+      {['succeeded', 'partial'].includes(task.status) && (task.textAnswer || task.artifacts.length > 0) && <ResponseFeedback sessionId={task.sessionId} targetId={task.taskId} />}
       {task.error && (
         <Alert
           type="error"

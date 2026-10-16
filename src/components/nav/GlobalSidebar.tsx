@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from './navRoutes';
 import {
   Bot,
-  // Clock, // 恢复「定时任务」侧栏入口时一并取回
+  Clock,
   // FilePlus, // 恢复「新建任务」按钮时一并取回
   FlaskConical,
   FolderClosed,
@@ -45,12 +45,12 @@ type NavKey = NavPage;
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   { key: 'assistant', label: '安小能', icon: <Sparkles /> },
-  { key: 'agents', label: '智能体管理', icon: <Bot /> },
+  { key: 'agents', label: '数字专家', icon: <Bot /> },
   { key: 'skills', label: '技能管理', icon: <Puzzle /> },
   { key: 'files', label: '我的文件', icon: <FolderClosed /> },
-  // 「应急项目」「定时任务」入口隐藏，页面与深链保留。
+  { key: 'schedules', label: '定时任务', icon: <Clock /> },
+  // 「应急项目」入口隐藏，页面与深链保留。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
-  // { key: 'schedules', label: '定时任务', icon: <Clock /> },
 ];
 
 const PLACEHOLDER_NAV = [

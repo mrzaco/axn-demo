@@ -4,12 +4,14 @@ import { useDocumentStore } from '@/store/documentStore';
 import { useDocumentReviewStore } from '@/store/documentReviewStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { invalidateRun } from './taskRuns';
+import { useFeedbackStore } from '@/store/feedbackStore';
 
 const without = <T,>(record: Record<string, T>, keep: (value: T, key: string) => boolean) =>
   Object.fromEntries(Object.entries(record).filter(([key, value]) => keep(value, key)));
 
 /** 删除会话的产物及持久化副本，不影响同一事件下其他对话的文件。 */
 export function deleteConversationOutputs(conversationId: string, sessionId: string) {
+  useFeedbackStore.getState().removeSession(sessionId);
   const store = useSessionStore.getState();
   const removedTasks = Object.values(store.tasks).filter(task => task.sessionId === sessionId);
   for (const task of removedTasks) invalidateRun(task.taskId);

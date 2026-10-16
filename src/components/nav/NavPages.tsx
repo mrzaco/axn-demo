@@ -5,7 +5,6 @@
 import { useMemo, useState } from 'react';
 import {
   BookOpen,
-  Clock,
   FileCheck,
   Heart,
   Network,
@@ -23,6 +22,7 @@ import { knowledgeChunks } from '@/seed/scenario';
 import PageHeader from '@/components/common/PageHeader';
 import SkillsPage from './SkillsPage';
 import MyFilesPage from './MyFilesPage';
+import SchedulesPage from './SchedulesPage';
 import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
 import { agentIcon } from '@/components/chat/agentIcons';
 import { summonAgentFromManagement } from '@/services/agentConversation';
@@ -128,7 +128,7 @@ export function ProjectsPage() {
   );
 }
 
-/* ================= 智能体管理 ================= */
+/* ================= 数字专家 ================= */
 
 const AGENT_DESCRIPTIONS: Record<string, string> = {
   'agent-doc': '把现场资料整理成规范文书，支持应急要情、值班日报、周工作动态和工作总结，协助补齐要素并生成草稿。',
@@ -147,7 +147,7 @@ export function AgentsPage() {
   return (
     <div className="axn-np-section" data-testid="agents-page">
       <PageHeader
-        title="智能体管理"
+        title="数字专家"
         sub="认识你的应急协作伙伴。召唤到当前对话，再选择需要的任务。"
         extra={<Tag>{AGENT_INVITATIONS.length} 个智能体</Tag>}
       />
@@ -176,51 +176,6 @@ export function AgentsPage() {
             </Card>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-/* ================= 定时任务 ================= */
-
-interface ScheduleRow {
-  scheduleId: string;
-  name: string;
-  cron: string;
-  desc: string;
-  lastRun: string;
-  status: '运行中' | '已暂停';
-}
-
-const SCHEDULES: ScheduleRow[] = [
-  { scheduleId: 'sched-daily', name: '每日值班日报', cron: '每天 08:00', desc: '生成当日值班日报草稿并推送待补录提醒', lastRun: '2026-09-28 08:00', status: '运行中' },
-  { scheduleId: 'sched-patrol', name: '防汛监测巡检', cron: '每 2 小时', desc: '巡检水位监测数据并标记异常', lastRun: '2026-09-28 20:00', status: '运行中' },
-  { scheduleId: 'sched-resource', name: '资源状态检查', cron: '每天 07:30', desc: '检查救援队伍与装备状态并更新可用性', lastRun: '2026-09-28 07:30', status: '已暂停' },
-];
-
-export function SchedulesPage() {
-  return (
-    <div className="axn-np-section" data-testid="schedules-page">
-      <PageHeader title="定时任务" sub="按计划自动执行的值守任务" />
-      <div className="axn-np-col">
-        {SCHEDULES.map((s) => (
-          <Card key={s.scheduleId} size="small" styles={{ body: { display: 'flex', alignItems: 'center', gap: 14 } }}>
-            <Clock className="axn-np-icon-med" />
-            <div className="axn-np-flex-1">
-              <Space size={8}>
-                <Typography.Text strong className="axn-np-fs13">
-                  {s.name}
-                </Typography.Text>
-                <Tag>{s.cron}</Tag>
-                <Tag color={s.status === '已暂停' ? 'default' : 'success'}>{s.status}</Tag>
-              </Space>
-              <div className="axn-np-meta">{s.desc}</div>
-            </div>
-            <Typography.Text type="secondary" className="axn-np-text-sm">
-              上次 {s.lastRun}
-            </Typography.Text>
-          </Card>
-        ))}
       </div>
     </div>
   );

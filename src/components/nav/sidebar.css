@@ -537,6 +537,20 @@
 .axn-file-info { flex: 1; min-width: min(240px, 100%); overflow-wrap: anywhere; }
 .axn-file-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); color: var(--axn-muted); font-size: var(--fs-meta); }
 .axn-file-preview { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: var(--lh-normal); max-height: 60vh; overflow: auto; }
+.axn-schedule-search { width: 100%; max-width: 420px; }
+.axn-schedule-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+.axn-schedule-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.axn-schedule-card .axn-np-desc { margin: var(--space-4) 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.axn-schedule-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-2); color: var(--axn-muted); font-size: var(--fs-meta); }
+.axn-schedule-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); }
+.axn-schedule-list > .ant-empty { grid-column: 1 / -1; }
+.axn-schedule-card { min-width: 0; }
+@media (max-width: 1199px) {
+  .axn-schedule-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .axn-schedule-list { grid-template-columns: minmax(0, 1fr); }
+}
 .axn-skill-details dt { margin-top: var(--space-5); color: var(--axn-muted); font-size: var(--fs-meta); }
 .axn-skill-details dd { margin: var(--space-2) 0 0; line-height: var(--lh-normal); }
 .axn-skill-detail-name { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }

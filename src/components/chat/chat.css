@@ -319,6 +319,11 @@
 /* 知识问答（v2）：平铺排版，无外框。结论 → 分节要点 → 编号来源 */
 .axn-qa { display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--fs-reading); line-height: var(--lh-reading); color: var(--axn-text); overflow-wrap: anywhere; }
 .axn-qa p { margin: 0; }
+.axn-response-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); color: var(--axn-muted); }
+.axn-response-feedback .ant-btn[aria-pressed="true"] { color: var(--axn-primary); background: var(--axn-primary-bg); }
+.axn-feedback-saved { margin-left: var(--space-2); font-size: var(--fs-meta); color: var(--axn-muted); }
+.axn-feedback-reasons { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.axn-feedback-label { display: block; margin: var(--space-5) 0 var(--space-2); }
 .axn-qa-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .axn-qa-category { font-size: var(--fs-meta); font-weight: 400; color: var(--axn-muted); }
 .axn-qa-category::after { content: ''; display: inline-block; width: 1px; height: 10px; margin-inline-start: var(--space-2); background: var(--axn-border); vertical-align: -1px; }

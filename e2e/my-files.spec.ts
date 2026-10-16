@@ -119,7 +119,9 @@ test('文书文件可编辑原文，保存后更新文件列表并可再次继�
   const title = '清河段南堤管涌险情处置要情（第3期）';
   const revised = '清河段南堤管涌险情处置要情（修订稿）';
   await page.getByRole('button', { name: `编辑${title}`, exact: true }).click();
-  await expect(page.getByTestId('document-workspace')).toBeVisible();
+  await expect(page.getByTestId('document-workspace')).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId('workspace-library-btn')).toHaveCount(0);
+  await expect(page.getByTestId('document-toolbar').getByRole('button', { name: '文书库', exact: true })).toHaveCount(0);
   const input = page.getByRole('textbox', { name: '文书标题', exact: true });
   await expect(input).toHaveValue(title);
   await input.fill(revised);

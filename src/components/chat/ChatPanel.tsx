@@ -34,6 +34,7 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useActiveScope, useWorkspaceStore } from '@/store/workspaceStore';
 import { sendMessage, cancelTask } from '@/services/taskRunner';
 import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
+import ResponseFeedback from './ResponseFeedback';
 import { summonAgentInConversation } from '@/services/agentConversation';
 import { AGENT_ICONS } from './agentIcons';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
@@ -374,7 +375,8 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             body: { flex: '1 1 auto', width: '100%', minWidth: 0, maxWidth: '100%' },
             content: { width: '100%', padding: 0, background: 'transparent' },
           },
-          contentRender: () => m.documentWorkflow ? <DocumentGenerationCard message={m} /> : (
+          contentRender: () => m.documentWorkflow ? <><DocumentGenerationCard message={m} />
+            {m.documentWorkflow.stage === 'completed' && <ResponseFeedback sessionId={m.sessionId} targetId={m.messageId} />}</> : (
             <AgentSummonCard
               agentId={m.agentId}
               agentName={m.agentName ?? '智能体协同'}
@@ -431,7 +433,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
           styles: { content: { fontSize: 'var(--fs-body)', color: 'var(--axn-muted)' } },
         };
       }
-      return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR };
+      return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
+        contentRender: () => <><div>{m.text}</div>{m.text && <ResponseFeedback sessionId={m.sessionId} targetId={m.messageId} />}</>,
+      };
     });
   }, [session?.messages, tasks, onOpenDrawer, busy]);
 
