@@ -1,9 +1,11 @@
+import { ResultSection as Card } from '@/components/common/AgentResultPrimitives';
+import { KvTable, StatusPill } from '@/components/common/ChatPrimitives';
 /**
  * 预警推送 / 资源预警通知共用面板：选人 → 草稿 → 批准 → 模拟推送 → 回执。
  * 状态写入会话，关闭工作区不丢；打开 current 时默认预填演示草稿。
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Checkbox, Input, Select, Space, Tag, Typography } from 'antd';
+import { Button, Checkbox, Input, Select, Space, Typography } from 'antd';
 import { disasterProfileById } from '@/seed/disasterScenarios';
 import type { FlowTabMode } from '@/services/flowStageConfig';
 import {
@@ -26,6 +28,7 @@ type Props = {
   /** 不传则按当前会话解析 */
   sessionId?: string | null;
   roadHint?: string;
+  draftText?: string;
 };
 
 function buildCurrentDraft(
@@ -78,6 +81,7 @@ export default function WarningPushPanel({
   eventName,
   sessionId: sessionIdProp,
   roadHint,
+  draftText,
 }: Props) {
   const profile = disasterProfileById.get(eventId);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
@@ -94,7 +98,8 @@ export default function WarningPushPanel({
   const setWarningPush = useSessionStore((s) => s.setWarningPush);
 
   const display = useMemo(
-    () => resolveDisplayState(
+    () => {
+      const state = resolveDisplayState(
       kind,
       mode,
       stored,
@@ -102,8 +107,10 @@ export default function WarningPushPanel({
       eventName,
       roadHint,
       lastResourceResultIds,
-    ),
-    [kind, mode, stored, eventId, eventName, roadHint, lastResourceResultIds],
+      );
+      return !stored && draftText ? { ...state, warning: draftText } : state;
+    },
+    [kind, mode, stored, eventId, eventName, roadHint, lastResourceResultIds, draftText],
   );
 
   const [fail, setFail] = useState(false);
@@ -116,7 +123,7 @@ export default function WarningPushPanel({
     setWarningPush(
       sessionId,
       kind,
-      buildCurrentDraft(kind, eventId, eventName, roadHint, lastResourceResultIds),
+      { ...buildCurrentDraft(kind, eventId, eventName, roadHint, lastResourceResultIds), ...(draftText ? { warning: draftText } : {}) },
     );
   }, [
     readOnly,
@@ -128,6 +135,7 @@ export default function WarningPushPanel({
     roadHint,
     lastResourceResultIds,
     setWarningPush,
+    draftText,
   ]);
 
   const persist = (next: Partial<WarningPushState>) => {
@@ -159,7 +167,7 @@ export default function WarningPushPanel({
         });
     persist({
       targets: draft.targets,
-      warning: draft.warning,
+      warning: draftText ?? draft.warning,
       approved: false,
       receipts: [],
     });
@@ -175,8 +183,10 @@ export default function WarningPushPanel({
           </Card>
           {display.receipts.map((r) => (
             <Card size="small" key={r.id} title={r.target}>
-              <Tag color="green">{r.status}（模拟）</Tag>
-              <Typography.Text type="secondary">回执 {r.id}</Typography.Text>
+              <KvTable rows={[
+                { label: '状态', value: <StatusPill tone="ok">{r.status}（模拟）</StatusPill> },
+                { label: '回执编号', value: r.id },
+              ]} />
             </Card>
           ))}
         </>
@@ -264,8 +274,10 @@ export default function WarningPushPanel({
           </Button>
           {display.receipts.map((r) => (
             <Card size="small" key={r.id} title={r.target}>
-              <Tag color={r.status === '失败' ? 'red' : 'green'}>{r.status}（模拟）</Tag>
-              <Typography.Text type="secondary">回执 {r.id}</Typography.Text>
+              <KvTable rows={[
+                { label: '状态', value: <StatusPill tone={r.status === '失败' ? 'err' : 'ok'}>{r.status}（模拟）</StatusPill> },
+                { label: '回执编号', value: r.id },
+              ]} />
               {r.status === '失败' ? (
                 <Button
                   onClick={() =>

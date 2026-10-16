@@ -23,21 +23,23 @@ export function rescuePlanAlternatives(eventId: string) {
   return options.map(option => ({
     code: 'RESCUE_PLAN' as const,
     title: `${eventDisplayName(eventId)} · ${option.name}行动方案`,
-    sections: [...resolveDocumentSections(eventId, 'RESCUE_PLAN').map(([heading, body]): [string, string] => [heading, body.replaceAll('待原系统锁定', '待负责人确认').replaceAll('审签沿用原处置方案模块', '本稿导出后由用户按现行业务办理')]),
-      ['六、方案战法与实施安排', `方案：${option.name}\n战法：${option.tactic}\n实施步骤：${option.organization}\n适用条件：${option.applicability}\n必要资源：${option.resources}\n风险与限制：${option.risk}\n方案特点：${option.tradeoff}\n预案依据：${option.basis}\n成本与到位时间：尚未测算；本方案为本地原型草稿，执行前需专业审定。`] as [string, string]],
+    sections: resolveDocumentSections(eventId, 'RESCUE_PLAN').map(([heading, body]): [string, string] => {
+      const text = body.replaceAll('待原系统锁定', '待负责人确认').replaceAll('审签沿用原处置方案模块', '本稿导出后由用户按现行业务办理');
+      return [heading, heading === '四、救援行动安排' ? `${text}\n\n所选方向与实施安排\n方案：${option.name}\n战法：${option.tactic}\n实施步骤：${option.organization}\n适用条件：${option.applicability}\n必要资源：${option.resources}\n风险与限制：${option.risk}\n方案特点：${option.tradeoff}\n预案依据：${option.basis}\n成本与到位时间：尚未测算；本方案为本地原型草稿，执行前需专业审定。` : text];
+    }),
   }));
 }
 
 export function generateRescuePlanAlternatives(sessionId: string, eventId: string) {
-  const documents = useMockDocumentStore.getState();
-  const previous = documents.libraries[sessionId]?.selected ?? null;
-  const generated = rescuePlanAlternatives(eventId).map(input => documents.publishAgentMaterial(sessionId, input));
-  documents.select(sessionId, previous);
-  const plans = generated.flatMap(doc => doc ? [{ documentId: doc.id, title: doc.title, sections: doc.sections, date: doc.date, number: doc.number }] : []);
+  const now = new Date();
+  const plans = rescuePlanAlternatives(eventId).map(input => ({
+    documentId: `candidate-${crypto.randomUUID()}`, title: input.title, sections: input.sections,
+    date: now.toLocaleDateString('zh-CN'), number: '候选草稿 · 待审定',
+  }));
   if (plans.length !== 3) return;
   const sessions = useSessionStore.getState();
   sessions.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '生成救援方案', taskId: null });
-  sessions.appendMessage(sessionId, { sessionId, role: 'assistant', kind: 'text', text: '已生成三种救援方案，可分别查看文书。', rescuePlans: plans, taskId: null });
+  sessions.appendMessage(sessionId, { sessionId, role: 'assistant', kind: 'text', text: '已整理三种处置方向。先比较适用条件、资源与风险，选择后再生成工程救援处置方案草稿。', rescuePlans: plans, taskId: null });
 }
 
 export function openRescuePlan(sessionId: string, plan: NonNullable<ChatMessage['rescuePlans']>[number]) {

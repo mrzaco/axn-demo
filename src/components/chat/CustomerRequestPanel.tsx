@@ -1,9 +1,11 @@
+import { openInlineSituation } from '@/services/inlineSituation';
+import { ResultSection as Card } from '@/components/common/AgentResultPrimitives';
 import { Sender } from '@ant-design/x';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
 import { minutesSections, dailySummarySections, tacticOptions } from '@/services/customerDocuments';
 import { useEffect, useRef, useState } from 'react';
 import { generateRescuePlanAlternatives } from '@/services/rescuePlanAlternatives';
-import { Button, Card, Input, Modal, Space, Typography, App } from 'antd';
+import { Button,  Input, Modal, Space, Typography, App } from 'antd';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { documentGeneratedReply, glanceFromSections } from '@/services/documentGeneratedReply';
@@ -166,7 +168,8 @@ export default function CustomerRequestPanel(props: { action: CustomerAction; se
     if (generated.current) return;
     if (openAsFlow) {
       generated.current = true;
-      openWorkspace(props.sessionId, { kind: 'flow', id: props.action });
+      if (props.action === '预警推送') openInlineSituation(props.sessionId, '预警推送');
+      else openWorkspace(props.sessionId, { kind: 'flow', id: props.action });
       props.onClose();
       return;
     }

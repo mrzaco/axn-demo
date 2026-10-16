@@ -1,6 +1,7 @@
+import { ResultSection as Card, ResultRecords as Table } from '@/components/common/AgentResultPrimitives';
 import { useMemo, useState } from 'react';
 import {
-  Button, Card, Checkbox, Input, InputNumber, Space, Table, Tag, Typography, Upload,
+  Button,  Checkbox, Input, InputNumber, Space,  Tag, Typography, Upload,
 } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';

@@ -1,35 +1,46 @@
+import { V2_REPORT_STRUCTURE } from '../reportStructure'
 import { BUSINESS_SNAPSHOT, SUPPLY_GAPS, SUPPLY_DIFFERENCES } from '../businessData'
 import { TRANSPORT_HEADERS, TRANSPORT_ROWS } from '../additionalAiData'
 import { DISASTER_TEXT, EVENT_NAME } from '../constants'
 import { ActionButton, EventBar, PaperTable, PaperViewer, SectionHeader } from '../components/chrome'
 import { SURROUNDINGS_DATA } from '../surroundingsData'
 import { PLAN_SECTIONS, PLAN_VERSION_RECORDS } from '../planData'
+import type { WorkflowApplication } from '../logic/empowerment'
 
 
-export function SurroundingsPage({ onGenerateReport }: { onGenerateReport?: () => void }) {
+export function SurroundingsPage() {
   return (
     <>
-      <EventBar actions={<><ActionButton ai onClick={onGenerateReport}>AI生成报告</ActionButton><ActionButton>↔ 切换事件</ActionButton><ActionButton>编辑</ActionButton><ActionButton>下载</ActionButton><ActionButton>⚙ 条件设置</ActionButton></>} />
+      <EventBar actions={<><ActionButton>↔ 切换事件</ActionButton><ActionButton>编辑</ActionButton><ActionButton>下载</ActionButton><ActionButton>⚙ 条件设置</ActionButton></>} />
       <PaperViewer pageCount={4}>
         <h1>江西省吉安市遂川县9月5日6时40分-{EVENT_NAME}<br />周边资源分析报告</h1>
         <h2>一、抢险基本信息</h2>
         <p>{DISASTER_TEXT}</p>
-        <h2>二、安能队伍情况（300公里范围）</h2>
+        <h2>{V2_REPORT_STRUCTURE.surroundings.titles[1]}</h2>
         <p>{SURROUNDINGS_DATA.summary}</p>
         <PaperTable headers={SURROUNDINGS_DATA.headers} rows={SURROUNDINGS_DATA.rows} />
-        <h2>三、周边救援资源情况</h2>
-        <p>周边救援力量及装备信息以平台底数台账为依据，结合事发地位置进行查询与统计。</p>
+        <h2>{V2_REPORT_STRUCTURE.surroundings.titles[2]}</h2>
+        <p>其他央企队伍名称、能力、人数与可出动状态待补，不按零值统计。</p>
+        <h2>{V2_REPORT_STRUCTURE.surroundings.titles[3]}</h2>
+        <p>装备数量见上表；型号、技术状态、操作手配套及可调用数量待核。</p>
+        <h2>{V2_REPORT_STRUCTURE.surroundings.titles[4]}</h2>
+        <p>其他央企装备所属单位、型号、数量与可用状态待补。</p>
+        <h2>{V2_REPORT_STRUCTURE.surroundings.titles[5]}</h2>
+        <p>学校、医院、加油站等目标位置与受影响情况待核，没有资料不能认定安全。</p>
+        <h2>{V2_REPORT_STRUCTURE.surroundings.titles[6]}</h2>
+        <p>300公里为资源查询范围，不是灾害影响范围。摘要与明细不完整对应，须核对统计时间、数量、距离、可出动状态及道路天气，不直接合计或调派。</p>
       </PaperViewer>
     </>
   )
 }
 
-export function ResourcesPage() {
+export function ResourcesPage({ onGenerate, applied }: { onGenerate?: () => void; applied?: WorkflowApplication }) {
   return (
     <>
-      <EventBar actions={<><ActionButton>↔ 切换事件</ActionButton><ActionButton>编辑</ActionButton><ActionButton>下载</ActionButton><ActionButton>重新生成</ActionButton></>} />
+      <EventBar actions={<>{onGenerate ? <ActionButton ai onClick={onGenerate}>AI生成调度建议</ActionButton> : null}<ActionButton>↔ 切换事件</ActionButton><ActionButton>编辑</ActionButton><ActionButton>下载</ActionButton><ActionButton>重新生成</ActionButton></>} />
       <PaperViewer pageCount={3}>
-        <h1>{EVENT_NAME}<br />资源调度建议方案</h1>
+        <h1>{applied ? applied.title : <>{EVENT_NAME}<br />资源调度建议方案</>}</h1>
+        {applied ? applied.sections.map(section => <section key={section.title}><h2>{section.title}</h2><p style={{ whiteSpace: 'pre-wrap' }}>{section.body}</p></section>) : <>
         <h2>一、灾情信息</h2>
         <p>{DISASTER_TEXT}</p>
         <h2>二、力量编成建议</h2>
@@ -45,17 +56,18 @@ export function ResourcesPage() {
         />
         <h2>三、资源调度建议</h2>
         <p>结合任务需求和现有力量，按照梯次投入、专业互补的原则组织救援力量。</p>
+        </>}
       </PaperViewer>
     </>
   )
 }
 
-export function TransportPage({ onGenerate }: { onGenerate?: () => void }) {
+export function TransportPage() {
   return (
     <>
-      <EventBar actions={<><ActionButton ai onClick={onGenerate}>AI生成投送方案</ActionButton><ActionButton>↔ 切换事件</ActionButton><ActionButton>编辑</ActionButton><ActionButton>下载</ActionButton><ActionButton>重新生成</ActionButton></>} />
+      <EventBar actions={<><ActionButton>↔ 切换事件</ActionButton><ActionButton>编辑</ActionButton><ActionButton>下载</ActionButton><ActionButton>重新生成</ActionButton></>} />
       <PaperViewer pageCount={4}>
-        <h1>{EVENT_NAME}<br />投送抽组方案</h1>
+        <h1>{EVENT_NAME}<br />{V2_REPORT_STRUCTURE.transport.name}</h1>
         <h2>一、灾情信息</h2>
         <p>{DISASTER_TEXT}</p>
         <h2>二、力量编成</h2>
@@ -75,19 +87,19 @@ export function TransportPage({ onGenerate }: { onGenerate?: () => void }) {
   )
 }
 
-export function PlanPage({ onGeneratePlan }: { onGeneratePlan?: () => void }) {
+export function PlanPage({ onGeneratePlan, applied }: { onGeneratePlan?: () => void; applied?: WorkflowApplication }) {
   return (
     <>
       <EventBar />
-      <SectionHeader title="处置方案管理" actions={<><ActionButton ai onClick={onGeneratePlan}>AI生成处置方案</ActionButton><ActionButton>编辑</ActionButton><ActionButton>导出</ActionButton><ActionButton>重新生成</ActionButton></>} />
+      <SectionHeader title="处置方案管理" actions={<>{onGeneratePlan ? <ActionButton ai onClick={onGeneratePlan}>AI生成处置方案</ActionButton> : null}<ActionButton>编辑</ActionButton><ActionButton>导出</ActionButton><ActionButton>重新生成</ActionButton></>} />
       <div className="split-view">
         <PaperViewer pageCount={4}>
-          <h1>江西省吉安市遂川县山体滑坡险情<br /><br />救援处置方案</h1>
-          {PLAN_SECTIONS.map(([heading, text]) => <section key={heading}><h2>{heading}</h2><p>{text}</p></section>)}
+          <h1>{applied ? applied.title : <>江西省吉安市遂川县山体滑坡险情<br /><br />{V2_REPORT_STRUCTURE.plan.name}</>}</h1>
+          {(applied ? applied.sections.map(s => [s.title, s.body]) : PLAN_SECTIONS).map(([heading, text]) => <section key={heading}><h2>{heading}</h2><p>{text}</p></section>)}
         </PaperViewer>
         <aside className="side-panel">
           <div className="panel-heading"><span className="panel-tab active">版本记录</span></div>
-          <div className="approval-timeline">{PLAN_VERSION_RECORDS.map(row => <div key={row[1]}>{row[0]}<br />{row[1]}<br />{row[2]}<br />{row[3]}</div>)}</div>
+          <div className="approval-timeline">{applied ? <div>手机端确认草稿<br />{new Date(applied.savedAt).toLocaleString('zh-CN')}<br />草稿·未发布<br />人工确认后应用</div> : null}{PLAN_VERSION_RECORDS.map(row => <div key={row[1]}>{row[0]}<br />{row[1]}<br />{row[2]}<br />{row[3]}</div>)}</div>
         </aside>
       </div>
     </>

@@ -61,7 +61,7 @@ describe('V2周边资源报告', () => {
     expect(invocation.documentWorkflow?.stage).toBe('completed');
     const doc = useMockDocumentStore.getState().libraries[sid].documents.find(d => d.id === invocation.documentWorkflow?.documentId)!;
     expect(doc.code).toBe('RESCUE_PLAN');
-    expect(doc.sections).toHaveLength(9);
+    expect(doc.sections).toHaveLength(5);
     const body = doc.sections.map(s => s[1]).join('\n');
     expect(body).toContain('主备运输条件');
     expect(body).toContain('未提供可调用队伍');
@@ -71,7 +71,7 @@ describe('V2周边资源报告', () => {
     expect(useMockDocumentStore.getState().libraries[sid].documents.some(d => d.id === doc.id)).toBe(true);
     expect(useWorkspaceStore.getState().scopes[sid].generating).toBe(false);
   });
-  it('人装抽组独立使用本页80人45台套，生成后可恢复且不串用周边资源人数', async () => {
+  it('人装抽组在聊天中展示80人45台套，刷新不自动转为文书', async () => {
     vi.useFakeTimers();
     render(<WorkspaceSync />);
     await act(async () => {
@@ -84,16 +84,15 @@ describe('V2周边资源报告', () => {
     const sid = useSessionStore.getState().sessionByConversation[cid];
     const workflow = useSessionStore.getState().sessions[sid].messages.find(m => m.documentWorkflow)?.documentWorkflow;
     expect(workflow?.stage).toBe('completed');
-    const document = useMockDocumentStore.getState().libraries[sid].documents.find(d => d.id === workflow?.documentId)!;
-    expect(document.code).toBe('GROUP_RECOMMENDATION');
-    expect(document.title).toContain('人装抽组方案');
-    const body = document.sections.map(s => s[1]).join('\n');
+    expect(workflow?.presentation).toBe('inline');
+    expect(workflow?.documentId).toBeUndefined();
+    const body = workflow!.reportSections!.map(s => s[1]).join('\n');
     expect(body).toContain('80人、装备45台/套');
     expect(body).toContain('已返营');
     expect(body).not.toContain('171人');
     await act(async () => { useMockDocumentStore.setState({ libraries: {} }); });
-    expect(useMockDocumentStore.getState().libraries[sid].documents.some(d => d.id === document.id)).toBe(true);
-    expect(useWorkspaceStore.getState().scopes[sid].generating).toBe(false);
+    expect(useMockDocumentStore.getState().libraries[sid]).toBeUndefined();
+    expect(useWorkspaceStore.getState().scopes[sid]?.generating ?? false).toBe(false);
   });
   it('同一点击不重复生成，保留页面事件、明细差异及可恢复正文', async () => {
     vi.useFakeTimers();

@@ -1,5 +1,7 @@
+import { ResultSection as Card, ResultRecords as Table } from '@/components/common/AgentResultPrimitives';
 import { useState } from 'react';
-import { Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Input, Select, Space, Tag, Typography } from 'antd';
+import { KvTable, Notice } from '@/components/common/ChatPrimitives';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import { monitoringTrend, resourceComposition } from '@/services/tenderScenario';
 import OriginalSystemLink from '@/components/chat/OriginalSystemLink';
@@ -16,30 +18,24 @@ export default function SituationForecast({
   const replay = mode === 'replay';
   const [minutes, setMinutes] = useState(30);
   const [scale, setScale] = useState(1);
-  const [basis, setBasis] = useState(
-    replay
-      ? `按${profile.capturedAt}监测样例与既有影响范围回放；情景假设为演示外推，不替代专家意见。`
-      : '',
-  );
+  const [supplement, setSupplement] = useState('');
+  const basis = `自动采用${profile.capturedAt}的${profile.monitoring.length}项监测指标、当前影响范围及资源候选资料；监测来源与缺测情况在结果中保留。`;
   const [result, setResult] = useState(replay);
   const reset = () => {
     if (!replay) setResult(false);
   };
   const trends = profile.monitoring.map((m) => ({ ...m, ...monitoringTrend(m, minutes) }));
   const needs = resourceComposition(profile, scale, false);
-  const text = `事件：${profile.name}\n资料时间：${profile.capturedAt}\n情景时长：${minutes}分钟；以末两次记录的时间间隔线性外推（模拟，非专业预测）\n${trends.map((m) => `${m.label}：${m.latest} ${m.unit}；情景值 ${m.projection ?? '无法推演'} ${m.unit}`).join('\n')}\n影响范围：${profile.impactScope}（模拟既有范围，未计算未来边界）\n资源需求：${needs.map((n) => `${n.name} / 情景需求 ${n.requested ?? '待核'}${n.unit} / 缺口 ${n.gap ?? '待核'}${n.unit}`).join('；')}\n情景依据：${basis}\n次生风险：${profile.risks}\n待核：${profile.gaps}`;
+  const text = `事件：${profile.name}\n资料时间：${profile.capturedAt}\n情景时长：${minutes}分钟；以末两次记录的时间间隔线性外推（模拟，非专业预测）\n${trends.map((m) => `${m.label}：${m.latest} ${m.unit}；情景值 ${m.projection ?? '无法推演'} ${m.unit}`).join('\n')}\n影响范围：${profile.impactScope}（模拟既有范围，未计算未来边界）\n资源需求：${needs.map((n) => `${n.name} / 情景需求 ${n.requested ?? '待核'}${n.unit} / 缺口 ${n.gap ?? '待核'}${n.unit}`).join('；')}\n情景依据：${basis}\n补充现场情况（待核）：${supplement.trim() || '无新增补充'}\n次生风险：${profile.risks}\n待核：${profile.gaps}`;
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Descriptions
-        column={1}
-        size="small"
-        items={[
-          { key: 'event', label: '关联事件', children: profile.name },
-          { key: 'time', label: '资料时间', children: profile.capturedAt },
-          { key: 'scope', label: '当前影响范围', children: profile.impactScope },
-        ]}
-      />
+      <KvTable rows={[
+        { label: '关联事件', value: profile.name },
+        { label: '资料时间', value: profile.capturedAt },
+        { label: '当前影响范围', value: profile.impactScope },
+        { label: '研判依据', value: basis },
+      ]} />
       {!replay && (
         <>
           <Space wrap>
@@ -72,23 +68,28 @@ export default function SituationForecast({
               />
             </label>
           </Space>
-          <Input.TextArea
-            aria-label="研判情景依据"
-            value={basis}
+          <details className="axn-result-details">
+            <summary>补充现场情况（选填）</summary>
+            <Typography.Paragraph type="secondary">可补充新增裂缝、降雨变化或道路阻断等线索。补充文字仅作待核说明，不会自动改变监测数值或模拟计算。</Typography.Paragraph>
+            <Input.TextArea
+            aria-label="补充现场情况（选填）"
+            value={supplement}
             onChange={(e) => {
-              setBasis(e.target.value);
+              setSupplement(e.target.value);
               reset();
             }}
-            placeholder="填写情景假设、来源及待核条件；不替代专家意见"
+            placeholder="例如：现场发现新增裂缝，位置和发现时间待核实"
             rows={2}
           />
-          <Button type="primary" disabled={!basis.trim()} onClick={() => setResult(true)}>
+          </details>
+          <Button type="primary" onClick={() => setResult(true)}>
             生成研判情景（模拟）
           </Button>
         </>
       )}
       {result ? (
         <>
+          {supplement.trim() && <Notice tone="info" title="补充现场情况 · 待核">{supplement.trim()}</Notice>}
           {replay && (
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
               情景时长 {minutes} 分钟 · 基线需求 · 依据已按事件资料回放
@@ -155,7 +156,7 @@ export default function SituationForecast({
           </Space>
         </>
       ) : (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="填写情景依据后生成本事件研判结果" />
+        <Notice tone="info" title="资料已自动带入">可直接生成本事件的模拟研判，也可先调整时长与任务规模；情景值仅为模拟外推，不是专业预报。</Notice>
       )}
     </Space>
   );

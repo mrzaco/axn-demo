@@ -1,3 +1,13 @@
+import { openInlineSituation } from '@/services/inlineSituation';
+import EmpowermentConversation from '@/pages/v2/chat/EmpowermentConversation';
+import { isEmpowermentKind } from '@/pages/v2/logic/empowerment';
+import RescuePlanChoices from './RescuePlanChoices';
+import InlineSituationFlow from './InlineSituationFlow';
+import StructuredReply from './StructuredReply';
+import { Notice } from '@/components/common/ChatPrimitives';
+import { ArrowUp, ChevronRight } from 'lucide-react';
+import BrandMark from '@/components/brand/BrandMark';
+import { ShieldAlert, Waves, MapPin as RecommendationMapPin, LifeBuoy } from 'lucide-react';
 import IncidentPickerModal from './IncidentPickerModal';
 import { MapPin, ChevronDown } from 'lucide-react';
 import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
@@ -9,7 +19,7 @@ import { V2_AI_MODES, V2_AI_DOCUMENT_CODES } from '@/pages/v2/aiNodes';
 import { EVALUATION_TEXT_ACTIONS, evaluationActionReply, type EvaluationTextAction } from '@/services/evaluationActions';
 import { resourceRecommendationReply } from '@/services/resourceRecommendation';
 import { monitorNoticeReply } from '@/services/monitorNoticeReply';
-import { generateRescuePlanAlternatives, openRescuePlan } from '@/services/rescuePlanAlternatives';
+import { generateRescuePlanAlternatives } from '@/services/rescuePlanAlternatives';
 import { useCustomerOperations } from '@/store/customerOperationsStore';
 import CustomerRequestPanel, { CUSTOMER_ACTIONS, type CustomerAction } from './CustomerRequestPanel';
 import { catalogAction, LEGACY_QUICK_ACTIONS } from '@/seed/quickActionCatalog';
@@ -113,6 +123,13 @@ export interface ChatPanelProps {
 
 const AVATAR = <div className="axn-chat-avatar">安</div>;
 
+const QUESTION_META: { icon: LucideIcon; tag: string }[] = [
+  { icon: ShieldAlert, tag: '险情识别' },
+  { icon: Waves, tag: '水情研判' },
+  { icon: RecommendationMapPin, tag: '路线规划' },
+  { icon: LifeBuoy, tag: '现场急救' },
+];
+
 const BLANK_LINK = '__blank__';
 
 const AGENT_CHIP_ICONS: Record<string, LucideIcon> = {
@@ -145,19 +162,19 @@ const AGENT_INVITES: Record<string, {
   'agent-resource': {
     name: '救援资源管理智能体',
     role: '力量投送',
-    intro: '您好，我是救援资源管理智能体，可以帮您检索周边资源、编组投送与核验物资。请选择要执行的功能：',
+    intro: '您好，我是救援资源管理智能体，可以帮您检索周边资源、比较编组建议和核验物资；查询与核验直接在对话中展示，需要报告时再生成。请选择要执行的功能：',
     hint: '您也可以直接说明需要的人装与投送条件；台账或清单材料可上传给我。',
   },
   'agent-plan': {
     name: '救援方案生成智能体',
     role: '方案编制',
-    intro: '您好，我是救援方案生成智能体，可以帮您生成现场处置行动方案并做过程调控。请选择要执行的功能：',
+    intro: '您好，我是救援方案生成智能体，可以帮您比较处置方向，确认后生成工程救援处置方案，并根据现场变化对比修订。请选择要执行的功能：',
     hint: '您也可以直接说明方案边界与约束；相关预案与现场反馈可上传给我。',
   },
   'agent-eval': {
     name: '救援效果评估智能体',
     role: '复盘评估',
-    intro: '您好，我是救援效果评估智能体，可以帮您评估救援效果、复盘总结与知识沉淀。请选择要执行的功能：',
+    intro: '您好，我是救援效果评估智能体，可以帮您对照投入与成效、梳理时间轴和问题清单，需要正式总结时再生成总结报告。请选择要执行的功能：',
     hint: '您也可以直接说明复盘范围与关注点；过程材料可上传给我。',
   },
 };
@@ -185,7 +202,15 @@ function AgentInviteChoices({ options, hint, disabled, onPick }: {
 
 const noopOpenDrawer: NonNullable<ChatPanelProps['onOpenDrawer']> = () => {};
 
-export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: ChatPanelProps) {
+export default function ChatPanel(props: ChatPanelProps) {
+  const location = useLocation();
+  const mode = new URLSearchParams(location.search).get('embedded') ?? '';
+  const kind = mode.startsWith('v2-workflow-') ? mode.slice('v2-workflow-'.length) : null;
+  if (isEmpowermentKind(kind)) return <EmpowermentConversation key={kind} kind={kind} />;
+  return <StandardChatPanel {...props} />;
+}
+
+function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: ChatPanelProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const embeddedMessageList = useRef<ComponentRef<typeof Bubble.List>>(null);
@@ -204,6 +229,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
   const scope = useActiveScope();
 
   const openFlowWorkspace = (tab: typeof FLOW_TASKS[number]) => {
+    if (tab === '态势研判预警' || tab === '预警推送') {
+      if (!session) return;
+      openInlineSituation(session.sessionId, tab);
+      useWorkspaceStore.getState().close(scope);
+      return;
+    }
     useWorkspaceStore.getState().select(scope, { kind: 'flow', id: tab });
   };
   const monitorNotices = useCustomerOperations(s => s.notices);
@@ -597,6 +628,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
     if (EVALUATION_TEXT_ACTIONS.includes(text as EvaluationTextAction)) { replyEvaluationAction(text as EvaluationTextAction); return; }
     if (text === '生成救援方案' || tenderTaskPrompt(text) === '生成救援方案') { if (session && !busy) generateRescuePlanAlternatives(session.sessionId, session.eventId); return; }
     if (text === '资源建议') { replyResourceRecommendation(); return; }
+    if (text === '预警推送' || text === '态势研判预警') { openFlowWorkspace(text); return; }
     if (CUSTOMER_ACTIONS.includes(text as CustomerAction)) { setCustomerAction(text as CustomerAction); return; }
     const flowLabel = FLOW_TASKS.filter(name => name !== '现场智能勘察' && name !== '编组确认').find(
       (name) => text === name || text === tenderName(name) || tenderTaskPrompt(text) === name,
@@ -879,20 +911,14 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           styles: { content: { fontSize: 'var(--fs-body)', color: 'var(--axn-muted)' } },
         };
       }
+      if (m.inlineSituation) {
+        return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
+          contentRender: () => <InlineSituationFlow eventId={m.inlineSituation!.eventId} sessionId={m.sessionId} initial={m.inlineSituation!.kind} /> };
+      }
       if (m.rescuePlans) {
         return {
           key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
-          contentRender: () => <div className="axn-rescue-plan-reply">
-            <Text type="secondary" className="axn-rescue-plan-agent">救援方案生成智能体 · 已完成</Text>
-            <Text>{m.text}</Text>
-            <div className="axn-rescue-plan-list">
-              {m.rescuePlans!.map(plan => <div key={plan.documentId} className="axn-rescue-plan-row">
-                <span className="axn-rescue-plan-check" aria-hidden="true">✓</span>
-                <Text strong className="axn-rescue-plan-title">{plan.title}</Text>
-                <Button className="axn-rescue-plan-view" size="small" icon={<FileText size={16} />} onClick={() => openRescuePlan(m.sessionId, plan)}>查看文书</Button>
-              </div>)}
-            </div>
-          </div>,
+          contentRender: () => <RescuePlanChoices message={m} />,
         };
       }
       if (m.resourceAudit) {
@@ -971,13 +997,13 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
           avatar: AVATAR,
           contentRender: () => (
             <div className="axn-attachment-workflow">
-              <Typography.Paragraph className="axn-event-briefing-text">{m.text}</Typography.Paragraph>
+              <Notice tone="info" title="资料处理提示">{m.text}</Notice>
               {renderWorkflowActions(m.workflow!, m)}
             </div>
           ),
         };
       }
-      return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR };
+      return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR, contentRender: () => <StructuredReply text={m.text ?? ''} /> };
     });
   }, [session?.messages, tasks, onOpenDrawer, busy, navigate]);
 
@@ -1022,12 +1048,12 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               placement: 'start',
               variant: 'filled',
               avatar: AVATAR,
-              styles: { content: { background: token.colorBgContainer, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: '4px 14px 14px 14px', padding: '14px 16px', lineHeight: 1.85, maxWidth: '100%', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' } },
+              styles: { content: { background: 'transparent', padding: '4px 0 0', fontSize: 'var(--fs-lead)', lineHeight: 1.75, maxWidth: '100%', overflowWrap: 'anywhere' } },
             },
             user: {
               placement: 'end',
               variant: 'filled',
-              styles: { content: { background: token.colorPrimary, color: token.colorTextLightSolid, borderRadius: '14px 14px 4px 14px', padding: '11px 15px', lineHeight: 1.8, fontSize: 13, overflowWrap: 'anywhere' } },
+              styles: { content: { background: token.colorFillQuaternary, color: token.colorText, borderRadius: '18px 18px 6px 18px', padding: '10px 16px', lineHeight: 1.7, fontSize: 'var(--fs-lead)', overflowWrap: 'anywhere' } },
             },
             system: { placement: 'start', variant: 'borderless' },
             task: {
@@ -1051,35 +1077,43 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
         <div className="chat-scroll axn-home">
           <div className="axn-home-inner">
             <div className="axn-home-hero">
+              <BrandMark size={44} className="axn-home-mark" />
+              {/* 标注 vibe_1791788298951：原「有什么我能帮你的吗？」+ 下方 secondary 问候语合并成这一句。
+                  两段各自 inline-block：窄屏只在逗号处折行，不会把「应急」拆成两行。 */}
               <Typography.Title level={1} className="axn-home-title">
-                您好，我是安小能，您的应急智能助手
+                <span>您好，我是安小能，</span><span>您的应急智能助手</span>
               </Typography.Title>
+              {/* 标注 vibe_1791788359448 */}
               <Typography.Paragraph className="axn-home-copy">
                 您可以问我问题，也可以让我帮您写公文，或者我也可以帮您执行应急相关的任务。
               </Typography.Paragraph>
             </div>
 
             <div className="axn-home-block" data-testid="home-chat-recommend">
-              <Text type="secondary" className="axn-tc-fs13">为你推荐</Text>
+              <Text type="secondary" className="axn-home-block-label">为你推荐</Text>
               <ul className="axn-question-list">
-                {WELCOME_QUESTIONS.map((q) => (
-                  <li key={q}>
-                    <button
-                      type="button"
-                      className="axn-question-item"
-                      disabled={!session || busy}
-                      onClick={() => { void handleQuickTask(q); }}
-                    >
-                      {q}
-                    </button>
-                  </li>
-                ))}
+                {WELCOME_QUESTIONS.map((q, i) => {
+                  const meta = QUESTION_META[i % QUESTION_META.length];
+                  const QIcon = meta.icon;
+                  return (
+                    <li key={q}>
+                      <button
+                        type="button"
+                        className="axn-question-item"
+                        disabled={!session || busy}
+                        onClick={() => { void handleQuickTask(q); }}
+                      >
+                        <span className="axn-question-head" aria-hidden>
+                          <QIcon size={15} />
+                          <span>{meta.tag}</span>
+                        </span>
+                        <span className="axn-question-text">{q}</span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
-
-            <Text type="secondary" className="axn-tc-fs12">
-              也可直接输入指令，或在下方输入区使用快捷任务。
-            </Text>
           </div>
         </div>
       )}
@@ -1142,6 +1176,7 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
                 >
                   {ChipIcon && <ChipIcon className="axn-chip-icon" size={13} aria-hidden />}
                   {label}
+                  {agentId !== 'agent-doc' && <ChevronRight className="axn-chip-arrow" size={12} aria-hidden />}
                 </Button>
               );
             })
@@ -1152,12 +1187,6 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
       <div className={`axn-composer${compact ? ' axn-composer--compact' : ''}${isDesktopComposer ? ' axn-composer--desktop' : ''}`}>
         <div className="axn-composer-shell">
           {/* 「资料」入口暂时隐藏；SessionMaterialsDrawer 仍保留，便于后续恢复 */}
-          {!isEmbeddedAssistant && !isDesktopComposer ? (
-            <div className="axn-composer-event-row">
-              <span className="axn-composer-event-label">关联灾情</span>
-              {incidentSelect}
-            </div>
-          ) : null}
           {pendingAttachment && (
             <div className="axn-pending-file" data-testid="pending-attachment">
               <span>
@@ -1204,31 +1233,23 @@ export default function ChatPanel({ onOpenDrawer = noopOpenDrawer, compact = fal
               </Tooltip>
             )}
             suffix={(_, { components: { LoadingButton, SendButton, SpeechButton } }) => (
-              <span className="axn-composer-suffix">
-                {!isEmbeddedAssistant && isDesktopComposer ? (
-                  <span className="axn-composer-incident-inline" data-testid="composer-incident-inline" title="关联灾情">
-                    {incidentSelect}
-                  </span>
-                ) : null}
-                {/* 与 main 共用一个动作槽：空输入为语音，有文字或附件为发送，任务中为停止。 */}
+              <div className="axn-composer-actions">
+                {!isEmbeddedAssistant && incidentSelect}
                 {runningTask != null ? (
-                  <LoadingButton />
+                  <LoadingButton aria-label="停止生成" title="停止生成" />
                 ) : pendingAttachment && !input.trim() ? (
-                  <Button
-                    type="primary"
-                    shape="circle"
-                    aria-label="发送附件"
-                    data-testid="send-attachment-only"
-                    onClick={() => handleSend('', pendingAttachment)}
-                  >
-                    发
-                  </Button>
-                ) : input.trim() ? (
-                  <SendButton type="primary" shape="circle" />
+                  <Button type="primary" shape="circle" icon={<ArrowUp size={16} />}
+                    aria-label="发送附件" data-testid="send-attachment-only"
+                    onClick={() => handleSend('', pendingAttachment)} />
                 ) : (
-                  <SpeechButton variant="solid" color="primary" shape="circle" />
+                  <>
+                    {!input.trim() && <SpeechButton type="text" shape="circle"
+                      className="axn-composer-speech" aria-label="语音输入" title="语音输入"
+                      data-testid="composer-speech" />}
+                    <SendButton aria-label="发送" title="发送" />
+                  </>
                 )}
-              </span>
+              </div>
             )}
             autoSize={compact ? { minRows: 2, maxRows: 4 } : { minRows: 2, maxRows: 6 }}
             placeholder={

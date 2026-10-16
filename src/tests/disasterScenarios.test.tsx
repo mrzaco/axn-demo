@@ -132,9 +132,9 @@ describe('灾种事件与材料隔离', () => {
 
       const plan = disasterDocumentSections(p.eventId, 'RESCUE_PLAN')!;
       const planTitles = plan.map(s => s[0]);
-      expect(planTitles).toContain('二、任务受领与力量抽组');
-      expect(planTitles).toContain('四、主要措施');
-      expect(planTitles).toContain('五、风险困难与附件落款');
+      expect(planTitles).toContain('二、任务和救援目标');
+      expect(planTitles).toContain('四、救援行动安排');
+      expect(planTitles).toContain('五、安全与保障措施');
       expect(plan.map(s => s[1]).join('\n')).toMatch(/救援基本条件|战法|安全预警/);
 
       if (nonWater.has(p.eventId)) {

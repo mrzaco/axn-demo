@@ -1,5 +1,6 @@
+import { ResultSection as Card, ResultRecords as Table } from '@/components/common/AgentResultPrimitives';
 import { useMemo, useState } from 'react'
-import { Button, Card, Checkbox, Radio, Space, Table, Tag, Typography } from 'antd'
+import { Button, Checkbox, Radio, Space, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { DisasterProfile } from '@/seed/disasterScenarios'
 import { resourceComposition } from '@/services/tenderScenario'

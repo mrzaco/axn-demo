@@ -1,3 +1,4 @@
+import { V2_REPORT_STRUCTURE } from '@/pages/v2/reportStructure';
 /**
  * 一期过程公文 / 处置方案材料对齐的文书章节骨架与三类实战灾种填充。
  * 章节名固定；正文随 DisasterProfile 变化。不写入历史案例人数/联系人。
@@ -88,13 +89,7 @@ export const RESOURCE_REPORT_TITLES = [
   '七、范围与数据核验',
 ] as const;
 
-export const RESCUE_PLAN_TITLES = [
-  '一、基本情况',
-  '二、任务受领与力量抽组',
-  '三、指挥机构',
-  '四、主要措施',
-  '五、风险困难与附件落款',
-] as const;
+export const RESCUE_PLAN_TITLES = V2_REPORT_STRUCTURE.plan.titles;
 
 export const SITUATION_REPORT_TITLES = [
   '一、灾情概况',
@@ -313,19 +308,19 @@ function buildRescuePlan(p: DisasterProfile): DocumentSection[] {
   const planSup = planCapabilitySupplement(tenderCtx(p));
   return [
     [
-      '一、基本情况',
+      '一、灾情基本情况',
       `${overviewLine(p)}\n适用预案参考：${p.planTitle}（模拟参考，非正式签发版；吸收安能公开战法关键词，不冒充九分案正文）。\n灾种关键监测最新值（模拟）：${keyMonitoringLine(p)}\n研判口径：先成立专家组完成风险隐患评估，再展开救援；先遣组完成现场侦测与通行条件核对后投入主力。\n${detect}\n中国安能集团抢险救灾典型案例（中性摘要，不写入他案人数）：\n${historyCaseRefs(p)}\n\n${planSup.ragAndRules}`,
     ],
     [
-      '二、任务受领与力量抽组',
-      `任务目标（模拟）：${p.objective}，阶段进度 ${p.completed}/${p.target}${p.unit}。\n${grouping}\n编组原则：精干高效，数量由经验人员最终敲定；正式抽组、报备与锁定仍走原系统流程。\n${forceNote}`,
+      '二、任务和救援目标',
+      `任务目标（模拟）：${p.objective}，阶段进度 ${p.completed}/${p.target}${p.unit}。`,
     ],
     [
-      '三、指挥机构',
-      `${command}\n先遣组向现场指挥机构回传侦测与属地对接情况；主力梯队与保障组按指挥机构分工展开。`,
+      '三、救援组织与力量编成',
+      `${command}\n${grouping}\n${forceNote}\n先遣组向现场指挥机构回传侦测与属地对接情况；主力梯队与保障组按指挥机构分工展开。`,
     ],
     [
-      '四、主要措施',
+      '四、救援行动安排',
       [
         '（一）救援基本条件与侦测依据',
         `道路通行、作业展开面、供电通信及安全检测条件待核。主要风险：${p.risks}。\n${advanceDetectWorkText()}\n${detect}\n监测摘要：\n${disasterMonitoringText(p)}`,
@@ -340,8 +335,8 @@ function buildRescuePlan(p: DisasterProfile): DocumentSection[] {
       ].join('\n'),
     ],
     [
-      '五、风险困难与附件落款',
-      `主要风险与困难：${p.risks}\n${p.gaps}\n${safety}\n附件：现场照片、监测曲线、人装编组清单、先遣组侦测记录、安全交底、中国安能集团抢险救灾典型案例索引（待补）。\n落款：拟稿单位待补；审签流程沿用原处置方案模块。以上为演示初稿，不构成现场作业指令。\n\n${planSup.versionAndRedline}`,
+      '五、安全与保障措施',
+      `安全预警与撤离：${watch}\n综合保障：运输、通信、医疗、后勤、轮换安排及责任人待核。\n主要风险与困难：${p.risks}\n${p.gaps}\n${safety}\n附件：现场照片、监测曲线、人装编组清单、先遣组侦测记录、安全交底、中国安能集团抢险救灾典型案例索引（待补）。\n落款：拟稿单位待补；审签流程沿用原处置方案模块。以上为演示初稿，不构成现场作业指令。\n\n${planSup.versionAndRedline}`,
     ],
   ];
 }

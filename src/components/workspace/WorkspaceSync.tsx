@@ -3,6 +3,8 @@ import { constructionToMockSections } from '@/services/agentMaterialDocument';
 import { EMPTY_LIBRARY } from '@/store/mockDocumentStore';
 import { AGENT_MATERIAL_CODES, DOCUMENT_CATEGORIES } from '@/seed/mockDocuments';
 import type { ConstructionCapability } from '@/seed/constructionScenarios';
+import { resolveConstructionCapability } from '@/seed/constructionScenarios';
+import { needsResultDocument } from '@/services/resultPresentation';
 import { useEffect, useRef } from 'react';
 import { ensureWorkSummaryDocument } from '@/services/workSummaryWorkflow';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
@@ -51,6 +53,11 @@ export default function WorkspaceSync() {
         .filter((t) => t.sessionId === scope && t.eventId === session.eventId
           && t.displayTitle !== '多源数据汇聚'
           && t.displayTitle !== '汇总灾情摘要'
+          && needsResultDocument(
+            t.artifacts.find(a => a.payload.kind === 'scenario_sections')?.payload.kind === 'scenario_sections'
+              ? (t.artifacts.find(a => a.payload.kind === 'scenario_sections')!.payload as { capability: string }).capability
+              : resolveConstructionCapability(t.intent, session.messages.find(m => m.messageId === t.userMessageId)?.text ?? '') ?? '',
+          )
           && ['summary', 'proposal', 'evaluation', 'resource_query'].includes(t.intent))
         .sort((a, b) => b.seq - a.seq);
       const runningAgent = agentTasks.find((t) => ['queued', 'running', 'waiting_input'].includes(t.status));
@@ -102,7 +109,7 @@ export default function WorkspaceSync() {
       const message = session.messages.filter((m) => m.documentWorkflow).at(-1);
       const workflow = message?.documentWorkflow;
       const newerPlanReply = session.messages.some((item, index) => item.rescuePlans && index > session.messages.findIndex(item => item.messageId === message?.messageId));
-      if (message && workflow && !(workflow.stage === 'completed' && newerPlanReply)) {
+      if (message && workflow && workflow.presentation !== 'inline' && !(workflow.stage === 'completed' && newerPlanReply)) {
         let documentId = workflow.documentId;
         if (workflow.stage === 'completed' && workflow.reportSections?.length) {
           const libDocs = useMockDocumentStore.getState().libraries[scope]?.documents ?? [];

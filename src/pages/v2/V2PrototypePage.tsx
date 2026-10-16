@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ChatAssistant } from './chat/ChatAssistant'
 import { ReportDetail } from './components/ReportDetail'
 import { Sidebar } from './components/Sidebar'
 import { useScrollActive } from './components/chrome'
@@ -22,7 +21,6 @@ export default function V2PrototypePage() {
   })
   const [aiEnabled, setAiEnabled] = useState(true)
   const [reportId, setReportId] = useState<string | null>(null)
-  const [reportRequest, setReportRequest] = useState(0)
   const [chatTop, setChatTop] = useState(98)
 
   useScrollActive(page ?? '')
@@ -76,11 +74,10 @@ export default function V2PrototypePage() {
           onNavigate={go}
         />
         <main id="workspace" tabIndex={-1}>
-          <V2Workspace page={page} onNavigate={go} onOpenReport={setReportId} onGenerateReport={() => setReportRequest(current => current + 1)} />
+          <V2Workspace page={page} onNavigate={go} onOpenReport={setReportId} aiEnabled={aiEnabled} />
         </main>
       </div>
       <footer>{SUPPORT_LINE}</footer>
-      <ChatAssistant page={page} enabled={aiEnabled} onNavigate={go} reportRequest={reportRequest} />
       {reportId ? <ReportDetail reportId={reportId} onClose={() => setReportId(null)} /> : null}
     </div>
   )

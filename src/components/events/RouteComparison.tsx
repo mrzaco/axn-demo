@@ -1,5 +1,6 @@
+import { ResultRecords as Table } from '@/components/common/AgentResultPrimitives';
 import { useState } from 'react';
-import { Button, Checkbox, Space, Table, Tag } from 'antd';
+import { Button, Checkbox, Space,  Tag } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import DeliveryRouteMap from './DeliveryRouteMap';
 

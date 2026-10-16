@@ -25,11 +25,11 @@ describe('documentTemplates 一期骨架顺序', () => {
       '七、范围与数据核验',
     ]);
     expect([...RESCUE_PLAN_TITLES]).toEqual([
-      '一、基本情况',
-      '二、任务受领与力量抽组',
-      '三、指挥机构',
-      '四、主要措施',
-      '五、风险困难与附件落款',
+      '一、灾情基本情况',
+      '二、任务和救援目标',
+      '三、救援组织与力量编成',
+      '四、救援行动安排',
+      '五、安全与保障措施',
     ]);
     expect([...SITUATION_REPORT_TITLES]).toEqual([
       '一、灾情概况',
@@ -87,9 +87,9 @@ describe('documentTemplates 一期骨架顺序', () => {
 
       const plan = buildDisasterSections(profile, 'RESCUE_PLAN');
       const titles = plan.map(([t]) => t);
-      expect(titles).toContain('二、任务受领与力量抽组');
-      expect(titles).toContain('四、主要措施');
-      expect(titles).toContain('五、风险困难与附件落款');
+      expect(titles).toContain('二、任务和救援目标');
+      expect(titles).toContain('四、救援行动安排');
+      expect(titles).toContain('五、安全与保障措施');
       const body = plan.map(([, b]) => b).join('\n');
       expect(body).toMatch(/救援基本条件/);
       expect(body).toMatch(/战法/);

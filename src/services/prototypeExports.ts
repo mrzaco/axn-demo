@@ -1,3 +1,4 @@
+import { orderReportSections } from './reportSectionOrder';
 import { splitPipeContent } from '@/services/pipeTable';
 
 export function downloadFile(blob: Blob, name: string) {
@@ -7,6 +8,7 @@ export function downloadFile(blob: Blob, name: string) {
 }
 
 export async function exportMaterial(title: string, sections: readonly (readonly [string, string])[], format: 'Word' | 'PDF') {
+  sections = orderReportSections(sections);
   if (format === 'Word') {
     const { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, TextRun, WidthType, BorderStyle } = await import('docx');
     const border = { style: BorderStyle.SINGLE, size: 8, color: '333333' };

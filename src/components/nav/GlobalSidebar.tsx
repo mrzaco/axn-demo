@@ -1,15 +1,16 @@
-import { resetDemoData } from '@/store/resetDemo';
 /**
  * 全局导航 + 对话历史管理侧栏（UI 改版）：
- * 区域：品牌 / 新建 / 一级导航 /
- * 搜索 / 历史会话 / 底部账户区。
+ * 区域：品牌（左上，保留安小能身份）/ 一级功能导航（含独立「文书库」）/
+ * 新建（新建对话=对话模式；「新建任务」工作模式入口暂时下线）/ 搜索 / 历史会话 / 底部账户区
+ * （当前用户头像 + 名称 + 设置菜单：切换用户身份、聊天标准控件）。
+ * 改版要点：原全宽业务页头移除，其承载项下移至侧栏底部；折叠与收藏功能保持移除状态。
  * 全部数据为模拟数据。
  */
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from './navRoutes';
 import {
-  Bot,
+  // Bot, // 恢复「智能体与 Skill」侧栏入口时一并取回
   // Clock, // 恢复「定时任务」侧栏入口时一并取回
   // FilePlus, // 恢复「新建任务」按钮时一并取回
   FlaskConical,
@@ -21,10 +22,10 @@ import {
   Settings,
   Sparkles,
   Trash2,
-  RotateCcw,
+  X,
 } from 'lucide-react'
-import { App as AntdApp, Avatar, Button, Dropdown, Empty, Input, Radio, Divider, Popconfirm, Tooltip } from 'antd';
-import type { Conversation, ConversationSettings, NavPage } from '@/domain/types';
+import { App as AntdApp, Avatar, Button, Dropdown, Empty, Input, Popconfirm, Tooltip } from 'antd';
+import type { Conversation, NavPage } from '@/domain/types';
 import {
   GROUP_LABEL,
   groupOf,
@@ -41,85 +42,20 @@ import './sidebar.css';
 
 type NavKey = NavPage;
 
-const NAV: { key: NavKey; label: string; icon: ReactNode }[] = [
+const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   { key: 'library', label: '文书库', icon: <FolderOpen /> },
   { key: 'assistant', label: '智能助理', icon: <Sparkles /> },
-  // 「应急项目」「定时任务」「知识库」：侧栏隐藏；路由保留可深链。
-  // 取消注释并取回图标导入（LayoutGrid / Clock / FlaskConical）即可恢复。
+  // 「知识库」按下线标注恢复入口，样式与其它导航项一致（正常态深灰、可点击）；
+  // 但暂不接功能：点击只给 toast 提示，不跳转（/knowledge 页面与路由保持不变）。
+  // 需要真正启用（正常导航、选中变蓝）时，删除下方 onClick 里的 knowledge 分支即可。
+  { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
+  // 「应急项目」「智能体与 Skill」「定时任务」三个入口按下线标注从侧栏隐藏：
+  // 页面（NavPages）与路由（/projects、/agents、/schedules）全部保留，深链直达仍可用；
+  // 取消下列注释并取回对应图标导入（LayoutGrid / Bot / Clock）即可恢复侧栏入口。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
-  { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
+  // { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
   // { key: 'schedules', label: '定时任务', icon: <Clock /> },
 ];
-
-/** 对话与通知设置（轻量展示，需求 2.6）+ 演示数据重置入口（现场一键回到初始场景）。 */
-export function ConversationSettingsPanel({ onDone }: { onDone?: () => void } = {}) {
-  const settings = useConversationStore((s) => s.settings);
-  const updateSettings = useConversationStore((s) => s.updateSettings);
-  const { message } = AntdApp.useApp();
-  const navigate = useNavigate();
-  const items: { key: keyof ConversationSettings; label: string; desc: string }[] = [
-    { key: 'openRecentOnStart', label: '默认进入最近会话', desc: '打开工作台时自动恢复上次的活跃会话' },
-    { key: 'notifyTaskDone', label: '任务完成提醒', desc: '模拟任务完成时在会话列表更新状态' },
-    { key: 'notifyDocReady', label: '文书生成提醒', desc: '生成文书后标记会话状态为处理中' },
-    { key: 'demoMode', label: '模拟模式', desc: '显示环境横幅与模拟数据标识（始终为模拟环境）' },
-  ];
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 4 }}>
-      {items.map((item) => {
-        const patch: Partial<ConversationSettings> = {};
-        return (
-          <div key={item.key}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 'var(--fs-body)', fontWeight: 600, color: 'var(--axn-text)' }}>{item.label}</span>
-              <Radio.Group
-                size="small"
-                value={settings[item.key] ? 'on' : 'off'}
-                onChange={(e) => {
-                  patch[item.key] = e.target.value === 'on';
-                  updateSettings(patch);
-                }}
-              >
-                <Radio.Button value="on">开</Radio.Button>
-                <Radio.Button value="off">关</Radio.Button>
-              </Radio.Group>
-            </div>
-            <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)', marginTop: 4 }}>{item.desc}</div>
-          </div>
-        );
-      })}
-      <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)' }}>
-        以上均为模拟环境的轻量设置（模拟数据），不连接真实通知渠道。
-      </div>
-
-      <Divider style={{ margin: 0 }} />
-
-      <div>
-        <div style={{ fontSize: 'var(--fs-body)', fontWeight: 600, color: 'var(--axn-text)' }}>演示数据</div>
-        <div style={{ fontSize: 'var(--fs-body)', color: 'var(--axn-muted)', margin: '4px 0 8px' }}>
-          把模拟会话、文书与工作台状态全部恢复为初始场景，便于重新演示（不可撤销）。
-        </div>
-        <Popconfirm
-          title="重置演示数据？"
-          description="当前模拟会话、文书、审计记录与工作台状态都会回到初始场景。"
-          okText="确认重置"
-          cancelText="取消"
-          okButtonProps={{ danger: true }}
-          onConfirm={() => {
-            resetDemoData();
-            // 重置后导航也回到首页；URL 是唯一权威，所以这里显式跳转（store 不再回推 URL）。
-            navigate(NAV_PATH.assistant);
-            message.success('已恢复为初始演示数据。');
-            onDone?.();
-          }}
-        >
-          <Button danger size="small" icon={<RotateCcw />}>
-            重置演示数据
-          </Button>
-        </Popconfirm>
-      </div>
-    </div>
-  );
-}
 
 export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
   const { message, modal } = AntdApp.useApp();
@@ -187,12 +123,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
     () => Object.values(conversations).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)),
     [conversations],
   );
-  const filtered = useMemo(
-    () => list.filter(
-      (c) => !/值班|值守/.test(c.title) && matchConversation(c, keyword),
-    ),
-    [list, keyword],
-  );
+  const filtered = useMemo(() => list.filter((c) => matchConversation(c, keyword)), [list, keyword]);
 
   const groups = useMemo(() => {
     const map = new Map<ConversationGroup, Conversation[]>();
@@ -218,6 +149,19 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         <span className="axn-gs-brand-copy">
           <span className="axn-gs-brand-name">安小能 · 应急智能工作台</span>
         </span>
+        {/* 抽屉形态下的关闭出口：桌面侧栏是常驻列、不存在「关闭」，所以由父级决定是否传入。
+            在此之前只能点遮罩关闭，而窄屏上遮罩只剩 60px（320 - 260），手机上又没有 Esc。 */}
+        {onClose && (
+          <button
+            type="button"
+            className="axn-gs-brand-close"
+            onClick={onClose}
+            aria-label="关闭导航"
+            title="关闭导航"
+          >
+            <X />
+          </button>
+        )}
       </div>
 
       {/* 2. 新建：主要动作置顶，紧跟品牌 */}
@@ -272,7 +216,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         ))}
       </nav>
 
-      {/* 5. 对话搜索 */}
+      {/* 4. 对话搜索 */}
       <div className="axn-gs-search">
         <Input
           allowClear
@@ -284,7 +228,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         />
       </div>
 
-      {/* 6. 历史会话 */}
+      {/* 5. 历史会话 */}
       <div className="axn-gs-history" data-testid="conversation-history">
         {filtered.length === 0 ? (
           <Empty

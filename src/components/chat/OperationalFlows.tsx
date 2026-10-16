@@ -1,9 +1,11 @@
+import { ResultNotice as Alert } from '@/components/common/AgentResultPrimitives';
+import { ResultSection as Card, ResultRecords as Table } from '@/components/common/AgentResultPrimitives';
 import { disasterProfileById } from '@/seed/disasterScenarios';
 import { tenderName } from '@/seed/tenderNames';
 import OriginalSystemLink from './OriginalSystemLink';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Button, Card, Checkbox, Input, InputNumber, Segmented, Select, Space, Steps, Table, Tabs, Tag, Upload, Typography,
+   Button,  Checkbox, Input, InputNumber, Segmented, Select, Space, Steps,  Tabs, Tag, Upload, Typography,
 } from 'antd';
 import { X } from 'lucide-react';
 import { exportMaterial, exportResourceExcel } from '@/services/prototypeExports';
@@ -230,7 +232,10 @@ export default function OperationalFlows({
       </Card>
       <Tabs
         activeKey={tab}
-        onChange={setTab}
+        onChange={name => {
+          if (onTask && (name === '态势研判预警' || name === '预警推送')) { onClose(); onTask(name); }
+          else setTab(name);
+        }}
         destroyOnHidden
         items={visibleFlows.map((name) => {
           const mode = modeOf(name);
@@ -259,7 +264,7 @@ export default function OperationalFlows({
                           <SituationForecast
                             profile={profile}
                             mode={mode === 'past' ? 'replay' : 'interactive'}
-                            onWarning={mode === 'past' ? undefined : () => setTab('预警推送')}
+                            onWarning={mode === 'past' ? undefined : () => { onClose(); onTask?.('预警推送'); }}
                           />
                         )
                         : (

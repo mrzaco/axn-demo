@@ -114,11 +114,11 @@ export function TasksPage() {
   )
 }
 
-export function DynamicsPage({ onOpenReport, onGenerate }: { onOpenReport: (id: string) => void; onGenerate?: () => void }) {
+export function DynamicsPage({ onOpenReport }: { onOpenReport: (id: string) => void }) {
   const rows = reportListing()
   return (
     <>
-      <EventBar actions={<><ActionButton ai onClick={onGenerate}>AI生成态势报告</ActionButton><ActionButton primary>新增</ActionButton></>} />
+      <EventBar actions={<><ActionButton primary>新增</ActionButton></>} />
       <div className="content-scroll">
         <DataTable
           headers={['序号', '标题', '反馈组织/人员', '反馈时间', '状态', '操作']}

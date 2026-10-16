@@ -15,7 +15,7 @@ import { scheduleAutoSituationReport } from '@/services/autoSituationReport';
 import { useConversationStore } from '@/store/conversationStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useSessionStore } from '@/store/sessionStore';
-import { useWorkspaceStore } from '@/store/workspaceStore';
+import { openInlineSituation } from '@/services/inlineSituation';
 import DisasterMonitoring from './DisasterMonitoring';
 import SituationForecast from './SituationForecast';
 import ResourceComposition from './ResourceComposition';
@@ -60,7 +60,7 @@ export default function DisasterEventPanel({ profile, onTask }: { profile: Disas
       });
       scheduleAutoSituationReport(sessionId, profile.eventId, 'event_link', 0);
     }
-    useWorkspaceStore.getState().select(sessionId, { kind: 'flow', id: '预警推送' });
+    openInlineSituation(sessionId, '预警推送');
     navigate('/assistant');
   };
   return <Card title={<Space wrap><Typography.Text strong>{profile.name}</Typography.Text><Tag color="blue">{profile.stage}</Tag><Tag color="orange">模拟数据</Tag></Space>}>

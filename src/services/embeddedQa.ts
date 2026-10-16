@@ -47,6 +47,7 @@ export function replyEmbeddedQa(sessionId: string, mode: string | null, raw: str
   if (!kind) return false;
   const code = V2_AI_DOCUMENT_CODES[V2_AI_KINDS.indexOf(kind)];
   const workflow = code ? session?.messages.slice().reverse().find(message => message.documentWorkflow?.documentCode === code)?.documentWorkflow : undefined;
+  const inlineContext = kind === 'assembly';
   const suppliesContext = kind === 'supplies' && session?.messages.some(message => message.agentRole === 'v2-supplies');
   if (!session || (!suppliesContext && !workflow)) return false;
   const text = raw.trim();
@@ -61,9 +62,9 @@ export function replyEmbeddedQa(sessionId: string, mode: string | null, raw: str
   if (['collecting', 'calling', 'generating'].includes(workflow?.stage ?? '')) {
     answer = '本次报告仍在生成，请完成后再提问；当前问题已保留在聊天中。';
   } else if (attachment || /^(我补充|补充资料|补充信息|更新数据)[：:]/.test(text)) {
-    answer = (suppliesContext ? '已将补充内容保留在聊天中，按待核资料处理；不会自动解析附件或修改原台账。请在物资管理页补录并核实后再核验。\n\n' : '已将你提供的内容保留在本次聊天中，暂按待核资料处理；此处模拟问答不会解析附件或自动更新报告。请核实后在正文中编辑并保存。\n\n') + embeddedQaIntro(kind);
+    answer = (suppliesContext ? '已将补充内容保留在聊天中，按待核资料处理；不会自动解析附件或修改原台账。请在物资管理页补录并核实后再核验。\n\n' : '已将你提供的内容保留在本次聊天中，暂按待核资料处理；此处模拟问答不会解析附件或自动更新报告。请在业务页核实更新后重新分析，或在导出的附件中编辑。\n\n') + embeddedQaIntro(kind);
   } else if (/修改|重新生成|重做|保存|编辑/.test(question)) {
-    answer = (suppliesContext ? '本入口直接在聊天中核验，不生成文书。请在物资管理页核实并更新台账，需要重新核验时再次点击“AI物资核验”。\n\n接下来可发送：' : '可点击“查看文书”打开本次草稿，编辑后点击“保存修改”。需要重新生成时，请回到业务页面再次点击对应 AI 按钮，将创建独立会话和草稿。\n\n接下来可发送：') + node.items[0].question;
+    answer = (inlineContext ? '编组建议直接展示在上方，展开明细核对人装与状态；如需留档可点击“按需整理为附件”。重新分析请回到人装抽组页点击“AI编组建议”；不会自动修改原表或下发指令。\n\n接下来可发送：' : suppliesContext ? '本入口直接在聊天中核验，不生成文书。请在物资管理页核实并更新台账，需要重新核验时再次点击“AI物资核验”。\n\n接下来可发送：' : '可点击“查看文书”打开本次草稿，编辑后点击“保存修改”。需要重新生成时，请回到业务页面再次点击对应 AI 按钮，将创建独立会话和草稿。\n\n接下来可发送：') + node.items[0].question;
   } else if (/来源|依据|哪个事件|当前事件/.test(question)) {
     const event = workflow?.elements.find(item => item.label === '当前事件')?.value ?? (suppliesContext ? EVENT_NAME : '当前页面事件');
     answer = `当前事件：${event}。\n资料来源：${node.source}。回复使用本节点原始页面口径，当前为模拟资料，未读取实时接口；补录资料需人工复核，不会自动成为已核实业务数据。\n\n接下来可发送：${node.items[0].question}`;

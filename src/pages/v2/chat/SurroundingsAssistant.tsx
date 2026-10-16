@@ -4,9 +4,11 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { X } from 'lucide-react'
 import './surroundings-assistant.css'
 import { RESOURCE_REPORT_READY, RESOURCE_REPORT_REQUEST } from '../surroundingsData'
+import { isWorkflowApplication, WORKFLOW_APPLIED } from '../logic/empowerment'
+import type { EmpowermentKind, WorkflowApplication } from '../logic/empowerment'
 
 /** 复用真正的助手路由，以独立窄视口呈现手机布局。收起后保留对话。 */
-export function SurroundingsAssistant({ enabled, reportRequest, kind = 'surroundings' }: { enabled: boolean; reportRequest: number; kind?: V2AiKind }) {
+export function SurroundingsAssistant({ enabled, reportRequest, kind = 'surroundings', workflowKind, onApply }: { enabled: boolean; reportRequest: number; kind?: V2AiKind; workflowKind?: EmpowermentKind; onApply?: (data: WorkflowApplication) => void }) {
   const [open, setOpen] = useState(false)
   const [started, setStarted] = useState(false)
   const [position, setPosition] = useState<{ x: number; y: number; height: number } | null>(null)
@@ -21,6 +23,10 @@ export function SurroundingsAssistant({ enabled, reportRequest, kind = 'surround
   const pendingRequest = useRef<string | null>(null)
   const requestPrefix = useRef(crypto.randomUUID())
   const lastRequest = useRef(reportRequest)
+  const activeRequest = useRef<string | null>(null)
+  const appliedRequests = useRef(new Set<string>())
+  const applyRef = useRef(onApply)
+  applyRef.current = onApply
 
   const clamp = (value: number, size: number, viewport: number) => Math.max(8, Math.min(value, Math.max(8, viewport - size - 8)))
 
@@ -61,13 +67,21 @@ export function SurroundingsAssistant({ enabled, reportRequest, kind = 'surround
 
   const deliver = () => {
     if (!frameReady.current || !pendingRequest.current) return
-    frameRef.current?.contentWindow?.postMessage({ type: RESOURCE_REPORT_REQUEST, requestId: pendingRequest.current, kind }, window.location.origin)
+    activeRequest.current = pendingRequest.current
+    frameRef.current?.contentWindow?.postMessage({ type: RESOURCE_REPORT_REQUEST, requestId: pendingRequest.current, kind: workflowKind ?? kind }, window.location.origin)
     pendingRequest.current = null
   }
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow || event.data?.type !== RESOURCE_REPORT_READY) return
+      if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow) return
+      if (isWorkflowApplication(event.data) && event.data.kind === workflowKind && event.data.requestId === activeRequest.current) {
+        const key = `${event.data.requestId}:${event.data.savedAt}`
+        if (!appliedRequests.current.has(key)) { applyRef.current?.(event.data); appliedRequests.current.add(key) }
+        frameRef.current?.contentWindow?.postMessage({ type: WORKFLOW_APPLIED, requestId: event.data.requestId, savedAt: event.data.savedAt }, window.location.origin)
+        return
+      }
+      if (event.data?.type !== RESOURCE_REPORT_READY) return
       frameReady.current = true
       deliver()
     }
@@ -120,7 +134,7 @@ export function SurroundingsAssistant({ enabled, reportRequest, kind = 'surround
       <iframe
         ref={frameRef}
         title="安小能助手（手机端）"
-        src={`${window.location.pathname}#/assistant?embedded=v2-${kind}`}
+        src={`${window.location.pathname}#/assistant?embedded=v2-${workflowKind ? `workflow-${workflowKind}` : kind}`}
         onLoad={event => {
           frameCleanup.current?.()
           const frameWindow = event.currentTarget.contentWindow

@@ -248,6 +248,8 @@ export interface ChatMessage {
     collection?: { question: string; answer: string }[];
     collectedCount?: number;
     reportSections?: [string, string][];
+    /** inline 为结构化结果，仅按用户操作导出附件，不自动打开文书。 */
+    presentation?: 'inline' | 'document';
     documentCode?: string;
     documentTitle?: string;
     documentId?: string;
@@ -258,6 +260,8 @@ export interface ChatMessage {
   };
   /** 关联灾情切换提示：携带事件 ID，用于「查看时间轴」等结构化动作。 */
   eventBriefingEventId?: string | null;
+  /** 态势研判与预警推送直接在会话中操作，不占右侧工作区。 */
+  inlineSituation?: { kind: 'forecast' | 'warning'; eventId: string };
   /** 态势报告自动推送：可打开文书与态势地图。 */
   situationReportAuto?: {
     eventId: string;

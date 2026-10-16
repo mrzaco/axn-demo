@@ -27,6 +27,7 @@ import { generateWorkSummary } from '@/services/workSummaryWorkflow';
 import { shiftEventIds, formatFactValue } from '@/services/factLookup';
 import { templateByCode } from '@/seed/scenario';
 import { DOCUMENT_CATEGORIES } from '@/seed/mockDocuments';
+import { isStandaloneDocumentCode } from '@/services/resultPresentation';
 import { isHiddenPrototypeAction } from '@/seed/prototypeVisibility';
 import type { DocumentDraft, ValidationReport } from '@/domain/types';
 import MockDocumentDetail from '@/components/doc/MockDocumentDetail';
@@ -490,7 +491,7 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
       ) : (
         <div className="doc-center-list">
           <div className="doc-category-grid">
-            {DOCUMENT_CATEGORIES.filter(category => !isHiddenPrototypeAction(category.code)).map((category) => (
+            {DOCUMENT_CATEGORIES.filter(category => !isHiddenPrototypeAction(category.code) && isStandaloneDocumentCode(category.code)).map((category) => (
               <section className="doc-category" key={category.code}>
                 <div className="doc-library-row">
                   <span className={`doc-category-icon doc-category-icon--${category.code}`}>

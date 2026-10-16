@@ -10,20 +10,24 @@ describe('直接生成三种救援方案', () => {
     for (const event of DISASTER_PROFILES) {
       const plans = rescuePlanAlternatives(event.eventId);
       expect(plans).toHaveLength(3);
+      expect(plans.every(p => p.sections.length === 5)).toBe(true);
       expect(new Set(plans.map(p => p.title)).size).toBe(3);
-      expect(new Set(plans.map(p => p.sections.at(-1)?.[1])).size).toBe(3);
+      expect(plans.every(p => p.sections.length === 5)).toBe(true);
+      expect(new Set(plans.map(p => p.sections.find(([heading]) => heading === '四、救援行动安排')?.[1])).size).toBe(3);
     }
   });
-  it('三份文书有独立标识，回复按钮引用对应文书，并保持原查看状态', () => {
+  it('三种候选有独立标识，选定后才创建文书，并保持原查看状态', () => {
     const eventId = useSessionStore.getState().sessions[DEFAULT_SESSION_ID].eventId;
+    const beforeCount = useMockDocumentStore.getState().libraries[DEFAULT_SESSION_ID]?.documents.length ?? 0;
     const previous = useMockDocumentStore.getState().libraries[DEFAULT_SESSION_ID]?.selected ?? null;
     generateRescuePlanAlternatives(DEFAULT_SESSION_ID, eventId);
     const message = useSessionStore.getState().sessions[DEFAULT_SESSION_ID].messages.at(-1)!;
     expect(message.rescuePlans).toHaveLength(3);
     expect(new Set(message.rescuePlans!.map(p => p.documentId)).size).toBe(3);
     const library = useMockDocumentStore.getState().libraries[DEFAULT_SESSION_ID];
-    expect(library.selected).toEqual(previous);
-    for (const plan of message.rescuePlans!) expect(library.documents.find(d => d.id === plan.documentId)?.title).toBe(plan.title);
+    expect(library?.selected ?? null).toEqual(previous);
+    expect(library?.documents.length ?? 0).toBe(beforeCount);
+    for (const plan of message.rescuePlans!) expect(library?.documents.find(d => d.id === plan.documentId)).toBeUndefined();
     useMockDocumentStore.setState({ libraries: {} });
     for (const plan of message.rescuePlans!) openRescuePlan(DEFAULT_SESSION_ID, plan);
     for (const plan of message.rescuePlans!) expect(useMockDocumentStore.getState().libraries[DEFAULT_SESSION_ID].documents.find(d => d.id === plan.documentId)?.sections).toEqual(plan.sections);

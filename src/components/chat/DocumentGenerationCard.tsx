@@ -9,6 +9,8 @@ import { agentIcon } from './agentIcons';
 import type { ChatMessage } from '@/domain/types';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
+import { KvTable, Notice, RunBar, Section } from '@/components/common/ChatPrimitives';
+import StructuredReply from './StructuredReply';
 
 /**
  * 文书生成气泡里只展示「要素收集」这一个过程（用户 m00705）：需要要素或材料就在这里找用户要。
@@ -27,6 +29,7 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
   const [sources, setSources] = useState<SourceFile[]>([]);
   const openDocument = useDocumentNavigation();
   const workflow = message.documentWorkflow!;
+  const inline = workflow.presentation === 'inline';
   const waiting = workflow.stage === 'waiting_input';
   /** 素材依赖型文书（周工作动态）等参考文档/附件：上传按钮就在卡里（见下面的 uploading 分支）。 */
   const uploading = workflow.stage === 'waiting_upload';
@@ -53,7 +56,7 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
     if (completed && !document && workflow.reportSections?.length) ensureWorkSummaryDocument(message.sessionId, workflow, message.messageId);
   }, [completed, document, workflow, message.sessionId, message.messageId]);
   const openInWorkspace = () => {
-    const restored = document ?? ensureWorkSummaryDocument(message.sessionId, workflow, message.messageId);
+    const restored = document ?? ensureWorkSummaryDocument(message.sessionId, { ...workflow, presentation: 'document' });
     if (!restored) return;
     openDocument(message.sessionId, { kind: 'mock', id: restored.id });
   };
@@ -62,6 +65,19 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
   const DocIcon = agentIcon('agent-doc');
   const statusText = completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : uploading ? '待上传素材' : '执行中';
   const tone = completed ? 'ok' : interrupted ? 'err' : waiting || uploading ? 'warn' : 'busy';
+  if (inline) return <section className="axn-agent-result" data-testid="inline-agent-result" aria-live="polite">
+    <RunBar title={message.agentName || '救援资源管理智能体'} meta="编组建议 · 模拟" status={{ tone, label: statusText }}
+      steps={[{ name: '读取本页人装与出动状态', status: completed ? 'completed' : interrupted ? 'failed' : 'running' },
+        { name: '整理编成、约束及待核事项', status: completed ? 'completed' : 'pending' }]} />
+    <KvTable rows={workflow.elements.map(item => ({ label: item.label, value: item.value }))} />
+    {completed && <>
+      <Notice tone="warn" title="抽组条件待核">候选人装须核对可用状态、专业资格及驾驶员/操作手后办理正式抽组；未下发出动指令。</Notice>
+      {workflow.reportSections?.map(([heading, body], index) => <details key={heading} className="axn-result-details" open={index === 1}>
+        <summary>{heading}</summary><StructuredReply text={body} />
+      </details>)}
+      <Section title="应用与留档"><Button size="small" onClick={openInWorkspace}>按需整理为附件</Button></Section>
+    </>}
+  </section>;
   // 与 AgentSummonCard 同一版式：头像列 + 内容列（身份行 → 要素收集面板）
   return <section className={`axn-agent-execution axn-document-workflow${collecting ? ' is-running' : ''}`} data-testid="document-generation-card" aria-live="polite">
     <span className="axn-agent-summon-avatar" aria-hidden><DocIcon size={16} /></span>
@@ -120,6 +136,12 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
         <span className="axn-doc-done-text">已生成{document ? `《${document.title}》` : '文书'}</span>
         {document && <Button size="small" aria-label="查看文书" onClick={openInWorkspace}>查看文书</Button>}
       </div>}
+      {completed && document && <details className="axn-document-outline">
+        <summary>查看文书包含哪些章节（{document.sections.length}章）</summary>
+        <Section title="文书内容结构">
+          <ol>{document.sections.map(([heading], index) => <li key={index}>{heading}</li>)}</ol>
+        </Section>
+      </details>}
     </div>
     </div>
   </section>;

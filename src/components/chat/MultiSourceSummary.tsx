@@ -1,141 +1,73 @@
 import { useState } from 'react';
-import { Button, Card, Drawer, Empty, Space, Table, Tag, Typography } from 'antd';
-import { Database } from 'lucide-react';
-import type { DisasterSourceEvent, DisasterSourceGroup, MultiSourceSnapshot } from '@/domain/multiSource';
+import { Button, Drawer, Empty } from 'antd';
+import { Database, MapPin } from 'lucide-react';
+import type { DisasterSourceEvent, MultiSourceSnapshot } from '@/domain/multiSource';
 import { aggregationCounts } from '@/services/multiSourceAggregation';
+import { FileRow, KvTable, Notice, NumberedSteps, Section, SourceList, StatusPill } from '@/components/common/ChatPrimitives';
 import './multi-source.css';
 
-function sourceStats(source: DisasterSourceGroup): string {
-  if (!source.records.length) return source.missing || '暂无记录';
-  return `${source.records.length} 条记录 · ${source.records.filter((r) => !r.duplicateOf).length} 条归并线索`;
-}
-
-function sourceDetail(source: DisasterSourceGroup): string {
-  return source.records[0]?.content ?? '数据缺失不代表没有灾情。';
-}
-
 export default function MultiSourceSummary({ snapshot }: { snapshot: MultiSourceSnapshot }) {
-  const [domainEvent, setDomainEvent] = useState<DisasterSourceEvent | null>(null);
+  const [detailEvent, setDetailEvent] = useState<DisasterSourceEvent | null>(null);
+  const [sourceKind, setSourceKind] = useState<string | null>(null);
   const counts = aggregationCounts(snapshot.event.sources);
+  const pending = snapshot.event.sources.flatMap(source => source.records
+    .filter(record => !record.duplicateOf && record.verification === '待核实')
+    .map(record => ({ title: `${source.kind} · ${record.title}`, text: `${record.source}：需复核原始资料、时间、位置及内容。引用：${record.refs.join('、') || '待补充'}` })));
+  const openDetails = (event: DisasterSourceEvent, kind: string | null = null) => {
+    setDetailEvent(event);
+    setSourceKind(kind);
+  };
 
   return (
     <section className="axn-multi-source" aria-label="多源数据汇聚" data-testid="multi-source-summary">
-      <div className="axn-ms-heading">
-        <Space>
-          <Database size={17} />
-          <Typography.Text strong>多源数据汇聚</Typography.Text>
-        </Space>
-        <Tag color="blue">自动汇总 · 模拟</Tag>
-      </div>
+      <div className="axn-ms-heading"><Database size={17} aria-hidden /><strong>多源数据汇聚</strong><StatusPill tone="ok">已汇聚 · 模拟</StatusPill></div>
+      <p className="axn-ms-lead">已整理{snapshot.event.title}的六类数据来源，覆盖 {counts.covered}/6 类，归并后 {counts.merged} 条线索，{counts.pending} 条待核实。</p>
+      <KvTable rows={[
+        { label: '当前事件', value: snapshot.event.title },
+        { label: '汇聚概览', value: `覆盖 ${counts.covered}/6 类 · 原始 ${counts.raw} 条 · 归并后 ${counts.merged} 条 · 待核 ${counts.pending} 条` },
+        { label: '汇聚快照', value: snapshot.gatheredAt },
+      ]} />
+      <Notice tone="info" title="本地模拟资料">未连接真实全域采集接口；缺项不代表无灾情，线索未经核实不作为处置事实。</Notice>
 
-      <Typography.Paragraph type="secondary">自动整合舆情、气象、水文、地质、现场影像和接报记录。以下使用本地模拟资料，未连接真实全域采集接口；缺项不代表无灾情。</Typography.Paragraph>
-      <Typography.Title level={5} className="axn-ms-section-title">{snapshot.event.title} · 当前事件六源汇聚</Typography.Title>
-      <div className="axn-ms-counts">
-        覆盖 {counts.covered}/6 类 · 原始 {counts.raw} 条 · 归并后 {counts.merged} 条 · 待核 {counts.pending} 条
-      </div>
-      <Table
-        size="small"
-        pagination={false}
-        rowKey="kind"
-        className="axn-ms-table"
-        scroll={{ x: 640 }}
-        dataSource={snapshot.event.sources}
-        columns={[
-          { title: '类别', dataIndex: 'kind', width: 110 },
-          {
-            title: '状态',
-            dataIndex: 'state',
-            width: 120,
-            render: (state: DisasterSourceGroup['state']) => (
-              <Tag color={state === '暂无记录' ? 'orange' : 'blue'}>{state}</Tag>
-            ),
-          },
-          {
-            title: '统计',
-            width: 180,
-            render: (_, source) => sourceStats(source),
-          },
-          {
-            title: '详情',
-            render: (_, source) => (
-              <Typography.Paragraph className="axn-ms-preview" type="secondary" style={{ marginBottom: 0 }}>
-                {sourceDetail(source)}
-              </Typography.Paragraph>
-            ),
-          },
-        ]}
-      />
-      <Typography.Title level={5} className="axn-ms-section-title">全域灾情汇总（授权范围）</Typography.Title>
-      <Typography.Paragraph type="secondary" className="axn-ms-counts">
-        {snapshot.scopeLabel} · {snapshot.domainEvents.length} 个事件。按事件分别归并，跨事件不合并。真实全域采集服务待接入。
-      </Typography.Paragraph>
-      <Table
-        size="small"
-        pagination={false}
-        rowKey="eventId"
-        className="axn-ms-table"
-        scroll={{ x: 560 }}
-        dataSource={snapshot.domainEvents}
-        columns={[
-          {
-            title: '事件',
-            dataIndex: 'title',
-            render: (_, event) => (
-              <Button
-                type="link"
-                style={{ padding: 0, whiteSpace: 'normal', height: 'auto', textAlign: 'left' }}
-                onClick={() => setDomainEvent(event)}
-              >
-                {event.title}
-              </Button>
-            ),
-          },
-          { title: '位置', dataIndex: 'location' },
-          { title: '灾情线索', render: (_, event) => event.sources.flatMap(source => source.records.filter(record => !record.duplicateOf)).slice(0, 2).map(record => record.content).join('；') || '暂无可用记录' },
-          {
-            title: '六类来源覆盖',
-            render: (_, event) => `${aggregationCounts(event.sources).covered}/6 类`,
-          },
-          {
-            title: '归并线索',
-            render: (_, event) => `${aggregationCounts(event.sources).merged} 条`,
-          },
-          {
-            title: '待核',
-            render: (_, event) => `${aggregationCounts(event.sources).pending} 条`,
-          },
-        ]}
-        locale={{ emptyText: <Empty description="当前事件不在授权数据域内，未读取跨域记录" /> }}
-      />
+      <Section title="当前事件六源汇聚">
+        <div className="axn-ms-sources">
+          {snapshot.event.sources.map(source => (
+            <section key={source.kind} className="axn-ms-source" aria-label={`${source.kind}汇聚摘要`}>
+              <div className="axn-ms-source-heading"><strong>{source.kind}</strong><StatusPill tone={source.records.length ? 'ok' : 'warn'}>{source.state}</StatusPill></div>
+              <span className="axn-ms-meta">{source.records.length} 条记录 · {source.records.filter(record => !record.duplicateOf).length} 条归并线索</span>
+              <p>{source.records[0]?.content ?? (source.missing || '数据缺失不代表没有灾情。')}</p>
+              {!!source.records.length && <Button size="small" onClick={() => openDetails(snapshot.event, source.kind)}>查看{source.kind}来源与记录</Button>}
+            </section>
+          ))}
+        </div>
+      </Section>
 
-      <div className="axn-ms-foot">汇聚快照：{snapshot.gatheredAt} · 本地模拟 · 招标 4.2 多源数据汇聚</div>
-      <Drawer
-        title={domainEvent ? `${domainEvent.title} · 授权汇聚` : '授权汇聚'}
-        open={!!domainEvent}
-        onClose={() => setDomainEvent(null)}
-        size={560}
-      >
-        {domainEvent && (
-          <>
-            {domainEvent.sources.map((source) => (
-              <Card className="axn-ms-record" size="small" key={source.kind} title={source.kind} extra={<Tag>{source.state}</Tag>}>
-                {source.records.length
-                  ? source.records.map((record) => (
-                    <div key={record.id}>
-                      <Typography.Paragraph>{record.content}</Typography.Paragraph>
-                      {record.duplicateOf && <Tag>重复转发 · 归并至 {record.duplicateOf}</Tag>}
-                      <Typography.Paragraph type="secondary">
-                        {record.source} · {record.capturedAt} · {record.version} · {record.verification}
-                        <br />
-                        引用：{record.refs.join('、')}
-                      </Typography.Paragraph>
-                    </div>
-                  ))
-                  : <Typography.Text type="secondary">{source.missing}</Typography.Text>}
-              </Card>
-            ))}
-          </>
-        )}
+      <Section title="全域灾情汇总（授权范围）">
+        <p className="axn-ms-meta">{snapshot.scopeLabel} · {snapshot.domainEvents.length} 个事件。按事件分别归并，跨事件不合并。真实全域采集服务待接入。</p>
+        <div className="axn-ms-events">
+          {snapshot.domainEvents.map(event => {
+            const total = aggregationCounts(event.sources);
+            return <FileRow key={event.eventId} icon={<MapPin size={16} />} name={event.title}
+              sub={`${event.location} · 覆盖 ${total.covered}/6 类 · ${total.merged} 条线索 · ${total.pending} 条待核`}
+              action={<Button size="small" aria-label={`查看${event.title}汇聚详情`} onClick={() => openDetails(event)}>查看详情</Button>} />;
+          })}
+          {!snapshot.domainEvents.length && <Empty description="当前事件不在授权数据域内，未读取跨域记录" />}
+        </div>
+      </Section>
+
+      {pending.length > 0 && <Section title="待核事项" warn><NumberedSteps summary={{ label: '核验安排', value: '先核来源与时空信息，再形成研判依据' }} items={pending} /></Section>}
+      <div className="axn-ms-foot">本地模拟 · 招标 4.2 多源数据汇聚</div>
+      <Drawer title={detailEvent ? `${detailEvent.title} · ${sourceKind ?? '授权汇聚'}` : '汇聚详情'} open={!!detailEvent} onClose={() => setDetailEvent(null)} size={560}>
+        <div className="axn-ms-drawer">
+          {detailEvent?.sources.filter(source => !sourceKind || source.kind === sourceKind).map(source => <Section title={source.kind} key={source.kind}>
+            <StatusPill tone={source.records.length ? 'ok' : 'warn'}>{source.state}</StatusPill>
+            {source.records.length ? <SourceList sources={source.records.map((record, index) => ({
+              title: record.source,
+              section: `${record.capturedAt} · ${record.version} · ${record.verification} · 记录${index + 1}`,
+              excerpt: `${record.title}：${record.content}\n引用：${record.refs.join('、') || '待补充'}${record.duplicateOf ? `\n重复转发 · 归并至 ${record.duplicateOf}` : ''}`,
+            }))} /> : <p>{source.missing || '暂无记录，缺项不代表无灾情。'}</p>}
+          </Section>)}
+        </div>
       </Drawer>
     </section>
   );

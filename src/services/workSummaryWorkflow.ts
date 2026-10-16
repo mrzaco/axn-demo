@@ -51,6 +51,7 @@ export function ensureWorkSummaryDocument(
   messageId?: string,
 ): MockDocument | null {
   const sections = workflow.reportSections;
+  if (workflow.presentation === 'inline') return null;
   if (!sections?.length) return null;
   const library = useMockDocumentStore.getState().libraries[sessionId];
   const existing = workflow.documentId
@@ -78,6 +79,7 @@ export function ensureWorkSummaryDocument(
       selected: null,
       generatingCode: null,
       working: {},
+      versions: {},
     };
     return {
       libraries: {

@@ -148,39 +148,6 @@
   background: color-mix(in srgb, var(--axn-primary) 5%, transparent);
 }
 
-/* ── 建设四智能体 ── */
-.axn-gs-agents {
-  padding: 0 var(--space-2) var(--space-2);
-  flex-shrink: 0;
-}
-.axn-gs-agents-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-1) 6px;
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  color: var(--axn-muted);
-  letter-spacing: .04em;
-}
-.axn-gs-agents-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-px);
-}
-.axn-gs-agent-name {
-  flex-shrink: 0;
-}
-.axn-gs-agent-scene {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--fs-caption);
-  font-weight: 400;
-  color: var(--axn-faint);
-}
-
 /* ── 搜索 ── */
 .axn-gs-search {
   padding: 0 var(--space-2-5) var(--space-2);
@@ -211,6 +178,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* 会话列表滚到底后不再把滚动链传给外层 */
+  overscroll-behavior: contain;
   padding: 0 var(--space-2) var(--space-3);
   scrollbar-width: thin;
   scrollbar-color: var(--axn-border) transparent;
@@ -231,6 +200,9 @@
 
 /* 会话项：无边框、无投影 */
 .axn-gs-conversation {
+  /* 行内操作按钮的边长。触屏下会调大（见下方 @media (hover: none)），
+     标题预留的右侧留白由同一变量推导 —— 两者不会各改各的而错位。 */
+  --axn-conv-action-size: 22px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -272,7 +244,7 @@
 }
 .axn-gs-conversation:hover .axn-gs-conv-title-text,
 .axn-gs-conversation:focus-within .axn-gs-conv-title-text {
-  padding-right: 46px;
+  padding-right: calc(2 * var(--axn-conv-action-size) + 2px);
 }
 
 /* 行内操作（置顶 / 删除）：仅悬停或键盘聚焦时出现，标题已预留 46px 右侧留白，无需底色遮挡 */
@@ -293,11 +265,27 @@
   opacity: 1;
   pointer-events: auto;
 }
+/* 触屏没有 hover：操作区必须常显，否则「置顶 / 删除」既看不见也点不到。
+   标题的 46px 右侧留白同理要常驻，不然文字会压到按钮下面。 */
+@media (hover: none) {
+  .axn-gs-conv-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .axn-gs-conv-title-text {
+    padding-right: calc(2 * var(--axn-conv-action-size) + 2px);
+  }
+  /* 触屏上按钮得能被手指点中：22×22 太小（iOS / Android 建议 44），放到 36×36。
+     图标字号不变，视觉上仍是小图标；标题留白随变量联动，不会压字。 */
+  .axn-gs-conversation {
+    --axn-conv-action-size: 36px;
+  }
+}
 .axn-gs-conv-action {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: var(--axn-conv-action-size);
+  height: var(--axn-conv-action-size);
   border: 0;
   background: transparent;
   color: var(--axn-muted);
@@ -432,6 +420,34 @@
 .axn-np-mla { margin-left: auto; }
 .axn-np-desc { font-size: var(--fs-body); color: var(--axn-muted); line-height: var(--lh-normal); }
 .axn-np-title-sm { margin: 0; font-size: var(--fs-h3); }
+
+/* 窄屏页头（NavPages 共用）：标题左侧有 52px 汉堡避让（见 global.css），在 320px 屏幕上
+   extra 只剩 ~236px，而「输入框 220 + 间隙 8 + Tag 64」= 292px 会把 Tag 挤出屏幕
+   （实测 right=360 > vw=320，被祖先裁掉）。沿整条链解除 flex 的自动最小尺寸，
+   并让输入框跟随收缩；Tag 保持原宽，于是留在屏幕内。extra 放得下时无任何变化。 */
+@media (max-width: 767px) {
+  .axn-np-mla,
+  .axn-np-mla > .ant-space,
+  .axn-np-mla .ant-space-item:has(.axn-np-search) {
+    min-width: 0;
+  }
+  .axn-np-search {
+    width: 100%;
+  }
+}
+
+/* 触屏触摸目标放大。注意：这里的基类规则写死了 width / height，同优先级下后者胜，
+   所以必须放在它们**之后**（早先放在上方曾静默失效，实测仍为 30×30）。 */
+@media (hover: none) {
+  .axn-gs-account-settings {
+    width: 40px;
+    height: 40px;
+  }
+  /* 知识库搜索框是 -sm 尺寸（实测 218×27），抬到 36px 更好点中。 */
+  .axn-np-search {
+    min-height: 36px;
+  }
+}
 .axn-np-icon-huge { font-size: var(--fs-h1); color: var(--axn-primary); flex-shrink: 0; }
 .axn-np-icon-med { font-size: var(--icon-lg); color: var(--axn-primary); }
 .axn-np-icon-med-mt { font-size: var(--icon-lg); color: var(--axn-primary); margin-top: var(--space-0-5); }

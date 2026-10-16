@@ -3,6 +3,8 @@ import { APPROVAL_RECORDS, BRIEF_RECORDS, SUMMARY_RECORDS, SUPPLY_ITEMS, BUSINES
 import type { V2PageId } from '../constants'
 import { ASSEMBLY_HEADERS, ASSEMBLY_ROWS } from '../assemblyData'
 import { ActionButton, CellActions, DataTable, EventBar, Pagination, SectionHeader, SelectBox, Tabs } from '../components/chrome'
+import type { WorkflowApplication } from '../logic/empowerment'
+import { CANDIDATE_TEAMS } from '../logic/empowerment'
 
 const EVENT_ROWS = [
   ['山西省太原市阳曲县暴雨灾情', '泥石流险情', '辰安科技武汉基地', '2026-10-10 10:37:18', '抢险中'],
@@ -35,7 +37,7 @@ export function EventsPage({ onNavigate }: { onNavigate: (page: V2PageId) => voi
   )
 }
 
-export function OrdersPage() {
+export function OrdersPage({ onRecommend, applied }: { onRecommend?: () => void; applied?: WorkflowApplication }) {
   const rows = [
     [<SelectBox key="a" />, '南昌队常备中队', '中国安能/第二工程局/南昌分公司/南昌队', '54/54', '432.98', '5小时52分钟', '第一梯队（队伍机动）', '已返营', '50'],
     [<SelectBox key="b" />, '第二工程局南昌分公司永新项目部', '中国安能/第二工程局/南昌分公司/永新抽蓄项目部', '18/18', '136.39', '2小时07分钟', '—', '—', '—'],
@@ -54,20 +56,21 @@ export function OrdersPage() {
           <select aria-label="出动类型" defaultValue=""><option value="">队伍出动类型</option></select>
           <label className="checkbox"><SelectBox />只显示抽组队伍</label>
           <span className="spacer" />
+          {onRecommend ? <ActionButton ai onClick={onRecommend}>AI推荐下发对象</ActionButton> : null}
           <ActionButton primary>搜索</ActionButton>
         </div>
-        <DataTable headers={['', '队伍名称', '所属单位', '可调人数/总人数', '行进路程(km)', '行进时长', '出动类型', '队伍状态', '出动力量']} rows={rows} striped={false} />
+        <DataTable headers={['', '队伍名称', '所属单位', '可调人数/总人数', '行进路程(km)', '行进时长', '出动类型', '队伍状态', '出动力量']} rows={applied ? rows.map((row, index) => [<input key={`${applied.savedAt}-${index}`} type="checkbox" aria-label="选择此项" defaultChecked={applied.selectedIds.includes(CANDIDATE_TEAMS[index].id)} />, ...row.slice(1)]) : rows} striped={false} />
         <Pagination total={140} pages={14} />
       </div>
     </>
   )
 }
 
-export function AssemblyPage({ onGenerateAssembly }: { onGenerateAssembly?: () => void }) {
+export function AssemblyPage() {
   return (
     <>
       <EventBar />
-      <SectionHeader title="人装抽组" actions={<><ActionButton ai onClick={onGenerateAssembly}>AI生成抽组</ActionButton><ActionButton>指导组出动</ActionButton></>} />
+      <SectionHeader title="人装抽组" actions={<><ActionButton>指导组出动</ActionButton></>} />
       <div className="content-scroll">
         <DataTable
           headers={[...ASSEMBLY_HEADERS, '操作']}
@@ -149,14 +152,14 @@ export function ForcesPage() {
   )
 }
 
-export function SuppliesPage({ onVerify }: { onVerify?: () => void }) {
+export function SuppliesPage() {
   const [tab, setTab] = useState(0)
   const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
   const rows = SUPPLY_ITEMS.filter(item => item.name.includes(search.trim()))
   return (
     <>
-      <EventBar actions={<ActionButton ai onClick={onVerify}>AI物资核验</ActionButton>} />
+      <EventBar />
       <div className="content-scroll">
         <div className="note">{BUSINESS_NOTE} 统计时点：{BUSINESS_SNAPSHOT}；需求为下一阶段需求。</div>
         <Tabs names={['初始物资', '现场物资需求', '物资消耗', '当前库存']} variant="pills" activeIndex={tab} onChange={setTab} />
@@ -173,19 +176,19 @@ export function SuppliesPage({ onVerify }: { onVerify?: () => void }) {
   )
 }
 
-export function SummaryPage({ onGenerate }: { onGenerate?: () => void }) {
+export function SummaryPage({ onGenerate, applied }: { onGenerate?: () => void; applied?: WorkflowApplication }) {
   return (
     <>
       <EventBar />
-      <SectionHeader title="总结报告" actions={<><ActionButton ai onClick={onGenerate}>AI生成复盘总结</ActionButton><ActionButton>新建报告</ActionButton></>} />
+      <SectionHeader title="总结报告" actions={<><ActionButton onClick={onGenerate}>新建报告</ActionButton></>} />
       <div className="content-scroll">
         <div className="filter">
           <input className="field-340" placeholder="请输入报告名称" />
           <ActionButton primary>搜索</ActionButton>
         </div>
         <div className="note">{BUSINESS_NOTE}</div>
-        <DataTable headers={['序号', '报告名称', '附件（盖章）', '状态', '编写部门', '编写人', '编写时间', '操作']} rows={SUMMARY_RECORDS.map((row, index) => [index + 1, ...row, <CellActions key={row[0]} labels={['查看']} />])} />
-        <Pagination total={SUMMARY_RECORDS.length} />
+        <DataTable headers={['序号', '报告名称', '附件（盖章）', '状态', '编写部门', '编写人', '编写时间', '操作']} rows={[...(applied ? [[1, applied.title, '未盖章·草稿', '草稿', '待补充', '待补充', new Date(applied.savedAt).toLocaleString('zh-CN'), <ActionButton key="phone-draft" onClick={onGenerate}>查看草稿</ActionButton>]] : []), ...SUMMARY_RECORDS.map((row, index) => [index + (applied ? 2 : 1), ...row, <CellActions key={row[0]} labels={['查看']} />])]} />
+        <Pagination total={SUMMARY_RECORDS.length + (applied ? 1 : 0)} />
       </div>
     </>
   )

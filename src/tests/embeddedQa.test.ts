@@ -88,6 +88,9 @@ describe('V2嵌套问答', () => {
     expect(replyEmbeddedQa(sid, null, node.items[0].question)).toBe(false);
     const another = V2_REPORT_KINDS.find(other => other !== kind)!;
     expect(replyEmbeddedQa(sid, `v2-${another}`, node.items[0].question)).toBe(false);
-    expect(useMockDocumentStore.getState().libraries[sid].documents[0].sections.map(s => s[1]).join('\n')).not.toContain('已新增100人');
+    const body = kind === 'assembly'
+      ? currentSession.messages.find(m => m.documentWorkflow)?.documentWorkflow?.reportSections?.map(s => s[1]).join('\n')
+      : useMockDocumentStore.getState().libraries[sid].documents[0].sections.map(s => s[1]).join('\n');
+    expect(body).not.toContain('已新增100人');
   });
 });

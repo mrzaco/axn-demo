@@ -382,7 +382,7 @@ export function resolveConstructionCapability(
     return 'search';
   }
   if (intent === 'proposal') return /修订|反馈/.test(text) ? 'revise' : 'plan';
-  if (intent === 'evaluation') return /偏差/.test(text) ? 'deviation' : 'summary';
+  if (intent === 'evaluation') return /总结|复盘|反思式/.test(text) ? 'summary' : 'deviation';
   return null;
 }
 

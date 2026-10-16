@@ -1,3 +1,4 @@
+import { openInlineSituation } from '@/services/inlineSituation';
 import CustomerOperationsPanel from '@/components/chat/CustomerOperationsPanel';
 /**
  * 右侧工作区：与对话分栏内嵌，承载——
@@ -36,6 +37,15 @@ export default function DocumentWorkspace() {
     s.sessions[s.sessionByConversation[activeConversationId ?? ''] ?? ''],
   );
   const eventStage = resolveEventStage(eventId, session);
+  const inlineFlow = selection?.kind === 'flow' && (selection.id === '预警推送' || selection.id === '态势研判预警') ? selection.id : null;
+  useEffect(() => {
+    if (!inlineFlow || !session) return;
+    const current = useWorkspaceStore.getState().selectionOf(scope);
+    if (current?.kind !== 'flow' || current.id !== inlineFlow || !useWorkspaceStore.getState().isOpen(scope)) return;
+    openInlineSituation(session.sessionId, inlineFlow);
+    close(scope);
+  }, [inlineFlow, session, scope, close]);
+
 
   /** 关闭工作区：不带 token → 抑制最近一次自动打开标记。 */
   const requestClose = useCallback(() => {
@@ -82,6 +92,8 @@ export default function DocumentWorkspace() {
     close(scope);
     window.dispatchEvent(new CustomEvent('axn:flow-task', { detail: { text } }));
   }, [close, scope]);
+
+  if (inlineFlow) return null;
 
   if (selection?.kind === 'operations') {
     const isReview = selection.id === '救援复盘与知识';

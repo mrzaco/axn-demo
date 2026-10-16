@@ -24,6 +24,18 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+describe('分析结果与正式报告分开呈现', () => {
+  it.each(['查询周边救援资源', '核对资源状态', '资源投入偏差评估', '评估救援效果', '方案修订对比'])('%s不自动生成或打开文书', async text => {
+    const sid = useSessionStore.getState().ensureSessionForEvent(DEFAULT_EVENT_ID);
+    render(<WorkspaceSync />);
+    const id = await sendMessage(sid, { text });
+    await expect.poll(() => useSessionStore.getState().tasks[id]?.status, { timeout: 5000 }).toBe('succeeded');
+    const artifact = useSessionStore.getState().tasks[id].artifacts.find(a => a.payload.kind === 'scenario_sections');
+    expect(artifact?.payload.kind === 'scenario_sections' && artifact.payload.documentId).toBeUndefined();
+    expect(useWorkspaceStore.getState().scopes[sid]?.generating ?? false).toBe(false);
+  });
+});
+
 describe('独立多源数据汇聚快捷任务', () => {
   it('快捷目录和自然语言走汇聚，摘要和报告语义独立', () => {
     const ctx = { lastResourceResultIds: [], candidateResourceIds: [] };
@@ -33,7 +45,7 @@ describe('独立多源数据汇聚快捷任务', () => {
     expect(recognize('生成灾情摘要', ctx).params.capability).toBe('disasterSummary');
     expect(recognize('生成态势报告', ctx).params.capability).toBe('situationReport');
   });
-  it('直接展示六源与授权域两张表，不生成文书或切换工作区', async () => {
+  it('直接展示六源分节与授权域条目，不生成文书或切换工作区', async () => {
     const sid = useSessionStore.getState().ensureSessionForEvent(DEFAULT_EVENT_ID);
     const beforeDocs = useMockDocumentStore.getState().libraries[sid]?.documents.length ?? 0;
     const beforeWorkspace = useWorkspaceStore.getState().scopes[sid]?.selection;
@@ -56,9 +68,10 @@ describe('独立多源数据汇聚快捷任务', () => {
     expect(screen.getByTestId('multi-source-summary')).toBeTruthy();
     expect(screen.queryByTestId('event-summary-text')).toBeNull();
     expect(screen.getByText('全域灾情汇总（授权范围）')).toBeTruthy();
-    expect(screen.getAllByRole('table')).toHaveLength(2);
-    const eventButton = screen.getAllByRole('button').find(b => b.textContent === result.multiSource!.domainEvents[0].title);
-    fireEvent.click(eventButton!);
+    expect(screen.queryAllByRole('table')).toHaveLength(0);
+    expect(screen.getAllByRole('region', { name: /汇聚摘要$/ })).toHaveLength(6);
+    expect(screen.getByText('待核事项')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: `查看${result.multiSource!.domainEvents[0].title}汇聚详情` }));
     expect(await screen.findByText(/授权汇聚$/)).toBeTruthy();
     expect(screen.getAllByText(/V1-demo/).length).toBeGreaterThan(0);
   });
@@ -76,7 +89,7 @@ describe('独立多源数据汇聚快捷任务', () => {
     expect(stageChipConfig('待研判').primary).toContain('现场智能勘察辅助');
     expect(recognize('现场智能勘察辅助', { lastResourceResultIds: [], candidateResourceIds: [] }).params.capability).toBe('survey');
   });
-  it('同一任务输出可见分析正文及包含三张表的勘察文书', async () => {
+  it('勘察直接输出正文和三组证据，不自动生成文书', async () => {
     const sid = useSessionStore.getState().ensureSessionForEvent(DEFAULT_EVENT_ID);
     const sync = render(<WorkspaceSync />);
     const id = await sendMessage(sid, { text: '现场智能勘察辅助' });
@@ -88,18 +101,16 @@ describe('独立多源数据汇聚快捷任务', () => {
     if (artifact?.payload.kind !== 'scenario_sections') throw Error('missing survey document');
     expect(artifact.payload.capability).toBe('survey');
     expect(artifact.payload.tables).toHaveLength(3);
-    const documentId = artifact.payload.documentId;
-    const doc = useMockDocumentStore.getState().libraries[sid].documents.find(d => d.id === documentId);
-    expect(doc?.code).toBe('SURVEY_ANALYSIS');
-    expect(doc?.sections.some(([h,b]) => h.includes('风险与专业指导对照表') && b.includes(' | '))).toBe(true);
-    expect(useWorkspaceStore.getState().scopes[sid].selection?.id).toBe(doc?.id);
+    expect(artifact.payload.documentId).toBeUndefined();
+    expect(useMockDocumentStore.getState().libraries[sid]?.documents.some(d => d.code === 'SURVEY_ANALYSIS') ?? false).toBe(false);
+    expect(useWorkspaceStore.getState().scopes[sid]?.generating ?? false).toBe(false);
     sync.unmount();
     useMockDocumentStore.setState({ libraries: {} });
     render(<WorkspaceSync />);
-    await expect.poll(() => useMockDocumentStore.getState().libraries[sid]?.documents.some(d => d.id === documentId)).toBe(true);
+    expect(useMockDocumentStore.getState().libraries[sid]).toBeUndefined();
     render(<MemoryRouter><TaskCard task={task} onOpenDrawer={() => {}} /></MemoryRouter>);
     expect(screen.getByText(/现场资料综合分析/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: '查看文书' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '按需整理为附件' })).toBeTruthy();
   });
  });
 
@@ -115,8 +126,9 @@ describe('独立多源数据汇聚快捷任务', () => {
    if (artifact?.payload.kind !== 'scenario_sections') throw Error('missing grouping');
    const docId = artifact.payload.documentId;
    expect(artifact.payload.capability).toBe('group');
-   expect(useMockDocumentStore.getState().libraries[sid].documents.find(d=>d.id===docId)?.code).toBe('GROUP_RECOMMENDATION');
+   expect(docId).toBeUndefined();
+   expect(useWorkspaceStore.getState().scopes[sid]?.generating ?? false).toBe(false);
    render(<MemoryRouter><TaskCard task={task} onOpenDrawer={()=>{}} /></MemoryRouter>);
    expect(screen.getByText(/比较规则与推荐理由/)).toBeTruthy();
-   expect(screen.getByRole('button', {name:'查看文书'})).toBeTruthy();
+   expect(screen.getByRole('button', {name:'按需整理为附件'})).toBeTruthy();
  });
