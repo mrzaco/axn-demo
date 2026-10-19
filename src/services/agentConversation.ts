@@ -7,7 +7,7 @@ export function summonAgentFromManagement(agentId: string) {
   const agent = AGENT_INVITATIONS.find(item => item.agentId === agentId);
   if (!agent) return null;
   const conversations = useConversationStore.getState();
-  const conversation = conversations.createConversation({ title: `与${agent.name}对话`, type: 'general' });
+  const conversation = conversations.createConversation({ title: `与${agent.name}对话`, type: 'general', source: 'agent-management' });
   const sessionId = useSessionStore.getState().ensureSessionForConversation(
     conversation.id, `evt-blank-${conversation.id}`,
   );

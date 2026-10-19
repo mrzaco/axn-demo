@@ -627,8 +627,8 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         </div>
       )}
 
-      {/* 智能体入口回到输入框上方，功能在当前对话的介绍卡中选择。 */}
-      <div className="axn-cp-chips-wrap">
+      {/* 数字专家管理页创建的专属对话隐藏其他智能体入口。 */}
+      {activeConversation?.source !== 'agent-management' && <div className="axn-cp-chips-wrap">
         <div className="axn-chips">
           {AGENT_INVITATIONS.map(agent => {
             const Icon = AGENT_ICONS[agent.agentId];
@@ -639,7 +639,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             </Button>;
           })}
         </div>
-      </div>
+      </div>}
       {/* 关联灾情与发送、语音操作位于输入框右下角。 */}
       <div className="axn-composer">
         <div ref={composerRef} className={`axn-composer-shell${mobileComposer ? ' is-mobile' : ''}`}>

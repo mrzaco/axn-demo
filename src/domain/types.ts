@@ -680,6 +680,8 @@ export type ConversationType = 'emergency' | 'daily' | 'resource' | 'general';
 export type ConversationStatus = 'active' | 'processing' | 'completed' | 'draft';
 
 export interface Conversation {
+  /** 数字专家管理页召唤创建的专属对话。未设置时为普通对话。 */
+  source?: 'agent-management';
   id: string;
   title: string;
   type: ConversationType;

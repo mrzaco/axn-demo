@@ -13,6 +13,7 @@ describe('在同一对话召唤智能体', () => {
     const conversation = useConversationStore.getState().createConversation({ title: '原对话', type: 'general', eventId: 'evt-demo-001' });
     const sessionId = useSessionStore.getState().sessionByConversation[conversation.id];
     const original = useSessionStore.getState().appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '已有需求', taskId: null });
+    expect(conversation.source).toBeUndefined();
     const count = Object.keys(useConversationStore.getState().conversations).length;
     const createdSessions = new Set<string>();
     for (const [index, agent] of AGENT_INVITATIONS.entries()) {
@@ -20,6 +21,7 @@ describe('在同一对话召唤智能体', () => {
       const state = useConversationStore.getState();
       const current = state.conversations[state.activeConversationId!];
       expect(current.id).not.toBe(conversation.id);
+      expect(current.source).toBe('agent-management');
       expect(current.title).toBe(`与${agent.name}对话`);
       expect(current.eventId).toBe(`evt-blank-${current.id}`);
       expect(Object.keys(state.conversations)).toHaveLength(count + index + 1);

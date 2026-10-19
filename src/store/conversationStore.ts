@@ -127,6 +127,7 @@ function buildSeedMap(): Record<string, Conversation> {
 }
 
 export interface CreateConversationInput {
+  source?: Conversation['source'];
   title: string;
   type: Conversation['type'];
   eventId?: string;
@@ -166,6 +167,7 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
       id,
       title: input.title,
       type: input.type,
+      ...(input.source ? { source: input.source } : {}),
       // 未绑定事件的会话（如“空白对话”）分配专属虚拟事件 → ensureSessionForEvent
       // 会为其创建全新的空 session，不复用当前事件的历史消息。
       eventId: input.eventId ?? `evt-blank-${id}`,

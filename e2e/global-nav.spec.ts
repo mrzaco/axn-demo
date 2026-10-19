@@ -217,6 +217,7 @@ test('数字专家展示已有能力，每次召唤新开对话并能选择任�
   await newConversation(page);
   const activeConversation = page.locator('.axn-gs-conversation.is-active');
   const conversationId = await activeConversation.getAttribute('data-testid');
+  await expect(page.locator('.axn-chips')).toBeVisible();
   const count = await page.locator('.axn-gs-conversation').count();
   for (const [index, agent] of AGENT_INVITATIONS.entries()) {
     await page.getByRole('button', { name: '数字专家', exact: true }).click();
@@ -227,6 +228,7 @@ test('数字专家展示已有能力，每次召唤新开对话并能选择任�
     await expect(card.locator('.axn-np-desc')).not.toBeEmpty();
     await card.getByRole('button', { name: `召唤${agent.name}`, exact: true }).click();
     await expect(page.locator('.axn-chat-page')).toBeVisible();
+    await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
     const invitation = page.getByTestId('agent-summon-card').filter({ has: page.locator(`[data-agent-id="${agent.agentId}"].axn-doc-choices`) }).last();
     await expect(invitation).toContainText(agent.intro);
     for (const option of agent.options) {
@@ -237,7 +239,13 @@ test('数字专家展示已有能力，每次召唤新开对话并能选择任�
     await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
     await expect(page.locator('.axn-gs-conversation')).toHaveCount(count + index + 1);
   }
+  const summonedId = await activeConversation.getAttribute('data-testid');
+  await page.getByTestId(conversationId!).click();
+  await expect(page.locator('.axn-chips')).toBeVisible();
+  await page.getByTestId(summonedId!).click();
+  await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
   await page.reload();
+  await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
   await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
   await page.getByRole('button', { name: '数字专家', exact: true }).click();
   await page.getByRole('button', { name: '召唤救援资源管理智能体', exact: true }).click();
