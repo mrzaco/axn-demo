@@ -1,17 +1,15 @@
 import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
 import { useSessionStore } from '@/store/sessionStore';
 import { useConversationStore } from '@/store/conversationStore';
-import { useDemoStore } from '@/store/demoStore';
 
-/** 管理页召唤：优先沿用当前对话，没有对话时创建独立会话。 */
+/** 管理页召唤：每次开启独立对话，展示对应智能体的介绍和任务选项。 */
 export function summonAgentFromManagement(agentId: string) {
   const agent = AGENT_INVITATIONS.find(item => item.agentId === agentId);
   if (!agent) return null;
   const conversations = useConversationStore.getState();
-  const conversation = conversations.conversations[conversations.activeConversationId ?? '']
-    ?? conversations.createConversation({ title: `与${agent.name}对话`, type: 'general' });
+  const conversation = conversations.createConversation({ title: `与${agent.name}对话`, type: 'general' });
   const sessionId = useSessionStore.getState().ensureSessionForConversation(
-    conversation.id, conversation.eventId ?? useDemoStore.getState().currentEventId,
+    conversation.id, `evt-blank-${conversation.id}`,
   );
   return summonAgentInConversation(sessionId, agentId);
 }

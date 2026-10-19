@@ -138,7 +138,7 @@ export function AgentsPage() {
     <div className="axn-np-section" data-testid="agents-page">
       <PageHeader
         title="数字专家"
-        sub="认识你的应急协作伙伴。召唤到当前对话，再选择需要的任务。"
+        sub="认识你的应急协作伙伴。召唤后开启新对话，再选择需要的任务。"
         extra={<Tag>{AGENT_INVITATIONS.length} 个智能体</Tag>}
       />
       <div className="axn-np-grid axn-agents-grid">

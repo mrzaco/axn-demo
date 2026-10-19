@@ -213,12 +213,12 @@ test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知
   await expect(page.getByRole('heading', { name: '知识库管理', exact: true })).toBeVisible();
 });
 
-test('数字专家展示已有能力，召唤回到原对话并能选择任务', async ({ page }) => {
+test('数字专家展示已有能力，每次召唤新开对话并能选择任务', async ({ page }) => {
   await newConversation(page);
   const activeConversation = page.locator('.axn-gs-conversation.is-active');
   const conversationId = await activeConversation.getAttribute('data-testid');
   const count = await page.locator('.axn-gs-conversation').count();
-  for (const agent of AGENT_INVITATIONS) {
+  for (const [index, agent] of AGENT_INVITATIONS.entries()) {
     await page.getByRole('button', { name: '数字专家', exact: true }).click();
     await expect(page.getByRole('heading', { name: '数字专家', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '数字专家', exact: true })).toBeVisible();
@@ -232,11 +232,15 @@ test('数字专家展示已有能力，召唤回到原对话并能选择任务',
     for (const option of agent.options) {
       await expect(invitation.getByRole('button', { name: option.label, exact: true })).toBeEnabled();
     }
-    await expect(activeConversation).toHaveAttribute('data-testid', conversationId!);
-    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count);
+    await expect(activeConversation).not.toHaveAttribute('data-testid', conversationId!);
+    await expect(activeConversation).toContainText(`与${agent.name}对话`);
+    await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
+    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count + index + 1);
   }
   await page.reload();
-  await expect(page.getByTestId('agent-summon-card')).toHaveCount(AGENT_INVITATIONS.length);
+  await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
+  await page.getByRole('button', { name: '数字专家', exact: true }).click();
+  await page.getByRole('button', { name: '召唤救援资源管理智能体', exact: true }).click();
   await page.locator('.axn-doc-choices[data-agent-id="agent-resource"]').getByRole('button', { name: '周边救援资源', exact: true }).click();
   await expect(page.locator('.axn-task-card').first()).toBeVisible();
 });
