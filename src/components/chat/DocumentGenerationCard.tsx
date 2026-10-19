@@ -9,7 +9,7 @@ import { agentIcon } from './agentIcons';
 import type { ChatMessage } from '@/domain/types';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
 import { useDocumentNavigation } from '@/components/workspace/useDocumentNavigation';
-import { KvTable, Notice, RunBar, Section } from '@/components/common/ChatPrimitives';
+import { FileRow, KvTable, Notice, RunBar, Section } from '@/components/common/ChatPrimitives';
 import StructuredReply from './StructuredReply';
 
 /**
@@ -65,6 +65,11 @@ export default function DocumentGenerationCard({ message }: { message: ChatMessa
   const DocIcon = agentIcon('agent-doc');
   const statusText = completed ? '已完成' : interrupted ? '已中断' : waiting ? '待补充' : uploading ? '待上传素材' : '执行中';
   const tone = completed ? 'ok' : interrupted ? 'err' : waiting || uploading ? 'warn' : 'busy';
+  if (workflow.compactReview) return <section className="axn-agent-result" data-testid="compact-review-document">
+    {completed ? <FileRow name={document?.title ?? '复盘总结报告'} sub="已生成 · 模拟报告" action={<Button size="small" disabled={!document} onClick={openInWorkspace}>查看文书</Button>} />
+      : <Notice tone={interrupted ? 'warn' : 'info'} title={interrupted ? '报告生成中断，请稍后重试' : '正在整理完整复盘总结报告…'} />}
+  </section>;
+
   if (inline) return <section className="axn-agent-result" data-testid="inline-agent-result" aria-live="polite">
     <RunBar title={message.agentName || '救援资源管理智能体'} meta="编组建议 · 模拟" status={{ tone, label: statusText }}
       steps={[{ name: '读取本页人装与出动状态', status: completed ? 'completed' : interrupted ? 'failed' : 'running' },

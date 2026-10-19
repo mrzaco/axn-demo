@@ -567,7 +567,7 @@ function buildConstructionResultInternal(
           capability,
           agentId: 'agent-situation',
           title: '灾情态势报告初稿',
-          summary: '标准化四章研判报告（模拟）：概况、安全态势与灾种监测侧重、力量时效、安全场所与医疗核查。先专家组评估再展开救援。',
+          summary: `当前重点：关注${profile.risks}；救援前需完成现场风险评估。`,
           table: realtime.table,
           tables: [
             { title: '安全区域（约100公里演示圈层）', ...support.safeZones },
@@ -583,7 +583,7 @@ function buildConstructionResultInternal(
         capability,
         agentId: 'agent-situation',
         title: '灾情态势报告初稿',
-        summary: '报告包含灾情概况、安全态势、队伍人员状态时效与医疗资源核查（模拟 · 待人工核对）。',
+        summary: `当前重点：关注${ctx.risks}；救援前需完成现场风险评估。`,
         table: realtime.table,
         tables: [
           { title: '安全区域（约100公里演示圈层）', ...support.safeZones },

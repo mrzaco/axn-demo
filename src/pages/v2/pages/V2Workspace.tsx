@@ -9,7 +9,6 @@ import { ApprovalPage, AssemblyPage, BriefsPage, DocumentsPage, EventsPage, Forc
 
 export function V2Workspace({
   page,
-  onNavigate,
   onOpenReport,
   aiEnabled = true,
 }: {
@@ -19,15 +18,15 @@ export function V2Workspace({
   aiEnabled?: boolean
 }) {
   const [applications, setApplications] = useState<Partial<Record<EmpowermentKind, WorkflowApplication>>>({})
-  return <WorkspaceContent key={page} page={page} onNavigate={onNavigate} onOpenReport={onOpenReport} aiEnabled={aiEnabled} applied={isEmpowermentKind(page) ? applications[page] : undefined} onApply={data => setApplications(current => ({ ...current, [data.kind]: data }))} />
+  return <WorkspaceContent key={page} page={page} onOpenReport={onOpenReport} aiEnabled={aiEnabled} applied={isEmpowermentKind(page) ? applications[page] : undefined} onApply={data => setApplications(current => ({ ...current, [data.kind]: data }))} />
 }
 
-function WorkspaceContent({ page, onNavigate, onOpenReport, aiEnabled, applied, onApply }: { page: V2PageId; onNavigate: (page: V2PageId) => void; onOpenReport: (id: string) => void; aiEnabled: boolean; applied?: WorkflowApplication; onApply: (data: WorkflowApplication) => void }) {
+function WorkspaceContent({ page, onOpenReport, aiEnabled, applied, onApply }: { page: V2PageId; onOpenReport: (id: string) => void; aiEnabled: boolean; applied?: WorkflowApplication; onApply: (data: WorkflowApplication) => void }) {
   const [request, setRequest] = useState(0)
   const open = () => aiEnabled ? () => setRequest(v => v + 1) : undefined
   const content = () => {
   switch (page) {
-    case 'events': return <EventsPage onNavigate={onNavigate} />
+    case 'events': return <EventsPage />
     case 'surroundings': return <SurroundingsPage />
     case 'resources': return <ResourcesPage onGenerate={open()} applied={applied} />
     case 'response': return <ResponsePage />

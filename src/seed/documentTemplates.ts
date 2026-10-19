@@ -4,7 +4,7 @@ import { V2_REPORT_STRUCTURE } from '@/pages/v2/reportStructure';
  * 章节名固定；正文随 DisasterProfile 变化。不写入历史案例人数/联系人。
  * 仅 type-only 引用 profile，避免与 disasterScenarios / eventTimeline 循环依赖。
  */
-import { slashResourcesToPipeTable } from '@/services/pipeTable';
+import { slashResourcesToPipeTable, tableToText } from '@/services/pipeTable';
 import {
   evalCapabilitySupplement,
   planCapabilitySupplement,
@@ -150,7 +150,7 @@ function hospitalResources(p: DisasterProfile) {
 
 function formatList(items: { name: string; amount: string; capability: string; status: string }[], empty: string): string {
   if (!items.length) return empty;
-  return items.map((r) => `${r.name} / ${r.amount} / ${r.capability} / ${r.status}`).join('\n');
+  return tableToText(['名称', '数量', '专业能力', '状态'], items.map(r => [r.name, r.amount, r.capability, r.status]));
 }
 
 function planBody(p: DisasterProfile): string {
@@ -218,7 +218,7 @@ function buildSituationReport(p: DisasterProfile): DocumentSection[] {
     ],
     [
       '四、安全场所与医疗资源核查',
-      `演示检索圈层约 100 公里（≠灾害边界）。\n空旷集结/学校：${p.location}外围场所开放状态与容量待核；学校不自动认定为安置场所。\n医疗：${hospitals}\n宾馆/加油站等影响目标可用性待核。\n可在对话打开「态势地图」查看分布示意（模拟·非测距）。`,
+      `演示检索圈层约 100 公里（≠灾害边界）。\n空旷集结/学校：${p.location}外围场所开放状态与容量待核；学校不自动认定为安置场所。\n医疗：\n${hospitals}\n宾馆/加油站等影响目标可用性待核。\n可在对话打开「态势地图」查看分布示意（模拟·非测距）。`,
     ],
   ];
 }

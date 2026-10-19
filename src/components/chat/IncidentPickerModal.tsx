@@ -1,16 +1,18 @@
 /**
- * 关联灾情选择弹窗：屏幕居中，顶部搜索，列表只展示事件名称。
+ * 关联灾情选择弹窗：屏幕居中，顶部搜索，列表展示事件名称及当前状态。
  * 支持键盘：↑/↓ 移动高亮，Enter 选择，Esc 关闭。
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Modal } from 'antd';
+import { Modal, Tag } from 'antd';
 import { Check, Search, X } from 'lucide-react';
 import { factText, incidents } from '@/seed/scenario';
+import { resolveSeedEventStage, type EventStage } from '@/services/agentFlow';
 
 interface Row {
   id: string;
   title: string;
   sortKey: string;
+  stage: EventStage;
 }
 
 export default function IncidentPickerModal({ open, value, onClose, onSelect }: {
@@ -29,10 +31,11 @@ export default function IncidentPickerModal({ open, value, onClose, onSelect }: 
     id: inc.eventId,
     title: factText(inc.factRefs.title),
     sortKey: factText(inc.factRefs.occurredAt),
+    stage: resolveSeedEventStage(inc.eventId),
   })).sort((a, b) => b.sortKey.localeCompare(a.sortKey)), []);
 
   const q = query.trim().toLowerCase();
-  const matches = useMemo(() => rows.filter(row => !q || row.title.toLowerCase().includes(q)), [rows, q]);
+  const matches = useMemo(() => rows.filter(row => !q || `${row.title} ${row.stage}`.toLowerCase().includes(q)), [rows, q]);
   // 键盘导航用的扁平序：「不关联」放在最后。
   const flat = useMemo(() => [...matches.map(row => row.id), ...(q ? [] : ['none'])], [matches, q]);
 
@@ -108,6 +111,7 @@ export default function IncidentPickerModal({ open, value, onClose, onSelect }: 
                 onClick={() => pick(row.id)}
               >
                 <span className="axn-incident-copy"><span className="axn-incident-title">{row.title}</span></span>
+                <Tag className="axn-incident-stage" color={{ 待研判: 'gold', 力量投送中: 'blue', 救援中: 'processing', 待复盘: 'purple', 已归档: 'default' }[row.stage]}>{row.stage}</Tag>
                 {selected && <Check size={16} className="axn-incident-check" aria-hidden />}
               </div>
             );

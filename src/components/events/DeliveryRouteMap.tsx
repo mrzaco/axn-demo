@@ -1,131 +1,83 @@
-/**
- * 投送路径示意图（本地 SVG）：主通道阻断 + 东侧绕行 / 铁路投送示意。
- * 不接高德或实时路况，里程与 ETA 仅为演示。
- */
-import { Space, Tag, Typography } from 'antd';
+/** 本地投送路线示意，不提供真实导航或里程估算。 */
+import { useId } from 'react';
+import { Tag, Typography } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
 import './events.css';
 
-const NODES = [
-  { key: 'base', label: '基地出发', x: 48, y: 148 },
-  { key: 'check', label: '通行检查点', x: 168, y: 96 },
-  { key: 'rally', label: '前方集结点', x: 292, y: 118 },
-  { key: 'site', label: '现场到达', x: 412, y: 72 },
-] as const;
-
-export default function DeliveryRouteMap({
-  profile,
-  route = '东侧绕行（示例）',
-  road = '主路阻断（示例）',
-  progress = 0,
-}: {
+export default function DeliveryRouteMap({ profile, route = '东侧绕行（示例）', road = '主路阻断（示例）', progress = 0 }: {
   profile?: DisasterProfile;
   route?: string;
   road?: string;
-  /** 0–3，对应 NODES 已到达下标（回放轨迹） */
+  /** 0–3，当前轨迹节点。 */
   progress?: number;
 }) {
+  const id = useId().replace(/:/g, '');
   const rail = /铁路/.test(route);
   const location = profile?.location ?? '事发地';
   const reached = Math.min(3, Math.max(0, progress));
-
-  const detourPath = 'M48 148 C 90 148, 120 110, 168 96 S 240 130, 292 118 S 360 70, 412 72';
-  const mainPath = 'M48 148 C 140 140, 240 100, 412 72';
-  const railPath = 'M48 148 C 100 170, 220 175, 320 140 S 390 90, 412 72';
-
+  const nodes = [
+    { label: '基地出发', x: 92, y: 248 },
+    { label: rail ? '铁路转运点' : '通行检查点', x: 280, y: 224 },
+    { label: '前方集结点', x: 520, y: 220 },
+    { label: '现场到达', x: 714, y: 108 },
+  ];
+  const path = 'M92 248 C168 248 198 224 280 224 L476 224 Q510 224 520 220 C610 204 638 108 714 108';
+  const main = 'M92 248 C150 240 160 120 270 120 L610 120 Q672 120 714 108';
   return (
     <div className="axn-delivery-map" data-testid="delivery-route-map">
       <div className="axn-delivery-map-head">
-        <Typography.Text strong>投送路径示意（模拟）</Typography.Text>
-        <Space size={6} wrap>
-          <Tag color="red">主通道阻断</Tag>
-          <Tag color="blue">{rail ? '铁路投送' : '东侧绕行'}</Tag>
-          <Tag>{location}</Tag>
-        </Space>
+        <Typography.Text strong>投送路线示意</Typography.Text>
+        <Tag color="blue">{rail ? '铁路投送' : '东侧绕行'} · 模拟</Tag>
       </div>
-      <svg viewBox="0 0 460 210" role="img" aria-label={`${location}投送路径示意图：${route}`}>
-        <title>
-          {route}；{road}；轨迹节点 {reached + 1}/4（示意，非真实导航）
-        </title>
-        <rect width="460" height="210" fill="#f4f7fa" />
-        {/* 地形底纹 */}
-        <path d="M0 175 Q115 150 230 168 T460 155 L460 210 L0 210 Z" fill="#e5edf3" />
-        <path d="M0 40 Q120 55 240 28 T460 48" fill="none" stroke="#d5e0ea" strokeWidth="18" opacity="0.7" />
-
-        {/* 主通道（阻断） */}
-        <path d={mainPath} fill="none" stroke="#c45c4a" strokeWidth="5" strokeDasharray="8 6" opacity="0.85" />
-        <text x="200" y="88" fontSize="11" fill="#c45c4a">
-          主通道 · 阻断
-        </text>
-
-        {/* 选用路线 */}
-        <path
-          d={rail ? railPath : detourPath}
-          fill="none"
-          stroke="#267aaf"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        {!rail && (
-          <path d={detourPath} fill="none" stroke="#9ec7e3" strokeWidth="2" strokeDasharray="2 8" opacity="0.9" />
-        )}
-
-        {/* 阻断叉 */}
-        <g transform="translate(230 105)" aria-hidden>
-          <circle r="11" fill="#fff" stroke="#c45c4a" strokeWidth="2" />
-          <path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke="#c45c4a" strokeWidth="2.5" />
+      <div className="axn-delivery-map-location">{location}</div>
+      <svg viewBox="0 0 800 340" role="img" aria-label={`${location}投送路径示意图：${route}`}>
+        <title>{route}；{road}；轨迹节点 {reached + 1}/4（示意，非真实导航）</title>
+        <defs>
+          <pattern id={`${id}-grid`} width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#e7ede9" strokeWidth=".6" /></pattern>
+          <marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M2 2L8 5L2 8" fill="none" stroke="white" strokeWidth="1.6" /></marker>
+        </defs>
+        <rect width="800" height="340" fill="#f4f7f3" />
+        <rect width="800" height="340" fill={`url(#${id}-grid)`} />
+        <path d="M0 60Q140 6 276 66T570 44T800 78V0H0Z" fill="#e5eee3" />
+        <path d="M0 302Q180 236 340 294T800 264V340H0Z" fill="#e4eddf" />
+        <path d="M-20 123C160 82 246 118 394 70S642 22 830 60" fill="none" stroke="#d5e8ef" strokeWidth="22" />
+        <path d="M-20 123C160 82 246 118 394 70S642 22 830 60" fill="none" stroke="#edf7fb" strokeWidth="2" />
+        <g fill="none" stroke="#fff" strokeWidth="8">
+          <path d="M0 207L180 300L430 256L800 308" /><path d="M167 0L230 100L392 340" /><path d="M566 0L610 150L800 228" />
         </g>
-
-        {NODES.map((node, index) => {
+        <g fontSize="11" fill="#93a2a0"><text x="75" y="48">基地周边</text><text x="356" y="43">河道</text><text x="634" y="284">作业区域</text></g>
+        <path d={main} fill="none" stroke="#fff" strokeWidth="9" />
+        <path d={main} fill="none" stroke="#df8d82" strokeWidth="4" strokeDasharray="7 7" />
+        <path d={path} fill="none" stroke="#fff" strokeWidth="12" strokeLinecap="round" />
+        <path d={path} fill="none" stroke="#3477ed" strokeWidth="6" strokeLinecap="round" />
+        {rail && <path d={path} fill="none" stroke="#c8ddff" strokeWidth="9" strokeDasharray="2 9" />}
+        <path d="M350 224H370 M440 224H460 M590 179L604 166" fill="none" stroke="#3477ed" strokeWidth="4" markerEnd={`url(#${id}-arrow)`} />
+        <g transform="translate(408 120)">
+          <circle r="13" fill="#fff" stroke="#dd6b5e" strokeWidth="2" />
+          <path d="M-4 -4L4 4M4 -4L-4 4" stroke="#dd6b5e" strokeWidth="2.5" strokeLinecap="round" />
+          <rect x="-48" y="-47" width="96" height="27" rx="7" fill="#fff1ef" stroke="#f1d1cc" />
+          <text y="-29" textAnchor="middle" fontSize="12" fill="#b95448">主通道阻断</text>
+        </g>
+        {nodes.map((node, index) => {
           const done = index < reached;
           const current = index === reached;
-          const fill = done || current ? '#267aaf' : '#fff';
-          const stroke = done || current ? '#145782' : '#8aa0b4';
-          return (
-            <g key={node.key}>
-              {index < NODES.length - 1 && done && (
-                <circle cx={node.x} cy={node.y} r="14" fill="#267aaf" opacity="0.12" />
-              )}
-              <circle cx={node.x} cy={node.y} r="9" fill={fill} stroke={stroke} strokeWidth="2.5" />
-              {done && (
-                <path
-                  d={`M${node.x - 4} ${node.y} l3 3 l6 -7`}
-                  fill="none"
-                  stroke="#fff"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              )}
-              {current && !done && (
-                <text x={node.x} y={node.y + 4} textAnchor="middle" fontSize="10" fill="#fff" fontWeight="700">
-                  {index + 1}
-                </text>
-              )}
-              {!done && !current && (
-                <text x={node.x} y={node.y + 4} textAnchor="middle" fontSize="10" fill="#8aa0b4">
-                  {index + 1}
-                </text>
-              )}
-              <text
-                x={node.x}
-                y={node.y + (index % 2 === 0 ? 28 : -18)}
-                textAnchor="middle"
-                fontSize="11"
-                fill="#334155"
-              >
-                {node.label}
-              </text>
-            </g>
-          );
+          const labelY = index === 3 ? node.y - 51 : node.y + 25;
+          return <g key={node.label}>
+            {current && <circle cx={node.x} cy={node.y} r="22" fill="#3477ed" opacity=".13" />}
+            <circle cx={node.x} cy={node.y} r="13" fill={done || current ? '#3477ed' : '#fff'} stroke={done || current ? '#fff' : '#8eaddb'} strokeWidth="3" />
+            {done ? <path d={`M${node.x - 5} ${node.y}l3 3 7 -7`} stroke="#fff" strokeWidth="2.3" strokeLinecap="round" fill="none" /> : <text x={node.x} y={node.y + 4} textAnchor="middle" fill={current ? '#fff' : '#6381ab'} fontSize="12" fontWeight="600">{index + 1}</text>}
+            <rect x={node.x - 61} y={labelY} width="122" height="29" rx="7" fill="#fff" stroke="#e0e7ee" />
+            <text x={node.x} y={labelY + 19} textAnchor="middle" fontSize="13" fontWeight="500" fill="#334155">{node.label}</text>
+          </g>;
         })}
-
-        <text x="16" y="24" fontSize="12" fill="#475569">
-          {rail ? '铁路人员投送示意' : '东侧绕行示意'} · {road}
-        </text>
+        <g transform="translate(756 32)" fill="#6e8191"><path d="M0 1L-6 17L0 13L6 17Z" /><text y="-5" textAnchor="middle" fontSize="10">N</text></g>
+        <g transform="translate(24 318)" fontSize="11" fill="#65788b">
+          <path d="M0 -4H23" stroke="#3477ed" strokeWidth="4" strokeLinecap="round" /><text x="31">选用路线</text>
+          <path d="M112 -4H135" stroke="#df8d82" strokeWidth="3" strokeDasharray="5 4" /><text x="143">阻断通道</text>
+        </g>
+        <g transform="translate(651 310)"><rect width="125" height="22" rx="6" fill="#fff" opacity=".94" /><text x="62" y="15" textAnchor="middle" fontSize="11" fill="#54729a">当前节点：{nodes[reached].label}</text></g>
       </svg>
-      <Typography.Text type="secondary" className="axn-delivery-map-hint">
-        示意几何不计算真实公里数或 ETA；未接高德 / 实时路况。当前选用：{route}
-      </Typography.Text>
+      <Typography.Text type="secondary" className="axn-delivery-map-hint">路线与地形均为模拟示意，不代表真实导航、距离或实时路况。</Typography.Text>
     </div>
   );
 }

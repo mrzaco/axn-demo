@@ -69,3 +69,34 @@ final result: passed（本次两个功能的对话迁移范围）
 
 
 2026-10-15 同类问题排查：覆盖三类实战灾种的态势、周边资源、处置及总结正文与附表顺序，另覆盖六个 V2 节点的目录。发现候选处置方向额外追加第六章，现归入第四章并兼容旧候选卡片元数据读取；直接 Word/PDF 导出入口补齐正文优先排序。版本比较继续保留历史原稿顺序。相关20项测试及额外三灾种顺序用例通过；未改动附表的富文本表格渲染能力。
+
+## 2026-10-16：V2事件列表补回处置响应详情
+
+### Comparison target and evidence
+- Source: `/var/folders/vt/rfyhpssn77z55c3vks4zvdqh0000gn/T/codex-clipboard-8403dbfe-c2b6-4d2b-97e9-2e27357730b6.png` (5054 × 2544).
+- Implementation: `output/playwright/v2-event-detail-restored.png` (2048 × 1031).
+- Combined full-view and focused-region evidence: `output/playwright/v2-event-detail-comparison.png`.
+- Viewport: 2048 × 1031 CSS pixels; screenshot 1×. Source downsampled to the same size before comparison.
+- State: `/v2/events?event=1`, second event, original casualty counts, no modal open.
+- Scope: restore missing event detail content and compact detail navigation frame. Existing V2 brand, demo mode controls and sidebar icon system are reused; this is not a replacement of the entire system chrome with a screenshot.
+
+### Comparison history
+1. P1: list action bypassed the detail page and went directly to response criteria. Fixed by selecting the clicked event using the URL query, while keeping the independent response menu.
+2. P2: first capture used the larger list-page frame, shifting content right and down. Added detail-scoped compact header/sidebar sizing; confirmed left content begins at x186 and top bar at y100 in the revised capture.
+3. P2: attachment icon scaled too small; map sat below the task-time row. Reused the supplied original attachment asset, corrected its dimensions, reduced owner-row padding and aligned map to the first task row. Revised capture included in combined comparison.
+
+### Required fidelity surfaces
+- Typography: 14px detail body and timeline labels; blue labels, dark gray values; existing Microsoft YaHei/PingFang fallback preserved.
+- Layout: left facts with right-aligned map, separated right process rail; original large lower white space retained. Map, attachment, casualty counts and divider align with source structure.
+- Colors: pale blue event bar, blue process labels, colored casualty figures, white content and light gray separators checked against source.
+- Assets: original map, Word attachment icon and process decoration extracted from supplied source; no generated map substituted. Existing system chrome remains from the project.
+- Copy: screenshot task fields and process entries restored for the electrical event; title and dispatch unit selected from the clicked list row. Other events use local prototype values, not live data.
+
+### Interaction and validation
+- Browser: second-row detail, return to list, first-row detail and second-row detail again; casualty editor open/save; no browser console errors.
+- Regression: `src/tests/v2EventDetail.test.tsx`, 2 tests passed (matching event selection/back navigation; direct URL and casualty/process update).
+- Typecheck and lint passed.
+- Attachment opens local metadata modal; original file download backend is not connected.
+- No unresolved P0/P1/P2 within restored event-detail content. Existing outer-shell brand/mode-controls differences are intentionally retained, not claimed as full-frame pixel identity.
+
+final result: passed

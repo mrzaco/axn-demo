@@ -1,26 +1,21 @@
+import EventTimelineList from './EventTimelineList';
 import { tenderName } from '@/seed/tenderNames';
 import { disasterProfileById } from '@/seed/disasterScenarios';
 /**
  * 关联灾情切换提示卡：状态总结 + 下一步操作按钮 +「查看时间轴」抽屉。
  */
 import { useState } from 'react';
-import { Button, Drawer, Space, Table, Tag, Typography } from 'antd';
+import { Button, Drawer, Space, Tag, Typography } from 'antd';
 import { Clock } from 'lucide-react';
 import NextStepActionsBar from './NextStepActionsBar';
 import { resolveEventDispatchSource } from '@/seed/eventDispatchSource';
 import { scenarioDisplayLabel, scenarioForStage, scenarioLabelForId } from '@/services/agentFlow';
 import { buildEventNextStepActions, resolveEventStage } from '@/services/eventSwitchBriefing';
-import { buildEventTimeline, TIMELINE_TONE_LABEL, type EventTimelineItem } from '@/services/eventTimeline';
+import { buildEventTimeline } from '@/services/eventTimeline';
 import { SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 import { useSessionStore } from '@/store/sessionStore';
 
 const { Text, Paragraph } = Typography;
-
-function toneTagColor(tone: EventTimelineItem['tone']): string {
-  if (tone === 'active') return 'processing';
-  if (tone === 'pending') return 'default';
-  return 'success';
-}
 
 export default function EventSwitchBriefingCard({
   text,
@@ -121,25 +116,7 @@ export default function EventSwitchBriefingCard({
               派发来源：{dispatch.taskNo} · 发送 {dispatch.sendUnit} · 填报 {dispatch.reportUnit} · 调用 {dispatch.callUnit} · 下发 {dispatch.issueUnit}
             </Paragraph>
           ) : null}
-          <Table
-            size="small"
-            pagination={false}
-            rowKey={(_, index) => `${timeline.eventId}-${index}`}
-            dataSource={timeline.items}
-            columns={[
-              { title: '时间节点', dataIndex: 'time', width: 110 },
-              { title: '环节', dataIndex: 'title', width: 96 },
-              { title: '记录详情', dataIndex: 'detail' },
-              {
-                title: '状态',
-                dataIndex: 'tone',
-                width: 88,
-                render: (tone: EventTimelineItem['tone']) => (
-                  <Tag color={toneTagColor(tone)}>{TIMELINE_TONE_LABEL[tone]}</Tag>
-                ),
-              },
-            ]}
-          />
+          <EventTimelineList items={timeline.items} />
           <Text type="secondary" className="axn-tc-fs12" style={{ display: 'block', marginTop: 12 }}>
             {timeline.notice}
           </Text>

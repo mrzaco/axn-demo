@@ -28,7 +28,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 280px;
+  aspect-ratio: 800 / 340;
   border: 1px solid var(--axn-border, #e2e8ef);
   border-radius: 8px;
   background: #f4f7fa;
@@ -56,3 +56,10 @@
 @media(max-width:600px) { .axn-events-page { padding:58px 14px 20px; } .axn-events-picker { grid-template-columns:repeat(2,minmax(0,1fr)); } .axn-disaster-bar-row { grid-template-columns:100px minmax(60px,1fr) 65px; gap:8px; } }
 
 @media(min-width:601px) and (max-width:767px) { .axn-events-page { padding-top:58px; } }
+
+.axn-delivery-map-location { color: #7a889a; font-size: 12px; margin-top: -4px; }
+
+.axn-delivery-plan-details { padding: 20px 24px 24px; }
+.axn-delivery-plan-details > p { margin: 0 0 12px; line-height: 1.7; }
+.axn-delivery-plan-details .ant-steps { margin-top: 20px; margin-bottom: 8px; }
+@media (max-width: 768px) { .axn-delivery-plan-details { padding: 16px; } }

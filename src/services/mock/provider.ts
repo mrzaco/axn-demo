@@ -380,7 +380,7 @@ function hasBoundEvent(eventId: string): boolean {
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
   const demo = useDemoStore.getState();
   const paceMs = demo.pace === 'fast' ? 130 : 620;
-  const summon = req.params.capability === 'disasterSummary' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '汇总事件事实与监测数据', action: '正在读取当前事件事实并生成灾情摘要' } : req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在核对现场资料和专业指导依据，生成分析回复及报告' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
+  const summon = req.params.capability === 'disasterSummary' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '汇总事件事实与监测数据', action: '正在读取当前事件事实并生成灾情摘要' } : req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在结合现场影像与侦测资料分析灾害类型和隐患风险' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
   if (EVENT_BOUND_INTENTS.has(req.intent) && !hasBoundEvent(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };
@@ -513,12 +513,12 @@ async function* runSummary(req: Ctx, signal: AbortSignal, paceMs: number): Async
     assertActive(req);
     yield { type: 'step_completed', stepId: 'sv2', outputSummary: '形成风险线索、专业指导依据及补证建议；未进行真实CV识别' };
     yield { type: 'text_delta', text: `${result.summary}\n\n专业指导依据：${result.sections.find(section => section.title === '预案与专业指导依据')?.text.split('\n')[0] ?? '待补充适用预案'}\n\n${result.sections.filter(section => ['现场资料综合分析', '勘察建议与补证事项'].includes(section.title)).map(section => `${section.title}：\n${section.text}`).join('\n\n')}` };
-    yield { type: 'step_started', stepId: 'sv3', name: '生成现场勘察分析报告与数据表' };
+    yield { type: 'step_started', stepId: 'sv3', name: '整理勘察总结、核查清单与来源依据' };
     await sleep(paceMs, signal);
     assertActive(req);
     yield* publishScenarioMaterial(req, result);
-    yield { type: 'step_completed', stepId: 'sv3', outputSummary: '已生成勘察报告，包含资料来源、监测数据、风险指导三张表' };
-    yield { type: 'completed', summary: '现场勘察分析回复与报告已生成（模拟）' };
+    yield { type: 'step_completed', stepId: 'sv3', outputSummary: '已整理模拟勘察结论、建议操作和资料依据' };
+    yield { type: 'completed', summary: '智能勘察分析完成（模拟）' };
     return;
   }
 

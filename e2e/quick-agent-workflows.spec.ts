@@ -22,7 +22,7 @@ test('快捷任务在智能体卡片内展示执行过程和模拟结果', async
   await page.goto('/');
   for (const [label, agent, result] of [
     ['多源数据汇聚', '态势感知智能体', '六类数据来源'],
-    ['生成态势报告', '态势感知智能体', '安全区域'],
+    ['生成态势报告', '态势感知智能体', '已生成态势报告初稿'],
     ['查询周边救援资源', '救援资源管理智能体', '资源智能检索'],
   ] as const) {
     await clickQuickTask(page, label);
@@ -38,9 +38,13 @@ test('快捷任务在智能体卡片内展示执行过程和模拟结果', async
     }
     if (label === '生成态势报告') {
       await expect(card.getByTestId('scenario-sections')).toContainText('报告 / 方案草稿');
+      await expect(card.getByTestId('scenario-sections').locator('details')).toHaveCount(0);
+      await expect(card.getByTestId('scenario-sections')).toContainText('模拟数据 · 更新于');
       await expect(card.getByRole('button', { name: '查看文书' })).toBeVisible();
       await expect(page.getByTestId('mock-redhead-document')).toBeVisible({ timeout: 10000 });
       await expect(page.getByTestId('mock-redhead-document')).toContainText(/灾\s*情\s*态\s*势\s*报\s*告/);
+      await expect(page.getByTestId('mock-redhead-document').locator('.doc-rich table').first()).toBeVisible();
+      await expect(page.getByTestId('mock-redhead-document').locator('.doc-rich table th').first()).not.toBeEmpty();
     }
     if (label === '查询周边救援资源') {
       await expect(card).toContainText('周边资源');

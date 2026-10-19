@@ -748,3 +748,19 @@
 @media (prefers-reduced-motion: reduce) {
 .axn-agent-execution, .axn-task-step, .axn-task-card > .axn-artifact, .axn-qa > *, .axn-qa .axn-qa-source, .axn-task-step .axn-step-output, .axn-task-answer, .axn-agent-execution:not(.is-running) .axn-agent-summon-action, .axn-step-running::before, .axn-step-running .axn-step-output { animation: none; }
 }
+
+/* 右侧对话助手：固定阅读宽度，分组纵向排列，长问题自然换行。 */
+.axn-floating-actions { width: min(420px, calc(100vw - 100px)); color: #253047; }
+.axn-floating-actions-context { padding: 0 4px 12px; color: #8792a5; font-size: 12px; }
+.axn-floating-actions-scroll { max-height: min(68vh, 640px); overflow-y: auto; overscroll-behavior: contain; padding: 0 6px 0 2px; scrollbar-width: thin; }
+.axn-floating-action-group { display: grid; gap: 6px; margin-bottom: 18px; }
+.axn-floating-action-group-title { padding: 2px 6px 4px; font-size: 12px; font-weight: 600; color: #728097; letter-spacing: .03em; }
+.axn-floating-action-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 11px 12px; border: 1px solid transparent; border-radius: 10px; background: #f5f7fb; color: #334155; font: inherit; font-size: 13px; line-height: 1.65; text-align: left; cursor: pointer; transition: background .15s, border-color .15s; }
+.axn-floating-action-item > span { min-width: 0; overflow-wrap: anywhere; }
+.axn-floating-action-item > small { flex-shrink: 0; color: #8c9ab0; font-size: 11px; }
+.axn-floating-action-item:hover { border-color: #c6d9ff; background: #edf4ff; color: #215ee8; }
+.axn-floating-action-item:focus-visible { outline: 2px solid #3975ff; outline-offset: 2px; }
+.axn-floating-action-item:disabled { opacity: .5; cursor: not-allowed; }
+.axn-floating-actions-hint { margin-top: 12px; padding: 12px 4px 0; border-top: 1px solid #edf0f5; color: #929bad; font-size: 12px; line-height: 1.7; }
+
+.axn-incident-stage { flex-shrink: 0; margin-inline-end: 0; }

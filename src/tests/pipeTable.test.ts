@@ -63,3 +63,22 @@ describe('pipeTable', () => {
     expect(headings.some((h) => /[一二三四五六七八九十]+、[一二三四五六七八九十]+、/.test(h))).toBe(false);
   });
 });
+
+
+describe('遗留资源清单和 Markdown 表格', () => {
+  it('保留复合数量、分组说明和尾注，单条资源也生成表格', () => {
+    const blocks = splitPipeContent('队伍（模拟） / 36人 / 临水工程 / 候选待确认（模拟）\n装备/物资候选（模拟）：\n块石土料集结库（模拟） / 380t / 2000只 / 抢险物料保障 / 候选待确认（模拟）\n可出动状态以更新时间为准。');
+    const tables = blocks.filter(b => b.kind === 'table');
+    expect(tables).toHaveLength(2);
+    expect(tables[1].rows[0]).toEqual(['块石土料集结库（模拟）', '380t / 2000只', '抢险物料保障', '候选待确认（模拟）']);
+    expect(blocks.at(-1)).toEqual({ kind: 'text', text: '可出动状态以更新时间为准。' });
+  });
+  it('带边界、对齐分隔行和空单元格的表格正常解析', () => {
+    expect(splitPipeContent('| 名称 | 状态 |\n| --- | :---: |\n| 队伍 | |')).toEqual([
+      { kind: 'table', headers: ['名称', '状态'], rows: [['队伍', '']] },
+    ]);
+  });
+  it('单位和路线中的斜杠保留为正文', () => {
+    expect(splitPipeContent('流速 3 m/s；路线 A / B / C / D')).toEqual([{ kind: 'text', text: '流速 3 m/s；路线 A / B / C / D' }]);
+  });
+});

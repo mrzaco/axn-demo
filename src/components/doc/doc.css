@@ -785,3 +785,11 @@
 @media (max-width: 767px) {
   .doc-center--library .axn-page-header { padding-top: var(--space-12); }
 }
+
+/* 正文内的监测、资源与来源附表，与编辑保存后的 HTML 表格共用。 */
+.doc-rich table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 12px 0 20px; font-size: 16px; line-height: 1.6; text-indent: 0; }
+.doc-rich th, .doc-rich td { border: 1px solid #9ca3af; padding: 8px 10px; vertical-align: top; text-align: left; overflow-wrap: anywhere; text-indent: 0; }
+.doc-rich th { background: #f3f4f6; font-weight: 600; }
+.axn-redhead-body .doc-rich td p, .axn-redhead-body .doc-rich th p { font-size: inherit; line-height: inherit; text-indent: 0; margin: 0; }
+.doc-rich thead { display: table-header-group; }
+.doc-rich tr { break-inside: avoid; }

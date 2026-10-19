@@ -220,6 +220,10 @@ export interface SessionMaterial {
 }
 
 export interface ChatMessage {
+  reviewSummary?: { conclusion: string; rows: { label: string; value: string }[] };
+  summaryOffer?: { kind: 'report' | 'knowledge'; request?: string; documentId?: string };
+
+  regionalDisasters?: MultiSourceSnapshot;
   /** 生成后的独立文书检查气泡，进度按会话和文书存储。 */
   reviewDocumentId?: string;
   messageId: string;
@@ -244,6 +248,7 @@ export interface ChatMessage {
   /** 助手消息：附件用途确认 workflow。 */
   workflow?: AttachmentWorkflow | null;
   documentWorkflow?: {
+    compactReview?: boolean;
     /** waiting_upload：素材依赖型文书（周工作动态）在收要素前先等用户上传参考文档/附件。 */
     stage: 'collecting' | 'waiting_upload' | 'waiting_input' | 'calling' | 'generating' | 'completed' | 'interrupted';
     elements: { label: string; value: string }[];

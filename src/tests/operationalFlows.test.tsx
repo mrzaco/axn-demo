@@ -83,7 +83,7 @@ describe('补充业务流程的确认边界', () => {
     expect(screen.getByText('复核意见已记录（模拟回放）')).toBeTruthy();
   });
 
-  it('按建设场景划分流程：力量投送中默认落力量投送，可见投送路径与编组', () => {
+  it('工作区只展示本次对话打开的流程，隐藏场景与其他功能入口', () => {
     render(
       <OperationalFlows
         eventId="evt-demo-001"
@@ -93,12 +93,12 @@ describe('补充业务流程的确认边界', () => {
         onClose={() => {}}
       />,
     );
-    expect(screen.getByTestId('flow-scenario-rail')).toBeTruthy();
-    expect(screen.getByTestId('flow-scenario-intro').textContent).toMatch(/力量投送/);
-    expect(screen.getByTestId('flow-scenario-intro').textContent).toMatch(/救援资源管理/);
+    expect(screen.queryByTestId('flow-scenario-rail')).toBeNull();
+    expect(screen.queryByTestId('flow-scenario-intro')).toBeNull();
     expect(screen.getByText('投送路径优化')).toBeTruthy();
-    expect(screen.getByText('编组确认')).toBeTruthy();
-    expect(screen.getByText('资源协调预警通知（演示）')).toBeTruthy();
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.queryByText('编组确认')).toBeNull();
+    expect(screen.queryByText('资源协调预警通知（演示）')).toBeNull();
     expect(screen.queryByText('智能勘察分析')).toBeNull();
   });
 

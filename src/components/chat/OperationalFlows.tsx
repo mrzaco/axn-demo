@@ -1,11 +1,12 @@
+import './operational-flows.css';
 import { ResultNotice as Alert } from '@/components/common/AgentResultPrimitives';
 import { ResultSection as Card, ResultRecords as Table } from '@/components/common/AgentResultPrimitives';
 import { disasterProfileById } from '@/seed/disasterScenarios';
 import { tenderName } from '@/seed/tenderNames';
 import OriginalSystemLink from './OriginalSystemLink';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-   Button,  Checkbox, Input, InputNumber, Segmented, Select, Space, Steps,  Tabs, Tag, Upload, Typography,
+   Button,  Checkbox, Input, InputNumber, Select, Space, Steps,  Tabs, Tag, Upload, Typography,
 } from 'antd';
 import { X } from 'lucide-react';
 import { exportMaterial, exportResourceExcel } from '@/services/prototypeExports';
@@ -28,16 +29,10 @@ import {
   ruleStatusLabel,
   type RuleHit,
 } from '@/services/planRuleCheck';
-import { resolveSeedEventStage, type EventStage, type ScenarioId } from '@/services/agentFlow';
+import { resolveSeedEventStage, type EventStage } from '@/services/agentFlow';
 import {
-  FLOW_SCENARIO_RAIL,
   buildFlowSeedSnapshot,
-  defaultFlowForScenario,
   flowTabMode,
-  flowTaskMeta,
-  flowsForScenario,
-  scenarioIntro,
-  scenarioRailForFlow,
   type FlowRecordRow,
   type FlowTabMode,
   type FlowTask,
@@ -83,18 +78,8 @@ export default function OperationalFlows({
   const seed = buildFlowSeedSnapshot(eventId, profile, eventName);
   const equipmentLabel = profile?.resources[1]?.name.replace('（模拟）', '') ?? '排涝车';
 
-  const [scenarioRail, setScenarioRail] = useState<ScenarioId>(() => scenarioRailForFlow(initial, eventStage));
-  const [tab, setTab] = useState<string>(initial);
-  const visibleFlows = useMemo(() => flowsForScenario(scenarioRail), [scenarioRail]);
-  const intro = useMemo(() => scenarioIntro(scenarioRail), [scenarioRail]);
-
-  const selectScenario = (next: ScenarioId) => {
-    setScenarioRail(next);
-    const nextFlows = flowsForScenario(next);
-    if (!nextFlows.includes(tab as FlowTask)) {
-      setTab(defaultFlowForScenario(eventStage, next));
-    }
-  };
+  const [tab, setTab] = useState<FlowTask>(initial);
+  useEffect(() => { setTab(initial); }, [initial]);
   const [records, setRecords] = useState<FlowRecordRow[]>(() =>
     flowTabMode(eventStage, '现场智能勘察') === 'past' || flowTabMode(eventStage, '资料核验与总结') === 'past'
       ? seed.records
@@ -195,10 +180,8 @@ export default function OperationalFlows({
     <div className="axn-flow-workspace" data-testid="operational-flows">
       <header className="axn-flow-workspace-head">
         <div className="axn-flow-workspace-title">
-          <Typography.Text strong>{eventName} · 业务流程补充</Typography.Text>
-          <Typography.Text type="secondary" className="axn-flow-workspace-sub">
-            与文书相同嵌在右侧工作区（模拟）
-          </Typography.Text>
+          <Typography.Text strong>{tenderName(tab)}</Typography.Text>
+          <Typography.Text type="secondary" className="axn-flow-workspace-sub">{eventName}</Typography.Text>
         </div>
         <Button
           type="text"
@@ -211,47 +194,15 @@ export default function OperationalFlows({
         </Button>
       </header>
       <div className="axn-flow-workspace-body">
-      <div data-testid="flow-scenario-rail" style={{ marginBottom: 12 }}>
-        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-          按建设场景查看流程能力（主责智能体）
-        </Typography.Text>
-        <Segmented
-          aria-label="建设场景"
-          block
-          value={scenarioRail}
-          onChange={(v) => selectScenario(v as ScenarioId)}
-          options={FLOW_SCENARIO_RAIL.map((s) => ({ label: s.label, value: s.id }))}
-        />
-      </div>
-      <Card size="small" style={{ marginBottom: 12 }} data-testid="flow-scenario-intro">
-        <Typography.Text strong>{intro.label}</Typography.Text>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 4, marginTop: 4 }}>
-          主责：{intro.agentLabel} · 阶段：{intro.stages.join(' / ')}
-        </Typography.Paragraph>
-        <Typography.Text type="secondary">{intro.handoffSummary}</Typography.Text>
-      </Card>
       <Tabs
         activeKey={tab}
-        onChange={name => {
-          if (onTask && (name === '态势研判预警' || name === '预警推送')) { onClose(); onTask(name); }
-          else setTab(name);
-        }}
+        renderTabBar={() => <></>}
         destroyOnHidden
-        items={visibleFlows.map((name) => {
+        items={[tab].map((name) => {
           const mode = modeOf(name);
-          const meta = flowTaskMeta(name);
           return {
             key: name,
-            label: (
-              <span>
-                {tenderName(name)}
-                <Typography.Text type="secondary" style={{ marginInlineStart: 6, fontSize: 12 }}>
-                  {meta.agentLabel.replace(/智能体$/, '')}
-                </Typography.Text>
-                {mode === 'past' ? <Tag color="success" style={{ marginInlineStart: 6 }}>已回放</Tag> : null}
-                {mode === 'future' ? <Tag style={{ marginInlineStart: 6 }}>未到达</Tag> : null}
-              </span>
-            ),
+            label: tenderName(name),
             children: (
               <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <HistoryBanner mode={mode} />
@@ -500,6 +451,7 @@ export default function OperationalFlows({
                               road={road}
                               progress={progress}
                             />
+                            <div className="axn-delivery-plan-details">
                             <p>路线：{route}</p>
                             <p>道路条件：{road}</p>
                             <p>负责人：{owner}</p>
@@ -519,6 +471,7 @@ export default function OperationalFlows({
                             >
                               导出投送计划
                             </Button>
+                            </div>
                           </Card>
                         ) : (
                           <>

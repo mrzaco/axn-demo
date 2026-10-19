@@ -41,4 +41,13 @@ describe('智能体结果控件保留业务交互和依据', () => {
     render(<StructuredReply text={'【核验结论】\n队伍 | 依据\n甲队 | source-001 | 尚待核实\n1. 补齐资料：确认台账版本'} />);
     for (const value of ['核验结论', '甲队', 'source-001', '尚待核实', '补齐资料', '确认台账版本']) expect(screen.getAllByText(value).length).toBeGreaterThan(0);
   });
+  it('事件时间记录使用时间轴，保留节点详情和状态', () => {
+    const view = render(<StructuredReply text={'序号 | 时间节点 | 环节 | 记录详情 | 状态\n1 | 08:30 | 信息接报 | 已收到现场报告 | 已完成\n2 | 09:00 | 现场核查 | 正在确认受影响范围 | 进行中'} />);
+    expect(view.container.querySelector('.axn-event-timeline')).toBeTruthy();
+    expect(screen.getByText('08:30')).toBeTruthy();
+    expect(screen.getByText('正在确认受影响范围')).toBeTruthy();
+    expect(screen.getByText('进行中')).toBeTruthy();
+    expect(screen.queryByText('序号')).toBeNull();
+  });
+
 });

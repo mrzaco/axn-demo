@@ -48,3 +48,7 @@
   .axn-controls-card { padding: var(--space-4); }
   .axn-controls-preview { padding: var(--space-3-5); }
 }
+
+.axn-controls-timeline { width: 100%; padding: 8px 4px; }
+.axn-controls-timeline strong { font-weight: 600; }
+.axn-controls-timeline p { margin: 4px 0 0; color: var(--axn-muted); font-size: var(--fs-body); line-height: 1.75; }

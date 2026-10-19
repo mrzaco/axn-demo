@@ -1,6 +1,7 @@
+import { useSearchParams } from 'react-router-dom'
+import { EventDetailPage } from './EventDetailPage'
 import { useState } from 'react'
 import { APPROVAL_RECORDS, BRIEF_RECORDS, SUMMARY_RECORDS, SUPPLY_ITEMS, BUSINESS_NOTE, BUSINESS_SNAPSHOT, supplyExpected, supplyGap } from '../businessData'
-import type { V2PageId } from '../constants'
 import { ASSEMBLY_HEADERS, ASSEMBLY_ROWS } from '../assemblyData'
 import { ActionButton, CellActions, DataTable, EventBar, Pagination, SectionHeader, SelectBox, Tabs } from '../components/chrome'
 import type { WorkflowApplication } from '../logic/empowerment'
@@ -17,7 +18,10 @@ const EVENT_ROWS = [
   ['江西省吉安市遂川县高坪镇明坑村-山体滑坡灾情', '山体滑坡险情', '江西省应急管理厅', '2026-09-06 11:23:36', '抢险结束'],
 ]
 
-export function EventsPage({ onNavigate }: { onNavigate: (page: V2PageId) => void }) {
+export function EventsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const eventIndex = Number(searchParams.get('event'))
+  if (searchParams.has('event') && Number.isInteger(eventIndex) && EVENT_ROWS[eventIndex]) return <EventDetailPage event={EVENT_ROWS[eventIndex]} onBack={() => setSearchParams({})} />
   return (
     <>
       <SectionHeader title="事件信息列表" />
@@ -29,7 +33,7 @@ export function EventsPage({ onNavigate }: { onNavigate: (page: V2PageId) => voi
         </div>
         <DataTable
           headers={['序号', '标题', '抢险类别', '调用单位', '更新时间', '抢险状态', '操作']}
-          rows={EVENT_ROWS.map((row, index) => [index + 1, <span key={row[0]} title={row[0]}>{row[0]}</span>, row[1], row[2], row[3], row[4], <button key="go" type="button" className="small" onClick={() => onNavigate('response')}>处置响应</button>])}
+          rows={EVENT_ROWS.map((row, index) => [index + 1, <span key={row[0]} title={row[0]}>{row[0]}</span>, row[1], row[2], row[3], row[4], <button key="go" type="button" className="small" onClick={() => setSearchParams({ event: String(index) })}>处置响应</button>])}
         />
         <Pagination total={113} pages={12} />
       </div>

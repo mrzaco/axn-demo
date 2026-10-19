@@ -16,6 +16,21 @@ const fileChoice = (type: string, label: string): StageChoice => ({
 });
 
 describe('stageConversation', () => {
+  it('附件清单与填入文字一致，不附带提交要求', () => {
+    for (const stage of ['待研判', '力量投送中', '救援中', '待复盘', '已归档'] as const) {
+      for (const option of stageChoices(stage).flatMap(group => group.options).filter(option => option.kind === 'file')) {
+        expect(option.prompt).toBe(option.label);
+        expect(option.prompt).not.toContain('提交到原系统');
+      }
+    }
+  });
+
+  it('全面总结问题保留文种识别关键词', () => {
+    const option = stageChoices('待复盘')[0].options.find(option => option.id === 'full');
+    expect(option?.label).toContain('全面总结');
+    expect(option?.prompt).toContain('全面总结');
+  });
+
   it('stageChoices 按阶段分组且含异常示例', () => {
     const groups = stageChoices('救援中');
     expect(groups.map(g => g.label)).toEqual([

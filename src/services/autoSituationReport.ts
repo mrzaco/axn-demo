@@ -63,7 +63,7 @@ export function pushAutoSituationReport(
 
   const result = buildConstructionResult('situationReport', eventId);
   if (reason !== 'manual') {
-    result.title = '态势报告（自动）';
+    result.title = '态势报告';
     result.summary = `${reasonLabel(reason)}已按最新模拟资料汇总标准化研判报告。${result.summary}`;
   }
 

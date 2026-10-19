@@ -67,12 +67,12 @@ describe('独立多源数据汇聚快捷任务', () => {
     render(<MemoryRouter><TaskCard task={task} onOpenDrawer={() => {}} /></MemoryRouter>);
     expect(screen.getByTestId('multi-source-summary')).toBeTruthy();
     expect(screen.queryByTestId('event-summary-text')).toBeNull();
-    expect(screen.getByText('全域灾情汇总（授权范围）')).toBeTruthy();
+    expect(screen.queryByText('全域灾情汇总（授权范围）')).toBeNull();
     expect(screen.queryAllByRole('table')).toHaveLength(0);
-    expect(screen.getAllByRole('region', { name: /汇聚摘要$/ })).toHaveLength(6);
-    expect(screen.getByText('待核事项')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: `查看${result.multiSource!.domainEvents[0].title}汇聚详情` }));
-    expect(await screen.findByText(/授权汇聚$/)).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /^查看.*来源与记录$/ })).toHaveLength(6);
+    expect(screen.getByText('还需要您确认的情况')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '查看舆情来源与记录' }));
+    expect(await screen.findByText(/· 舆情$/)).toBeTruthy();
     expect(screen.getAllByText(/V1-demo/).length).toBeGreaterThan(0);
   });
   it('未关联事件时不读取跨域资料', async () => {
@@ -109,8 +109,13 @@ describe('独立多源数据汇聚快捷任务', () => {
     render(<WorkspaceSync />);
     expect(useMockDocumentStore.getState().libraries[sid]).toBeUndefined();
     render(<MemoryRouter><TaskCard task={task} onOpenDrawer={() => {}} /></MemoryRouter>);
-    expect(screen.getByText(/现场资料综合分析/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: '按需整理为附件' })).toBeTruthy();
+    expect(screen.getByTestId('survey-analysis-reply')).toBeTruthy();
+    expect(screen.getByText('勘察总结')).toBeTruthy();
+    expect(screen.getByText('现场核查清单')).toBeTruthy();
+    expect(screen.getByText('来源依据')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '按需整理为附件' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '查看来源详情' }));
+    expect(screen.getByText('查看原始资料与核实状态')).toBeTruthy();
   });
  });
 

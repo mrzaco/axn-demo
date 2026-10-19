@@ -5,7 +5,7 @@ import {
   QUICK_ACTION_CATALOG,
   stageChipConfig,
 } from '@/seed/quickActionCatalog';
-import { AGENT_QUICK_TASKS } from '@/seed/agentQuickTasks';
+import { AGENT_QUICK_TASKS, isTenderAgentTask } from '@/seed/agentQuickTasks';
 import { primaryLabelsForStage, loopLabelsForStage } from '@/services/agentFlow';
 
 function normalizeAgentId(agentId: string): string {
@@ -19,7 +19,7 @@ describe('quickActionCatalog', () => {
 
   it('AGENT_QUICK_TASKS 各块 tasks 与 chip（chat+flow）按 agent 分组一致', () => {
     const byAgent = new Map<string, string[]>();
-    for (const action of chipCatalogActions()) {
+    for (const action of chipCatalogActions().filter(action => isTenderAgentTask(action.agentId, action.label))) {
       const id = normalizeAgentId(action.agentId);
       const list = byAgent.get(id) ?? [];
       list.push(action.label);

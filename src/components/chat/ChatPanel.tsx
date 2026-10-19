@@ -1,3 +1,9 @@
+import SummaryReviewReply from './SummaryReviewReply';
+import { startSummaryConversation, respondToSummaryOffer } from '@/services/summaryConversation';
+import { flowConversationReply } from '@/services/flowConversationReply';
+import MultiSourceSummary from './MultiSourceSummary';
+import { buildMultiSourceSnapshot } from '@/services/multiSourceAggregation';
+import { conversationRequest } from '@/seed/conversationRequests';
 import { openInlineSituation } from '@/services/inlineSituation';
 import EmpowermentConversation from '@/pages/v2/chat/EmpowermentConversation';
 import { isEmpowermentKind } from '@/pages/v2/logic/empowerment';
@@ -22,12 +28,12 @@ import { monitorNoticeReply } from '@/services/monitorNoticeReply';
 import { generateRescuePlanAlternatives } from '@/services/rescuePlanAlternatives';
 import { useCustomerOperations } from '@/store/customerOperationsStore';
 import CustomerRequestPanel, { CUSTOMER_ACTIONS, type CustomerAction } from './CustomerRequestPanel';
-import { catalogAction, LEGACY_QUICK_ACTIONS } from '@/seed/quickActionCatalog';
-import { AGENT_QUICK_TASKS } from '@/seed/agentQuickTasks';
+import { catalogAction } from '@/seed/quickActionCatalog';
+import { AGENT_QUICK_TASKS, CONVERSATION_ONLY_ACTIONS } from '@/seed/agentQuickTasks';
 import { tenderName, tenderTaskPrompt } from '@/seed/tenderNames';
 import { isDutyContent, isMeetingMinutesContent, isResourceDataAlertContent, SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 import { FLOW_TASKS } from './OperationalFlows';
-import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
+import { submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
 import ResourceAuditReply from './ResourceAuditReply';
 import { resourceAuditSample } from '@/services/resourceAudit';
 import { runEventPrecipitation } from '@/services/eventPrecipitation';
@@ -182,7 +188,7 @@ const AGENT_INVITES: Record<string, {
 
 /** 智能体邀请气泡里的功能选项（文书 / 态势 / 资源 / 方案 / 评估共用）。 */
 function AgentInviteChoices({ options, hint, disabled, onPick }: {
-  options: { label: string; task: string }[];
+  options: readonly { label: string; task: string }[];
   hint: string;
   disabled: boolean;
   onPick: (task: string) => void;
@@ -229,12 +235,19 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
   const tasks = useSessionTasks(session);
   const scope = useActiveScope();
 
-  const openFlowWorkspace = (tab: typeof FLOW_TASKS[number]) => {
+  const openFlowWorkspace = (tab: typeof FLOW_TASKS[number], reply = true) => {
     if (tab === '态势研判预警' || tab === '预警推送') {
       if (!session) return;
       openInlineSituation(session.sessionId, tab);
       useWorkspaceStore.getState().close(scope);
       return;
+    }
+    if (session && reply) {
+      const store = useSessionStore.getState();
+      const text = conversationRequest(tab === '规划梯队投送' ? '规划梯队投送' : tab);
+      store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', taskId: null, text: text === tab ? tenderName(tab) : text });
+      store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'assistant', kind: 'text', taskId: null,
+        text: flowConversationReply(tab, session.eventId, eventDisplayName(session.eventId), resolveEventStage(session.eventId, session)) });
     }
     useWorkspaceStore.getState().select(scope, { kind: 'flow', id: tab });
   };
@@ -295,7 +308,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
       : currentEventId);
 
   const clearPending = () => {
-    if (queuedChoice && input === queuedChoice.prompt) setInput('');
+    if (queuedChoice && input === queuedChoice.label) setInput('');
     setPendingAttachment(null);
     setQueuedChoice(null);
   };
@@ -315,7 +328,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     const text = monitorNoticeReply(session.eventId, useCustomerOperations.getState().notices);
     store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '查看当前监测问题', taskId: null });
     store.appendMessage(sessionId, { sessionId, role: 'assistant', kind: 'text', text, taskId: null });
-    openFlowWorkspace('资源预警通知');
+    openFlowWorkspace('资源预警通知', false);
   };
 
   const replyResourceAuditInChat = (prompt = '资源数据校验对比') => {
@@ -363,7 +376,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
   const replyEvaluationAction = (action: EvaluationTextAction) => {
     if (!session || busy) return;
     const store = useSessionStore.getState();
-    store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', text: action, taskId: null });
+    store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', text: conversationRequest(action), taskId: null });
     store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'assistant', kind: 'text', text: evaluationActionReply(action, session.eventId, session.sessionId), taskId: null });
   };
 
@@ -372,6 +385,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     attachmentMode?: 'reference' | 'check' | null;
   }) => {
     const text = raw.trim();
+    const interpretationText = queuedChoice && text === queuedChoice.label ? queuedChoice.prompt : text;
     const attachment = attachmentOverride !== undefined ? attachmentOverride : pendingAttachment;
     const uploadGate = session?.messages.find(m => m.documentWorkflow?.stage === 'waiting_upload');
     if (session && uploadGate && attachment) {
@@ -381,11 +395,19 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     }
     if (!session || busy) return;
     if (!text && !attachment) return;
+    if (!attachment && respondToSummaryOffer(session.sessionId, text)) { setInput(''); clearPending(); return; }
     if (isEmbeddedAssistant && replyEmbeddedQa(session.sessionId, new URLSearchParams(location.search).get('embedded'), text, attachment)) {
       requestAnimationFrame(() => embeddedMessageList.current?.scrollTo({ top: 'bottom' }));
       setInput('');
       clearPending();
       return;
+    }
+    if (/我负责的?区域.*(灾情|灾害)|所辖区域.*(灾情|灾害)/.test(text)) {
+      const store = useSessionStore.getState();
+      store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', text, taskId: null });
+      store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'assistant', kind: 'text', taskId: null,
+        text: '我负责区域的灾情', regionalDisasters: buildMultiSourceSnapshot(session.eventId) });
+      setInput(''); clearPending(); return;
     }
     if (text && isDutyContent(text)) { notice.info('值班相关内容暂时隐藏'); return; }
     setInput('');
@@ -418,12 +440,13 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
       void submitWorkSummaryImprovement(session.sessionId, waitingSummary.messageId, text);
       return;
     }
-    if (text && /复盘总结|生成.*工作总结|工作总结.*生成|生成全面总结|全面总结|抢险总结/.test(text)) {
-      void generateWorkSummary(session.sessionId, /复盘总结/.test(text) ? '复盘总结' : text);
+    if (text && /复盘总结|生成.*总结|整理.*总结|全面总结|抢险总结|总结.*生成|总结一下/.test(interpretationText)) {
+      startSummaryConversation(session.sessionId, text, interpretationText);
       return;
     }
     void sendMessage(session.sessionId, {
       text: text || (attachment ? '请读取附件并确认材料用途。' : ''),
+      interpretationText,
       attachment,
       skipAssess: sendOpts?.skipAssess,
       attachmentMode: sendOpts?.attachmentMode,
@@ -434,14 +457,14 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     if (!id || !session) { return; }
     if (!embeddedKind && id.startsWith('legacy-quick:')) {
       const label = id.slice('legacy-quick:'.length);
-      if (LEGACY_QUICK_ACTIONS.includes(label)) { handleQuickTask(label); }
+      if (CONVERSATION_ONLY_ACTIONS.includes(label)) { handleQuickTask(label); }
       return;
     }
     const choice = pickerGroups.flatMap(g => g.options).find(c => c.id === id);
     if (!choice) { return; }
     const apply = () => {
       setQueuedChoice(choice);
-      setInput(choice.prompt);
+      setInput(choice.label);
       if (choice.kind === 'file') {
         if (embeddedKind) setPendingAttachment(embeddedChoiceAttachment(embeddedKind, session));
         else {
@@ -452,7 +475,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
         setPendingAttachment(null);
       }
     };
-    if ((input.trim() || pendingAttachment) && (input !== choice.prompt || pendingAttachment)) {
+    if ((input.trim() || pendingAttachment) && (input !== (choice.label) || pendingAttachment)) {
       modal.confirm({
         title: '替换当前未发送内容？',
         content: '用所选示例替换当前输入框与待发附件。',
@@ -523,7 +546,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
       const first = groups[0]?.options[0];
       if (first) {
         setQueuedChoice(first);
-        setInput(first.prompt);
+        setInput(first.label);
         setPendingAttachment(null);
       }
       notice.info('当前阶段提问已填入输入框，请核对后发送。');
@@ -642,7 +665,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     if (text === '复盘总结' || text === '生成工作总结' || text === '生成全面总结') {
       if (session && !busy) {
         const prompt = text === '生成全面总结' ? '生成全面总结' : text === '复盘总结' ? '复盘总结' : text;
-        await generateWorkSummary(session.sessionId, prompt);
+        startSummaryConversation(session.sessionId, text, prompt);
         useSessionStore.getState().recordFlowProgress(session.sessionId, text === '复盘总结' ? '复盘总结' : text);
       }
       return;
@@ -870,8 +893,8 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
               status={m.choices ? 'queued' : m.taskId ? tasks[m.taskId]?.status : undefined}
               bodyExtra={m.choices ? (
                 <AgentInviteChoices
-                  options={m.choices}
-                  hint={m.hint ?? ''}
+                  options={AGENT_QUICK_TASKS.find(group => group.agentId === m.agentId)?.tasks ?? m.choices}
+                  hint={`${m.hint ?? ''} 其他辅助操作可通过右侧对话气泡选择提问，也可以直接输入需求。`}
                   disabled={!session || busy}
                   onPick={(task) => { void handleQuickTask(task); }}
                 />
@@ -895,7 +918,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
         return {
           key: m.messageId,
           role: 'user',
-          content: m.text ?? '',
+          content: conversationRequest(m.text ?? ''),
           contentRender: m.attachment
             ? () => (
               <div className="axn-user-bubble-body">
@@ -909,6 +932,16 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
             )
             : undefined,
         };
+      }
+      if (m.reviewSummary || m.summaryOffer) {
+        return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
+          styles: { root: { alignSelf: 'stretch', minWidth: 0, width: '100%', paddingInlineEnd: 0 }, body: { flex: '1 1 0%', width: '100%', maxWidth: '100%', minWidth: 0 }, content: { width: '100%', maxWidth: '100%', minWidth: 0 } },
+          contentRender: () => <SummaryReviewReply message={m} active={session?.messages.at(-1)?.messageId === m.messageId} busy={busy} onReply={handleSend} /> };
+      }
+      if (m.regionalDisasters) {
+        return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR,
+          styles: { root: { alignSelf: 'stretch', minWidth: 0, width: '100%', paddingInlineEnd: 0 }, body: { flex: '1 1 0%', width: '100%', maxWidth: '100%', minWidth: 0 }, content: { width: '100%', maxWidth: '100%', minWidth: 0 } },
+          contentRender: () => <MultiSourceSummary snapshot={m.regionalDisasters!} regionalOnly /> };
       }
       if (m.role === 'system') {
         return {
@@ -1279,7 +1312,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
       {createPortal(
         <div style={{ position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 100 }}>
           <Popover
-            title="模拟发送／阶段提问／模拟文件／监测通知"
+            title="需要我帮您做什么？"
             trigger="click"
             placement="left"
             open={stagePromptOpen}
@@ -1288,7 +1321,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
             content={
               <div className="axn-floating-actions" data-testid="floating-action-list">
                 <div className="axn-floating-actions-context">
-                  {embeddedKind ? '当前节点相关操作优先展示' : eventStage ? `当前事件阶段：${eventStage} · 相关操作优先展示` : '未关联事件 · 展示常用操作'}
+                  {embeddedKind ? '按业务流程展示相关操作' : eventStage ? `当前事件阶段：${eventStage} · 按事件发展顺序展示` : '未关联事件 · 按事件发展顺序展示'}
                 </div>
                 <div className="axn-floating-actions-scroll">
                   {unreadMonitorCount > 0 && (
@@ -1305,7 +1338,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
                           data-choice-id={option.id} disabled={!session || busy}
                           onClick={() => { selectStageChoice(option.id); setStagePromptOpen(false); }}>
                           <span>{option.label}</span>
-                          <small>{option.id.startsWith('legacy-quick:') ? '执行' : option.kind === 'file' ? '附件' : '填入'}</small>
+                          <small>{option.id.startsWith('legacy-quick:') ? '发起对话' : option.kind === 'file' ? '附上材料' : '填入问题'}</small>
                         </button>
                       ))}
                     </section>
@@ -1318,7 +1351,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
                   )}
                 </div>
                 <div className="axn-floating-actions-hint">
-                  {!session ? '会话初始化中，请稍候。' : busy ? '当前任务处理中，完成后即可选择。' : '标记“执行”的操作直接运行；提问和附件先填入输入区，由你发送。'}
+                  {!session ? '会话初始化中，请稍候。' : busy ? '当前任务处理中，完成后即可选择。' : '选择问题开始交流，也可以在输入框里补充具体情况。'}
                 </div>
               </div>
             }
@@ -1329,7 +1362,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
               icon={<Badge count={unreadMonitorCount} size="small"><MessageSquare size={18} /></Badge>}
               aria-label="阶段提问／模拟文件／监测通知"
               aria-expanded={stagePromptOpen}
-              title="模拟发送／阶段提问／模拟文件／监测通知"
+              title="需要我帮您做什么？"
               data-testid="stage-prompt-toggle"
               style={{ boxShadow: token.boxShadowSecondary }}
             />

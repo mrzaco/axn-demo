@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ReportDetail } from './components/ReportDetail'
 import { Sidebar } from './components/Sidebar'
 import { useScrollActive } from './components/chrome'
@@ -13,6 +13,7 @@ import './v2.css'
  */
 export default function V2PrototypePage() {
   const params = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const page = isV2Page(params.page) ? params.page : null
   const [expanded, setExpanded] = useState<number[]>(() => {
@@ -51,7 +52,7 @@ export default function V2PrototypePage() {
   }
 
   return (
-    <div className={`v2-app${aiEnabled ? '' : ' original'}`} style={{ ['--chat-top' as string]: `${chatTop}px` }}>
+    <div className={`v2-app${aiEnabled ? '' : ' original'}${page === 'events' && new URLSearchParams(location.search).has('event') ? ' event-detail-active' : ''}`} style={{ ['--chat-top' as string]: `${chatTop}px` }}>
       <header className="system-header">
         <div className="brand"><span className="brand-mark">N</span><span>应急救援综合协调保障系统</span></div>
         <div className="header-tools">

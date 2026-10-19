@@ -22,6 +22,8 @@ function sleepZero(): Promise<void> {
 
 export interface SendOptions {
   text: string;
+  /** 选择预设问题时保留业务识别上下文，不替换用户实际发送的文字。 */
+  interpretationText?: string;
   commandId?: string | null;
   attachment?: ChatAttachment | null;
   attachmentMode?: 'reference' | 'check' | null;
@@ -106,7 +108,7 @@ export async function sendMessage(sessionId: string, options: SendOptions): Prom
   }
 
   const recognizeText = composeTextWithAttachment(
-    displayText,
+    options.interpretationText ?? displayText,
     attachment ?? options.attachment,
     options.attachmentMode,
   );

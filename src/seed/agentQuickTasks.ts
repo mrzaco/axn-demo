@@ -40,13 +40,33 @@ function normalizeAgentId(agentId: string): string {
   return agentId === 'agent-evaluation' ? 'agent-eval' : agentId;
 }
 
+/** 招标 §4.2—4.5 明确列出的独立能力；辅助步骤通过右侧对话发起。 */
+const TENDER_AGENT_TASKS: Record<string, readonly string[]> = {
+  'agent-situation': ['多源数据汇聚', '现场智能勘察辅助', '态势研判预警', '生成态势报告', '预警推送'],
+  'agent-resource': ['查询周边救援资源', '智能编组推荐', '规划梯队投送', '资源维护与导出', '资源建议'],
+  'agent-plan': ['生成救援方案', '方案修订对比'],
+  'agent-eval': ['资源投入偏差评估', '复盘评估分析', '复盘总结', '事件沉淀'],
+};
+
+export function isTenderAgentTask(agentId: string, task: string): boolean {
+  const allowed = TENDER_AGENT_TASKS[normalizeAgentId(agentId)];
+  return allowed ? allowed.includes(task) : true;
+}
+
+export const CONVERSATION_ONLY_ACTIONS = [...new Set([
+  ...LEGACY_QUICK_ACTIONS,
+  ...CATALOG_ACTIONS.filter(action =>
+    action.kind !== 'loop' && !isTenderAgentTask(action.agentId, action.label),
+  ).map(action => action.label),
+])];
+
 function chipEligible(action: CatalogAction): boolean {
   return (action.kind === 'chat' || action.kind === 'flow') && !LEGACY_QUICK_ACTIONS.includes(action.label);
 }
 
 function tasksForAgent(agentId: string): AgentQuickTaskChild[] {
   return CATALOG_ACTIONS.filter(
-    (action) => chipEligible(action) && normalizeAgentId(action.agentId) === agentId,
+    (action) => chipEligible(action) && isTenderAgentTask(action.agentId, action.label) && normalizeAgentId(action.agentId) === agentId,
   ).map((action) => ({
     label: tenderName(action.label),
     task: action.label,

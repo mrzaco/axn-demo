@@ -111,13 +111,13 @@ export function ensureWorkSummaryDocument(
 }
 
 /** 问答与报告共享同一份模拟复盘记录，不把模拟补充伪装成用户真实输入。 */
-export async function generateWorkSummary(sessionId: string, text = '生成工作总结') {
+export async function generateWorkSummary(sessionId: string, text = '生成工作总结', options?: { interactive?: boolean; skipUserMessage?: boolean; structureText?: string }) {
   const store = useSessionStore.getState();
   const session = store.sessions[sessionId];
   if (!session || session.messages.some(message => message.documentWorkflow?.stage === 'waiting_input') || useMockDocumentStore.getState().libraries[sessionId]?.generatingCode ||
     Object.values(store.tasks).some(task => task.sessionId === sessionId && ['running', 'queued'].includes(task.status))) return;
   // 复盘总结 / 抢险总结默认走反思式；仅显式「全面」时用全面型章节。
-  const useFull = /全面总结|工作总结（全面）|抢险总结（全面）|全面型/.test(text);
+  const useFull = /全面总结|工作总结（全面）|抢险总结（全面）|全面型/.test(options?.structureText ?? text);
   const record = RESCUE_EVALUATION_MOCK[session.eventId];
   const profile = disasterProfileById.get(session.eventId);
   const overview = record
@@ -158,6 +158,12 @@ export async function generateWorkSummary(sessionId: string, text = '生成工�
   }
   const modules = evaluationModuleTexts(session.eventId, sessionId, sections.map(([h,b])=>`${h}：${b}`).join('\n'));
   sections.push(['附：评估与证据模块（正文）', ['救援效果评估','资源投入偏差评估','七环节救援时间轴','预案条款对照','事件沉淀'].map(name=>`${name}：\n${modules[name]}`).join('\n\n')]);
+  if (options?.interactive) {
+    sections = sections.map(([heading, body]) => [heading, body
+      .replaceAll('已形成知识候选（模拟）', '待确认后提炼知识候选（模拟）')
+      .replaceAll('评估完成自动触发迭代任务', '经验审核后更新知识库')
+      .replaceAll('已触发（模拟）', '待确认与审核（模拟）')]);
+  }
   const elements = [{
     label: '报告结构',
     value: useFull
@@ -165,13 +171,14 @@ export async function generateWorkSummary(sessionId: string, text = '生成工�
       : '反思式抢险总结 · 实际处置过程/处置方案/存在不足/改进计划',
   }];
   let workflow: Workflow = {
+    compactReview: options?.interactive,
     stage: 'collecting',
     elements,
     collection,
     collectedCount: 0,
     reportSections: sections,
   };
-  store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text, taskId: null });
+  if (!options?.skipUserMessage) store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text, taskId: null });
   const invocation = store.appendMessage(sessionId, {
     sessionId, role: 'assistant', kind: 'agent', taskId: null, text: '自动汇总复盘要素并生成抢险总结',
     agentName: '文书生成智能体', agentRole: '抢险总结 · 复盘评估分析', documentWorkflow: workflow,
@@ -191,7 +198,11 @@ export async function generateWorkSummary(sessionId: string, text = '生成工�
     onStage: (stage) => update({ stage }),
   });
   update({ stage: document ? 'completed' : 'interrupted', documentId: document?.id });
-  if (document) {
+  if (document && options?.interactive) {
+    store.appendMessage(sessionId, { sessionId, role: 'assistant', kind: 'text', taskId: null,
+      text: '复盘总结报告已生成，可点击“查看文书”查看、编辑和导出。需要我从报告中提炼可复用经验，整理为知识库候选吗？',
+      summaryOffer: { kind: 'knowledge', documentId: document.id } });
+  } else if (document) {
     appendGeneratedReply(sessionId, document.title, sections);
     useKnowledgeCaseStore.getState().publishEventCase({
       eventId: session.eventId,

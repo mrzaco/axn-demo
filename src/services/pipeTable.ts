@@ -8,13 +8,13 @@ export function tableToText(headers: string[], rows: string[][]): string {
 }
 
 function splitPipeRow(line: string): string[] {
-  return line.split(/\s*\|\s*/).map((cell) => cell.trim());
+  return line.trim().replace(/^\|/, '').replace(/\|$/, '').split(/\s*\|\s*/).map((cell) => cell.trim());
 }
 
 function isPipeDataRow(line: string): boolean {
   if (!line.includes('|')) return false;
   const cells = splitPipeRow(line);
-  return cells.length >= 2 && cells.every((cell) => cell.length > 0);
+  return cells.length >= 2;
 }
 
 /** 识别由 tableToText 生成的管道表；普通正文不含一致列数管道行时返回 null。 */
@@ -41,7 +41,7 @@ export type PipeContentBlock =
  * 连续 ≥2 行、列数一致的管道行视为一张表；其余行按原文保留换行。
  */
 export function splitPipeContent(text: string): PipeContentBlock[] {
-  const rawLines = text.replace(/\r\n/g, '\n').split('\n');
+  const rawLines = normalizeResourceLists(text).replace(/\r\n/g, '\n').split('\n');
   const blocks: PipeContentBlock[] = [];
   let textBuf: string[] = [];
 
@@ -69,7 +69,7 @@ export function splitPipeContent(text: string): PipeContentBlock[] {
         j += 1;
         continue;
       }
-      if (!isPipeDataRow(next)) break;
+      if (!isPipeDataRow(next) || splitPipeRow(next).length !== splitPipeRow(trimmed).length) break;
       run.push(next);
       j += 1;
     }
@@ -78,7 +78,7 @@ export function splitPipeContent(text: string): PipeContentBlock[] {
     const consistent = width >= 2 && matrix.every((row) => row.length === width);
     if (consistent && matrix.length >= 2) {
       flushText();
-      blocks.push({ headers: matrix[0], rows: matrix.slice(1), kind: 'table' });
+      blocks.push({ headers: matrix[0], rows: matrix.slice(1).filter(row => !row.every(cell => /^:?-{3,}:?$/.test(cell))), kind: 'table' });
       i = j;
       continue;
     }
@@ -102,12 +102,33 @@ export function slashResourcesToPipeTable(resourcesText: string): string {
         .map((chunk) => chunk.trim())
         .filter(Boolean)
         .map((chunk) => {
-          const parts = chunk.split(/\s*\/\s*/).map((cell) => cell.trim()).filter(Boolean);
+          const parts = chunk.split(/\s+\/\s+/).map((cell) => cell.trim()).filter(Boolean);
           if (parts.length < 4) return null;
-          return [parts[0], parts[1], parts[2], parts.slice(3).join(' / ')] as string[];
+          return [parts[0], parts.slice(1, -2).join(' / '), parts.at(-2)!, parts.at(-1)!] as string[];
         })
         .filter((row): row is string[] => row !== null);
     });
   if (!rows.length) return resourcesText;
   return tableToText(['名称', '数量', '专业能力', '状态'], rows);
+}
+
+
+/** 旧文书资源行：用数量和状态字段确认结构，避免把路线、单位中的斜杠误作表格。 */
+export function normalizeResourceLists(text: string): string {
+  const lines = text.split('\n');
+  const result: string[] = [];
+  let inResources = false;
+  for (const line of lines) {
+    const parts = line.trim().split(/\s+\/\s+/);
+    const valid = parts.length >= 4 && /\d/.test(parts.slice(1, -2).join(' '))
+      && /候选|待核|确认|可用|出动|调派|在位|执行|待命/.test(parts.at(-1) ?? '');
+    if (!valid) { result.push(line); inResources = false; continue; }
+    const name = parts[0];
+    const prefix = name.match(/^([^：:]+[：:])(.+)$/);
+    if (prefix) { result.push(prefix[1]); inResources = false; }
+    if (!inResources) result.push('名称 | 数量 | 专业能力 | 状态');
+    result.push([prefix?.[2] ?? name, parts.slice(1, -2).join(' / '), parts.at(-2), parts.at(-1)].join(' | '));
+    inResources = true;
+  }
+  return result.join('\n');
 }

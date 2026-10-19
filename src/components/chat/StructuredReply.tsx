@@ -1,3 +1,4 @@
+import EventTimelineList, { isEventTimelineTable, timelineItemsFromTable } from './EventTimelineList';
 import { Fragment } from 'react';
 import './agent-results.css';
 import { KvTable, NumberedSteps, Section } from '@/components/common/ChatPrimitives';
@@ -18,6 +19,10 @@ export default function StructuredReply({ text }: { text: string }) {
         const row = cells(lines[i++]);
         if (row.every(cell => /^:?-{2,}:?$/.test(cell))) continue;
         rows.push(row);
+      }
+      if (isEventTimelineTable(headers)) {
+        content.push(<EventTimelineList key={`timeline-${i}`} items={timelineItemsFromTable(headers, rows)} />);
+        continue;
       }
       content.push(<div key={`table-${i}`} className="axn-structured-records">{rows.map((row, index) => <KvTable key={index} rows={Array.from({ length: Math.max(headers.length, row.length) }, (_, col) => ({ label: headers[col] ?? `补充字段${col + 1}`, value: row[col] ?? '—' }))} />)}</div>);
       continue;

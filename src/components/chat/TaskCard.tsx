@@ -1,3 +1,5 @@
+import EventTimelineList, { isEventTimelineTable, timelineItemsFromTable } from './EventTimelineList';
+import SurveyAnalysisReply from './SurveyAnalysisReply';
 import { ResultNotice as Alert } from '@/components/common/AgentResultPrimitives';
 import { Confidence, FileRow, InlineFlag, KvTable, Notice, ResourceList, RunBar, Section, SourceList, type Tone } from '@/components/common/ChatPrimitives';
 import StructuredReply from './StructuredReply';
@@ -215,6 +217,28 @@ function ScenarioSectionsBlock({
     openDocument(sessionId, { kind: 'mock', id: created.id });
   };
   const materialName = document?.title ?? payload.title;
+  if (payload.capability === 'survey') return <SurveyAnalysisReply payload={payload} sessionId={sessionId} />;
+  if (payload.capability === 'situationReport') {
+    // 兼容已有会话中的长摘要；完整章节、附表与说明仍由报告工作区承载。
+    const risks = payload.summary.match(/关注([^；。]+)/)?.[1];
+    const summary = risks
+      ? `当前重点：关注${risks}；救援前需完成现场风险评估。`
+      : payload.summary.split(/[。]/).filter(Boolean).slice(0, 2).join('。') + '。';
+    const parsedTime = new Date(payload.dataTime);
+    const dataTime = Number.isNaN(parsedTime.getTime()) ? payload.dataTime : new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(parsedTime);
+    return <div data-testid="scenario-sections">
+      <p className="axn-agent-result-lead">已生成态势报告初稿</p>
+      <p className="axn-agent-result-lead">{summary}</p>
+      <ResultLine label="报告 / 方案草稿" name={materialName.replace(/（模拟）/g, '').trim()} actions={
+        <Button aria-label="查看文书" size="small" type="primary" ghost icon={<FileText />}
+          onClick={document ? openInWorkspace : exportAttachment} data-testid="agent-material-preview">查看报告</Button>
+      } />
+      <Text type="secondary">模拟数据 · 更新于 {dataTime}</Text>
+    </div>;
+  }
+
   return (
     <div data-testid="scenario-sections">
       {inline ? <Section title={payload.title}>
@@ -274,7 +298,7 @@ function ScenarioSectionsBlock({
         <summary>{section.title}</summary><StructuredReply text={section.text} />
       </details>)}
       {[...(payload.table ? [{ title: '明细记录', ...payload.table }] : []), ...(payload.tables ?? [])].map((table, index) => <details className="axn-result-details" key={index}><summary>{table.title} · {table.rows.length} 条</summary>
-        {table.rows.map((row, rowIndex) => <KvTable key={rowIndex} rows={table.headers.map((label, col) => ({ label, value: row[col] ?? '—' }))} />)}
+        {isEventTimelineTable(table.headers) ? <EventTimelineList items={timelineItemsFromTable(table.headers, table.rows)} /> : table.rows.map((row, rowIndex) => <KvTable key={rowIndex} rows={table.headers.map((label, col) => ({ label, value: row[col] ?? '—' }))} />)}
       </details>)}
       <Notice tone="info" title="编制说明">{payload.notice} · 数据时间：{payload.dataTime}</Notice>
       {showResourceMap && onOpenFlow && (
@@ -399,12 +423,12 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
 
   return (
     <div className={`axn-task-card axn-agent-result axn-task-card--${task.status}`}>
-      <RunBar title={tenderName(task.displayTitle)} status={{ tone: ({ queued: 'busy', running: 'busy', succeeded: 'ok', partial: 'warn', waiting_input: 'warn', failed: 'err', cancelled: 'idle' } as Record<TaskStatus, Tone>)[task.status], label: meta.label }}
+      <RunBar key={task.artifacts.some(a => a.payload.kind === 'scenario_sections' && a.payload.capability === 'survey') ? (isRunning ? 'survey-running' : 'survey-finished') : 'process'} title={tenderName(task.displayTitle)} status={{ tone: ({ queued: 'busy', running: 'busy', succeeded: 'ok', partial: 'warn', waiting_input: 'warn', failed: 'err', cancelled: 'idle' } as Record<TaskStatus, Tone>)[task.status], label: meta.label }}
         steps={task.steps.map(step => ({ name: tenderName(step.name), status: step.status === 'cancelled' ? 'pending' : step.status, output: step.outputSummary ?? (step.status === 'running' ? '执行中…' : undefined), time: step.elapsedMs == null ? undefined : fmtSeconds(step.elapsedMs) }))}
         defaultOpen={isRunning} meta={task.attempt > 1 ? `第 ${task.attempt} 次尝试 · 模拟` : '模拟数据'}
         side={isRunning ? <Button size="small" onClick={() => cancelTask(task.taskId)}>取消</Button> : task.status === 'failed' ? <Button size="small" onClick={() => void retryTask(task.taskId)}>重试</Button> : null} />
       {handoff && <Notice tone="info" title={`场景交接 · ${scenarioLabelForId(handoff.fromScenario)}`}><span data-testid="task-handoff-hint">{handoff.versionLabel}：{handoff.summary}</span></Notice>}
-      {task.steps.length > 0 && <details className="axn-result-details"><summary>查看本次执行与能力分工</summary><TaskSkillPanel task={task} /></details>}
+      {task.steps.length > 0 && !task.artifacts.some(a => a.payload.kind === 'scenario_sections' && a.payload.capability === 'survey') && <details className="axn-result-details"><summary>查看本次执行与能力分工</summary><TaskSkillPanel task={task} /></details>}
 
       {/* 建设材料 / 处置建议已物化时，正文只在右侧或知识抽屉；聊天区不重复长摘要 */}
       {task.textAnswer
