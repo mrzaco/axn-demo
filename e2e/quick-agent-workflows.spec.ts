@@ -25,23 +25,16 @@ test('快捷任务在智能体卡片内展示执行过程和模拟结果', async
   await page.screenshot({ path: 'artifacts/quick-agent-workflows.png' });
 });
 
-test('空白对话提示关联灾情，关联后可正常生成摘要', async ({ page }) => {
+test('空白对话选择事件后自动生成摘要', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('new-conversation-btn').click();
-  // 无消息时头部不显示事件标题，未关联状态由关联灾情选择器承载（标注 vibe_1791303121889）；
-  // 未关联时选择器显示 placeholder「选择关联灾情事件」（标注 vibe_1791787570681）
-  await expect(page.getByTestId('chat-link-incident')).toContainText('选择关联灾情事件');
   await clickQuickTask(page, '态势感知', '灾情摘要');
-  const card = page.getByTestId('agent-summon-card').last();
-  await expect(card).toContainText('当前对话尚未关联有效灾情');
-  await expect(card).toContainText('待补充信息');
-  await expect(card).not.toContainText('INTERNAL');
-  await page.getByTestId('chat-link-incident').click();
+  await expect(page.locator('.axn-task-card')).toHaveCount(0);
+  await expect(page.getByTestId('incident-picker')).toContainText('选择要分析的事件');
   await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
-  await clickQuickTask(page, '态势感知', '灾情摘要');
+  await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
   await expect(page.getByTestId('agent-summon-card').last()).toContainText('任务已完成，执行过程与结果如下', { timeout: 20000 });
   await expect(page.getByTestId('agent-summon-card').last()).toContainText('人员伤亡情况');
-  // 有消息后头部事件标题回归（无消息时不显示）
   await expect(page.getByTestId('header-event')).toContainText('清河段堤防险情');
 });
 

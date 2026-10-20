@@ -4,14 +4,15 @@ for (const width of [320, 375, 390, 430]) {
   test(`移动端输入框分区布局稳定 ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/');
-    const knowledge = page.getByRole('button', { name: '选择知识库', exact: true });
-    await knowledge.click();
-    await page.getByRole('dialog', { name: '选择知识库', exact: true }).getByRole('option', { name: /星澜产品资料库/ }).click();
+    const skill = page.getByRole('button', { name: '选择技能', exact: true });
+    await skill.click();
+    await page.getByRole('region', { name: '选择技能', exact: true }).getByRole('option', { name: /现场记录提炼/ }).click();
     const incident = page.getByTestId('chat-link-incident');
     await incident.click();
     await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+    await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
     const shell = (await page.locator('.axn-composer-shell').boundingBox())!;
-    const context = (await knowledge.boundingBox())!;
+    const context = (await skill.boundingBox())!;
     const event = (await incident.boundingBox())!;
     const more = page.getByRole('button', { name: '输入工具', exact: true });
     const plus = (await more.boundingBox())!;
@@ -52,62 +53,44 @@ for (const width of [320, 375, 390, 430]) {
 }
 
 for (const width of [1440, 390]) {
-  test(`输入框选择知识库支持搜索、切换对话和清除 ${width}px`, async ({ page }) => {
+  test(`输入框选择技能支持搜索、切换对话和清除 ${width}px`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
-    const picker = page.getByRole('button', { name: '选择知识库', exact: true });
-    await expect(picker).toContainText('知识库');
+    const picker = page.getByRole('button', { name: '选择技能', exact: true });
+    await expect(picker).toContainText('技能');
     await picker.click();
-    const dialog = page.getByRole('dialog', { name: '选择知识库', exact: true });
-    await expect(dialog.getByRole('option')).toHaveCount(3);
-    await expect(dialog.getByRole('option', { name: /产业政策参考库/ })).toBeDisabled();
-    await expect(dialog.getByRole('tab', { name: '公共知识库', exact: true })).toHaveCount(0);
-    await expect(dialog.getByRole('option', { name: /防汛预案与法规/ })).toHaveCount(0);
-    const chooseScope = async (name: string) => {
-      const tab = dialog.getByRole('tab', { name, exact: true });
-      await tab.focus();
-      await page.keyboard.press('Enter');
-    };
-    await chooseScope('部门知识库');
-    await expect(dialog.getByRole('option')).toHaveCount(2);
-    await expect(dialog.getByRole('option', { name: /协作制度知识库/ })).toBeEnabled();
-    await chooseScope('单位知识库');
-    await expect(dialog).toContainText('单位知识库暂无资料');
-    await expect(dialog.getByRole('option')).toHaveCount(0);
-    await chooseScope('个人知识库');
-    await expect(dialog.getByRole('option')).toHaveCount(3);
-    await chooseScope('全部');
-    const search = dialog.getByRole('textbox', { name: '搜索对话知识库', exact: true });
-    await search.fill('不存在的知识库');
-    await expect(dialog).toContainText('未找到匹配的知识库');
-    await search.fill('资源保障');
-    await expect(dialog.getByRole('option')).toHaveCount(0);
-    await search.fill('星澜');
+    const dialog = page.getByRole('region', { name: '选择技能', exact: true });
+    await expect(dialog.getByRole('option')).toHaveCount(5);
+    await expect(dialog.getByRole('tab')).toHaveCount(0);
+    const search = dialog.getByRole('textbox', { name: '搜索对话技能', exact: true });
+    await search.fill('不存在的技能');
+    await expect(dialog).toContainText('未找到匹配的技能');
+    await search.fill('现场');
     await expect(dialog.getByRole('option')).toHaveCount(1);
-    await dialog.getByRole('option', { name: /星澜产品资料库/ }).click();
+    await dialog.getByRole('option', { name: /现场记录提炼/ }).click();
     await expect(dialog).toBeHidden();
-    await expect(picker).toHaveAttribute('aria-description', '星澜产品资料库');
+    await expect(picker).toHaveAttribute('aria-description', '现场记录提炼');
     const selectedConversation = page.locator('.axn-gs-conversation.is-active');
     const previousId = await selectedConversation.getAttribute('data-testid');
-    await page.screenshot({ path: `/tmp/axn-composer-knowledge-${width}.png` });
+    await page.screenshot({ path: `/tmp/axn-composer-skill-${width}.png` });
     if (width < 768) await page.getByRole('button', { name: '打开导航', exact: true }).click();
     await page.getByTestId('new-conversation-btn').click();
     if (width < 768) {
-      await page.getByRole('button', { name: '关闭导航', exact: true }).click();
       await page.mouse.move(width - 10, 600);
       await expect(page.locator('.ant-message-notice')).toHaveCount(0);
+      await page.getByRole('button', { name: '关闭导航', exact: true }).click();
     }
-    await expect(picker).toHaveText('知识库');
+    await expect(picker).toHaveText('技能');
     if (width < 768) await page.getByRole('button', { name: '打开导航', exact: true }).click();
     await page.getByTestId(previousId!).click();
     if (width < 768) await page.getByRole('button', { name: '关闭导航', exact: true }).click();
-    await expect(picker).toHaveAttribute('aria-description', '星澜产品资料库');
+    await expect(picker).toHaveAttribute('aria-description', '现场记录提炼');
     await picker.click();
-    await expect(dialog.getByRole('option', { name: /星澜产品资料库/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(dialog.getByRole('option', { name: /现场记录提炼/ })).toHaveAttribute('aria-selected', 'true');
     await dialog.getByRole('button', { name: '清除选择', exact: true }).click();
-    await expect(picker).toHaveText('知识库');
+    await expect(picker).toHaveText('技能');
     const outside = await page.locator('.axn-composer-shell').evaluate(el => el.getBoundingClientRect().right > innerWidth);
     expect(outside).toBe(false);
     expect(errors).toEqual([]);
@@ -126,7 +109,7 @@ for (const width of [1366, 1680]) {
     await expect(shell).toHaveClass(/is-mobile/);
     const boxes = await Promise.all([
       page.getByRole('button', { name: '输入工具', exact: true }),
-      page.getByTestId('composer-knowledge-picker'),
+      page.getByTestId('composer-skill-picker'),
       page.getByTestId('chat-link-incident'),
       page.getByTestId('composer-speech'),
       page.getByRole('button', { name: '发送', exact: true }),
@@ -143,5 +126,53 @@ for (const width of [1366, 1680]) {
     await page.getByTestId('workspace-close-btn').click();
     await expect(shell).not.toHaveClass(/is-mobile/);
     await expect(page.getByTestId('composer-upload')).toBeVisible();
+  });
+}
+
+for (const width of [1440, 390]) {
+  test(`斜杠技能浮层支持直接筛选、键盘选择与取消 ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    const input = page.getByPlaceholder(/向安小能发送指令/);
+    const menu = page.getByRole('region', { name: '选择技能', exact: true });
+    const picker = page.getByTestId('composer-skill-picker');
+    await input.fill('/');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('option')).toHaveCount(5);
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue('/');
+    await expect(page.locator('.ant-modal')).toHaveCount(0);
+    const box = (await menu.boundingBox())!;
+    const shell = (await page.locator('.axn-composer-shell').boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(shell.y);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    await page.screenshot({ path: `/tmp/axn-skill-command-menu-${width}.png` });
+    await input.press('ArrowDown');
+    await input.press('Enter');
+    await expect(menu).toBeHidden();
+    await expect(picker).toHaveAttribute('aria-description', '资源清单整理');
+    await expect(input).toHaveValue('');
+    await expect(input).toBeFocused();
+    await input.fill('/现场');
+    await expect(menu.getByRole('option')).toHaveCount(1);
+    await input.press('Enter');
+    await expect(menu).toBeHidden();
+    await expect(picker).toHaveAttribute('aria-description', '现场记录提炼');
+    await expect(input).toHaveValue('');
+    await input.fill('参考 https://example.com/files/');
+    await expect(menu).toBeHidden();
+    await input.fill('请整理现场记录 /不存在的技能');
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText('未找到匹配的技能');
+    await input.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(input).toHaveValue('请整理现场记录 ');
+    await input.press('/');
+    await expect(menu.getByRole('option')).toHaveCount(5);
+    await menu.getByRole('option', { name: /现场记录提炼/ }).click();
+    await expect(menu).toBeHidden();
+    await expect(input).toHaveValue('请整理现场记录 ');
+    await expect(input).toBeFocused();
   });
 }

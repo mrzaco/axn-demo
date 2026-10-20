@@ -71,15 +71,16 @@ test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', a
   await newConversation(page);
   await page.getByTestId('chat-link-incident').click();
   await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+  await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
   await page.waitForTimeout(500);
   // 上下文切到关联事件：无消息时由关联灾情选择器承载，头部事件标题不显示（标注 vibe_1791303121889）
   await expect(page.getByTestId('chat-link-incident')).toContainText('清河段堤防险情');
   await expect(page.getByTestId('header-event')).toHaveCount(0);
-  // 取消关联 → 回到未关联（专属虚拟事件）
+  // 取消选择不会解除当前会话的关联。
   await page.getByTestId('chat-link-incident').click();
-  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-  await page.waitForTimeout(500);
-  await expect(page.getByTestId('chat-link-incident')).toContainText('选择关联灾情事件');
+  await expect(page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ })).toHaveCount(0);
+  await page.getByRole('button', { name: '取消选择事件' }).click();
+  await expect(page.getByTestId('chat-link-incident')).toContainText('清河段堤防险情');
 });
 
 test('失效的历史关联事件显示中文提示，可重新选择有效事件', async ({ page }) => {
@@ -97,6 +98,7 @@ test('失效的历史关联事件显示中文提示，可重新选择有效事�
   await expect(trigger).not.toContainText('evt-sim-landslide');
   await trigger.click();
   await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+  await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
   await expect(trigger).toContainText('清河段堤防险情');
 });
 
@@ -250,6 +252,8 @@ test('数字专家展示已有能力，每次召唤新开对话并能选择任�
   await page.getByRole('button', { name: '数字专家', exact: true }).click();
   await page.getByRole('button', { name: '召唤救援资源管理智能体', exact: true }).click();
   await page.locator('.axn-doc-choices[data-agent-id="agent-resource"]').getByRole('button', { name: '周边救援资源', exact: true }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+  await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
   await expect(page.locator('.axn-task-card').first()).toBeVisible();
 });
 
@@ -272,11 +276,9 @@ test('11. 数字专家 / 定时任务 / 知识库导航页可访问，文书库�
 });
 
 
-test('关联事件保留当前智能体对话和历史，切换、取消关联及刷新后仍可见', async ({ page }) => {
+test('更换事件创建新会话，原会话与记录在刷新后保留', async ({ page }) => {
   await newConversation(page);
-  await page.locator('.axn-chips').getByRole('button', { name: '文书生成智能体', exact: true }).click();
-  const active = page.locator('.axn-gs-conversation.is-active');
-  const originalId = await active.getAttribute('data-testid');
+  const originalId = await page.locator('.axn-gs-conversation.is-active').getAttribute('data-testid');
   const count = await page.locator('.axn-gs-conversation').count();
   const text = '请保留这段对话记录';
   const input = page.getByPlaceholder(/向安小能发送指令/);
@@ -284,17 +286,23 @@ test('关联事件保留当前智能体对话和历史，切换、取消关联�
   await input.press('Enter');
   await expect(page.getByText(text, { exact: true })).toBeVisible();
   const trigger = page.getByTestId('chat-link-incident');
-  for (const option of [/清河段堤防险情/, /漳河镇水位上涨预警/, /不关联灾情/]) {
-    await trigger.click();
-    await page.getByTestId('incident-picker').getByRole('option', { name: option }).click();
-    await expect(page.getByTestId('incident-picker')).not.toBeVisible();
-    await expect(active).toHaveAttribute('data-testid', originalId!);
-    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count);
-    await expect(page.getByTestId('doc-agent-choices')).toBeVisible();
-    await expect(page.getByText(text, { exact: true })).toBeVisible();
-  }
+  const picker = page.getByTestId('incident-picker');
+  await trigger.click();
+  await picker.getByRole('option', { name: /清河段堤防险情/ }).click();
+  await expect(trigger).toHaveAttribute('aria-description', '未关联灾情');
+  await picker.getByRole('button', { name: '确认绑定', exact: true }).click();
+  await expect(page.locator('.axn-gs-conversation.is-active')).toHaveAttribute('data-testid', originalId!);
+  await trigger.click();
+  await picker.getByRole('option', { name: /漳河镇水位上涨预警/ }).click();
+  await expect(picker).toContainText('原会话仍关联原事件');
+  await expect(trigger).toHaveAttribute('aria-description', '清河段堤防险情');
+  await picker.getByRole('button', { name: '新开会话并绑定', exact: true }).click();
+  await expect(page.locator('.axn-gs-conversation')).toHaveCount(count + 1);
+  await expect(page.locator('.axn-gs-conversation.is-active')).not.toHaveAttribute('data-testid', originalId!);
+  await expect(trigger).toHaveAttribute('aria-description', '漳河镇水位上涨预警');
+  await expect(page.getByText(text, { exact: true })).toHaveCount(0);
+  await page.getByTestId(originalId!).click();
   await page.reload();
-  await expect(active).toHaveAttribute('data-testid', originalId!);
-  await expect(page.getByTestId('doc-agent-choices')).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-description', '清河段堤防险情');
   await expect(page.getByText(text, { exact: true })).toBeVisible();
 });

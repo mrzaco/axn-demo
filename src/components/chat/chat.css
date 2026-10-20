@@ -165,9 +165,9 @@
 .axn-composer-shell.is-mobile .axn-composer-actions > .ant-btn { width: 40px; min-width: 40px; height: 40px; }
 .axn-composer-more.ant-btn { width: 36px; min-width: 36px; height: 36px; padding: 0; color: var(--axn-muted); border-radius: 50%; background: var(--axn-soft); }
 .axn-composer-shell.is-mobile .axn-composer-speech.ant-btn { flex-basis: 32px; width: 32px; min-width: 32px; height: 40px; }
-.axn-composer-shell.is-mobile .axn-composer-knowledge > svg:last-child,
+.axn-composer-shell.is-mobile .axn-composer-skill > svg:last-child,
 .axn-composer-shell.is-mobile .axn-cp-select-caret { display: none; }
-.axn-composer-shell.is-mobile .axn-composer-knowledge,
+.axn-composer-shell.is-mobile .axn-composer-skill,
 .axn-composer-shell.is-mobile .axn-cp-select {
   flex: 0 0 auto; max-width: none; height: 32px; margin: 0; padding: 0 var(--space-1-5);
   gap: var(--space-1); border-radius: var(--radius-md); font-size: var(--fs-caption); font-weight: var(--fw-regular);
@@ -491,37 +491,13 @@
 .axn-cp-select-caret { flex-shrink: 0; color: var(--axn-primary); }
 
 
-/* ===== 关联灾情选择弹窗 ===== */
-.axn-incident-modal .ant-modal-container, .axn-incident-modal .ant-modal-content { padding: 0; overflow: hidden; border-radius: var(--radius-lg); }
-.axn-incident-picker { display: flex; flex-direction: column; max-height: min(640px, calc(100vh - 96px)); }
-.axn-incident-head, .axn-incident-search, .axn-incident-foot { flex-shrink: 0; }
-.axn-incident-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: var(--space-5) var(--space-5) var(--space-3); }
-.axn-incident-head h2 { margin: 0; font-size: var(--fs-title); line-height: var(--lh-title); font-weight: 600; }
-.axn-incident-head p { margin: var(--space-1) 0 0; color: var(--axn-muted); font-size: var(--fs-body); line-height: var(--lh-body); }
-.axn-incident-close { display: grid; place-items: center; width: 32px; height: 32px; margin: calc(var(--space-1) * -1) calc(var(--space-1) * -1) 0 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--axn-faint); cursor: pointer; }
-.axn-incident-close:hover { background: var(--axn-soft); color: var(--axn-text); }
-.axn-incident-search { display: flex; align-items: center; gap: var(--space-2); margin: 0 var(--space-5) var(--space-3); height: 40px; padding: 0 var(--space-3); border: 1px solid var(--axn-control); border-radius: var(--radius-md); background: var(--axn-surface); color: var(--axn-faint); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
-.axn-incident-search:focus-within { border-color: var(--axn-primary); box-shadow: 0 0 0 3px var(--axn-primary-50); }
-.axn-incident-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--axn-text); font: inherit; font-size: var(--fs-body); }
-.axn-incident-search input::placeholder { color: var(--axn-faint); }
-.axn-incident-search button { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--axn-soft); color: var(--axn-muted); cursor: pointer; }
-.axn-incident-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 var(--space-3) var(--space-3); border-top: 1px solid var(--axn-divider); overscroll-behavior: contain; }
-.axn-incident-option { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; box-sizing: border-box; padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); cursor: pointer; }
-.axn-incident-option.is-active { background: var(--axn-soft); }
-.axn-incident-option.is-selected { background: var(--axn-primary-50); }
-.axn-level-none { color: var(--axn-muted); background: var(--axn-sunken); font-weight: 400; }
-.axn-incident-copy { display: flex; flex: 1; flex-direction: column; gap: var(--space-0-5); min-width: 0; }
-.axn-incident-title { overflow: hidden; color: var(--axn-text); font-size: var(--fs-body); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.axn-incident-option.is-selected .axn-incident-title { color: var(--axn-primary-600); }
-.axn-incident-check { flex-shrink: 0; color: var(--axn-primary); }
-.axn-incident-none { margin-top: var(--space-2); border-top: 1px solid var(--axn-divider); border-radius: 0 0 var(--radius-md) var(--radius-md); padding-top: var(--space-3); }
-.axn-incident-empty { padding: var(--space-10) var(--space-4); color: var(--axn-muted); font-size: var(--fs-body); text-align: center; }
-.axn-incident-foot { display: flex; gap: var(--space-4); padding: var(--space-2-5) var(--space-5); border-top: 1px solid var(--axn-divider); background: var(--axn-canvas); color: var(--axn-faint); font-size: var(--fs-meta); }
-.axn-incident-foot kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-inline-end: var(--space-0-5); padding: 0 var(--space-1); border: 1px solid var(--axn-border); border-radius: var(--radius-nest-md); background: var(--axn-surface); color: var(--axn-muted); font: inherit; font-size: var(--fs-meta); }
-@media (max-width: 767px) {
-  .axn-incident-foot { display: none; }
-  .axn-incident-picker { max-height: calc(100vh - 64px); }
-}
+/* 事件选择居中展示，内部沿用紧凑列表样式。 */
+.axn-incident-modal .ant-modal-container, .axn-incident-modal .ant-modal-content { padding: 0; }
+.axn-incident-dialog { padding: var(--space-3); }
+.axn-incident-search { display: flex; align-items: center; gap: var(--space-2); margin-block: var(--space-1) var(--space-2); min-height: 32px; padding: 0 var(--space-2); border: 1px solid var(--axn-border); border-radius: var(--radius-md); color: var(--axn-muted); }
+.axn-incident-search:focus-within { border-color: var(--axn-primary); }
+.axn-incident-search input { flex: 1; width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--axn-text); font: inherit; font-size: var(--fs-meta); }
+.axn-incident-search button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--axn-muted); cursor: pointer; }
 /* 语音：次要文字按钮，主色只留给右侧的发送 */
 .axn-composer-speech.ant-btn { color: var(--axn-muted); font-size: var(--fs-h3); }
 .axn-composer-speech.ant-btn:hover { color: var(--axn-text); background: var(--axn-soft); }
@@ -557,3 +533,12 @@
 @media (hover: none) {
   .axn-composer-web-search-tooltip { display: none; }
 }
+
+.axn-incident-menu-title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.axn-incident-list-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-1) var(--space-2); color: var(--axn-muted); font-size: var(--fs-caption); }
+
+.axn-incident-confirm { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-2) var(--space-1); border-top: 1px solid var(--axn-border); margin-top: var(--space-2); }
+.axn-incident-selected { color: var(--axn-muted); font-size: var(--fs-meta); overflow-wrap: anywhere; }
+.axn-incident-selected > strong { color: var(--axn-text); font-weight: var(--fw-strong); }
+.axn-incident-confirm-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }

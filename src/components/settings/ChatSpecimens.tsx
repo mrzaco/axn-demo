@@ -222,15 +222,7 @@ export function Confidence({ level, value }: { level: 'high' | 'mid' | 'low'; va
   return <span className={`axn-confidence axn-confidence--${level}`}>置信度 {text} · {value}%</span>;
 }
 
-/** 轻提示：一行图标 + 文字（替代整块 Alert） */
-export function Notice({ tone, title, children }: { tone: 'info' | 'ok' | 'warn' | 'err'; title: ReactNode; children?: ReactNode }) {
-  return (
-    <div className={`axn-spec-notice is-${tone}`} role={tone === 'err' ? 'alert' : 'status'}>
-      <i aria-hidden />
-      <div><strong>{title}</strong>{children && <p>{children}</p>}</div>
-    </div>
-  );
-}
+export { default as Notice } from '@/components/chat/ChatNotice';
 
 export function ChoiceChips({ options, value, onChange }: { options: string[]; value?: string; onChange?: (v: string) => void }) {
   return (

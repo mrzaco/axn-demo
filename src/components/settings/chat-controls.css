@@ -52,15 +52,6 @@
 /* 真实对话的选项点一次即提交，没有「选中态」；规范页演示单选，补一个选中描边 */
 .axn-doc-choices .axn-doc-choice.ant-btn.is-selected { border-color: var(--axn-primary); box-shadow: inset 0 0 0 1px var(--axn-primary); font-weight: 600; }
 .axn-doc-choices .axn-doc-choice.ant-btn:not(.is-selected) { background: var(--axn-surface); border-color: var(--axn-border); color: var(--axn-text); }
-.axn-spec-notice { display: flex; align-items: flex-start; gap: var(--space-2-5); font-size: var(--fs-body); line-height: var(--lh-normal); }
-.axn-spec-notice > i { flex-shrink: 0; width: 6px; height: 6px; margin-top: 8px; border-radius: 50%; background: var(--axn-primary); }
-.axn-spec-notice.is-ok > i { background: var(--axn-success); }
-.axn-spec-notice.is-warn > i { background: var(--axn-warning); }
-.axn-spec-notice.is-err > i { background: var(--axn-error); }
-.axn-spec-notice strong { font-weight: 600; }
-.axn-spec-notice.is-warn strong { color: var(--axn-warning-text); }
-.axn-spec-notice.is-err strong { color: var(--axn-error-text); }
-.axn-spec-notice p { margin: var(--space-0-5) 0 0; color: var(--axn-muted); }
 
 @media (max-width: 767px) {
   /* 与对话页窄屏一致：安小能头像隐藏，正文用满宽 */

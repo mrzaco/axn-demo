@@ -213,8 +213,9 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.getByTestId('chat-link-incident').click();
-  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-  await page.getByRole('button', { name: '继续编辑' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /漳河镇水位上涨预警/ }).click();
+  await expect(page.getByTestId('incident-picker')).toContainText('更换事件将新开一个会话');
+  await page.getByRole('button', { name: '取消选择事件' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   // 多轮取消期间可能已自动保存；重新编辑以验证最后一次导航的未保存保护。
   await title.fill('保护中的工作副本（继续导航）');
@@ -367,10 +368,8 @@ for (const width of [1440, 390]) {
     expect(button.y).toBeGreaterThanOrEqual(textInput.y + textInput.height);
     expect(button.y + button.height).toBeLessThanOrEqual(shell.y + shell.height);
     await trigger.click();
-    await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-    await expect(trigger).toHaveAttribute('aria-description', '未关联灾情');
-    await trigger.click();
     await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+    await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
     await expect(trigger).toHaveAttribute('aria-description', '清河段堤防险情');
     await expect(page.getByTestId('incident-picker')).not.toBeVisible();
     await page.screenshot({ path: `artifacts/ui-polish/incident-inside-composer-${width}.png` });

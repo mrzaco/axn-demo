@@ -1,0 +1,10 @@
+/* 聊天标准控件与真实消息共用的提示信息样式。 */
+.axn-spec-notice { display: flex; align-items: flex-start; gap: var(--space-2-5); font-size: var(--fs-body); line-height: var(--lh-normal); }
+.axn-spec-notice > i { flex-shrink: 0; width: 6px; height: 6px; margin-top: 8px; border-radius: 50%; background: var(--axn-primary); }
+.axn-spec-notice.is-ok > i { background: var(--axn-success); }
+.axn-spec-notice.is-warn > i { background: var(--axn-warning); }
+.axn-spec-notice.is-err > i { background: var(--axn-error); }
+.axn-spec-notice strong { font-weight: var(--fw-strong); }
+.axn-spec-notice.is-warn strong { color: var(--axn-warning-text); }
+.axn-spec-notice.is-err strong { color: var(--axn-error-text); }
+.axn-spec-notice p { margin: var(--space-0-5) 0 0; color: var(--axn-muted); }

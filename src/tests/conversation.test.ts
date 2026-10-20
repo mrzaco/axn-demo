@@ -150,44 +150,43 @@ describe('Conversation 基础行为（需求 2.3/2.5/九）', () => {
     expect(useDemoStore.getState().currentEventId).toBe('evt-demo-002');
   });
 
-  it('对话区内切换关联灾情：绑定事件 / 取消关联回到专属虚拟事件', () => {
-    const state = useConversationStore.getState();
-    const conversation = state.createConversation({ title: '切换关联用例', type: 'general', status: 'active' });
-    // 默认为专属虚拟事件
-    expect(conversation.eventId).toMatch(/^evt-blank-/);
-    // 绑定真实事件
-    useConversationStore.getState().linkConversationToEvent(conversation.id, 'evt-demo-001');
-    expect(useConversationStore.getState().conversations[conversation.id].eventId).toBe('evt-demo-001');
-    // 取消关联 → 回到同一个专属虚拟事件（保留独立消息，不落入其他事件）
-    useConversationStore.getState().linkConversationToEvent(conversation.id, undefined);
-    expect(useConversationStore.getState().conversations[conversation.id].eventId).toBe(conversation.eventId);
+  it('首次绑定保留会话，重复选择当前事件不新建会话', () => {
+    const conversation = useConversationStore.getState().createConversation({ title: '首次绑定', type: 'general' });
+    const count = Object.keys(useConversationStore.getState().conversations).length;
+    const bound = useConversationStore.getState().linkConversationToEvent(conversation.id, A);
+    expect(bound?.id).toBe(conversation.id);
+    expect(bound?.eventId).toBe(A);
+    expect(useConversationStore.getState().linkConversationToEvent(conversation.id, A)?.id).toBe(conversation.id);
+    expect(Object.keys(useConversationStore.getState().conversations)).toHaveLength(count);
   });
 
-  it('关联、改关联和取消关联均保留原对话身份、消息与文书，并更新后续任务上下文', async () => {
-    const conversation = useConversationStore.getState().createConversation({ title: '保持原对话', type: 'general' });
+  it('更换事件新开会话，原会话的消息、文书及后续任务仍属于原事件', async () => {
+    const conversation = useConversationStore.getState().createConversation({ title: '保持原对话', type: 'general', source: 'agent-management' });
     const sessionId = currentSession().sessionId;
     const store = useSessionStore.getState();
     const message = store.appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '这些聊天记录要保留', taskId: null });
     store.setActiveDocument(sessionId, 'existing-document');
+    useConversationStore.getState().linkConversationToEvent(conversation.id, A);
+    expect(currentSession().sessionId).toBe(sessionId);
     const count = Object.keys(useConversationStore.getState().conversations).length;
-    for (const eventId of [A, B, undefined, A]) {
-      useConversationStore.getState().linkConversationToEvent(conversation.id, eventId);
-      expect(useConversationStore.getState().activeConversationId).toBe(conversation.id);
-      expect(Object.keys(useConversationStore.getState().conversations)).toHaveLength(count);
-      expect(currentSession().sessionId).toBe(sessionId);
-      expect(currentSession().messages[0]).toEqual(message);
-      expect(currentSession().activeDocumentId).toBe('existing-document');
-      expect(currentSession().eventId).toBe(eventId ?? conversation.eventId);
-    }
-    await sendMessage(sessionId, { text: '生成灾情摘要' });
-    await vi.runAllTimersAsync();
-    expect(currentSession().messages[0]).toEqual(message);
-    const task = Object.values(useSessionStore.getState().tasks).find(t => t.sessionId === sessionId);
-    expect(task?.eventId).toBe(A);
-    useConversationStore.getState().selectConversation('conv-seed-nandi');
+    const next = useConversationStore.getState().linkConversationToEvent(conversation.id, B)!;
+    expect(next.id).not.toBe(conversation.id);
+    expect(next.source).toBe('agent-management');
+    expect(useConversationStore.getState().activeConversationId).toBe(next.id);
+    expect(Object.keys(useConversationStore.getState().conversations)).toHaveLength(count + 1);
+    expect(currentSession().sessionId).not.toBe(sessionId);
+    expect(currentSession().eventId).toBe(B);
+    expect(currentSession().messages).toEqual([]);
+    expect(currentSession().activeDocumentId).toBeNull();
+    expect(useConversationStore.getState().conversations[conversation.id].eventId).toBe(A);
     useConversationStore.getState().selectConversation(conversation.id);
     expect(currentSession().sessionId).toBe(sessionId);
     expect(currentSession().messages[0]).toEqual(message);
+    expect(currentSession().activeDocumentId).toBe('existing-document');
+    await sendMessage(sessionId, { text: '生成灾情摘要' });
+    await vi.runAllTimersAsync();
+    const task = Object.values(useSessionStore.getState().tasks).find(t => t.sessionId === sessionId);
+    expect(task?.eventId).toBe(A);
   });
 
   it('改关联事件后不沿用原事件的资源候选和补录状态', () => {
@@ -199,6 +198,9 @@ describe('Conversation 基础行为（需求 2.3/2.5/九）', () => {
     expect(currentSession().candidateResourceIds).toEqual([]);
     expect(currentSession().pendingClarification).toBeNull();
     expect(currentSession().eventId).toBe(B);
+    expect(currentSession().sessionId).not.toBe(sessionId);
+    expect(useSessionStore.getState().sessions[sessionId].candidateResourceIds).toEqual(['team-001']);
+    expect(useSessionStore.getState().sessions[sessionId].pendingClarification?.clarificationId).toBe('clarify-old');
   });
 
   it('历史会话分组：种子数据覆盖 今天/昨天/更早', () => {

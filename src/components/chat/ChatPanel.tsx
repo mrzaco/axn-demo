@@ -39,13 +39,15 @@ import ResponseFeedback from './ResponseFeedback';
 import { summonAgentInConversation } from '@/services/agentConversation';
 import { AGENT_ICONS } from './agentIcons';
 import { WELCOME_QUESTIONS } from '@/seed/welcomeQuestions';
+import { eventRequirement } from '@/services/eventRequirement';
+import { incidentById } from '@/seed/scenario';
 import { eventDisplayName } from '@/services/factLookup';
 import TaskCard from './TaskCard';
 import DocumentGenerationCard from './DocumentGenerationCard';
 import { DocumentReviewCard } from '@/components/doc/DocumentReview';
 import AgentSummonCard from './AgentSummonCard';
-import IncidentPickerModal from './IncidentPickerModal';
-import ComposerKnowledgePicker from './ComposerKnowledgePicker';
+import IncidentPicker from './IncidentPicker';
+import ComposerSkillPicker from './ComposerSkillPicker';
 import BrandMark from '@/components/brand/BrandMark';
 import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
 import './chat.css';
@@ -76,13 +78,13 @@ function AgentInviteChoices({ agentId, options, hint, disabled, onPick }: {
   options: { label: string; task: string }[];
   hint: string;
   disabled: boolean;
-  onPick: (task: string) => void;
+  onPick: (task: string, label: string) => void;
 }) {
   return (
     <div className="axn-doc-choices" data-testid={agentId === 'agent-doc' || !agentId ? 'doc-agent-choices' : 'agent-invite-choices'} data-agent-id={agentId}>
       <div className="axn-doc-choice-row">
         {options.map(({ label, task }) => (
-          <Button key={task} size="small" className="axn-doc-choice" data-choice-task={task} disabled={disabled} onClick={() => onPick(task)}>
+          <Button key={task} size="small" className="axn-doc-choice" data-choice-task={task} disabled={disabled} onClick={() => onPick(task, label)}>
             {label}
           </Button>
         ))}
@@ -94,7 +96,7 @@ function AgentInviteChoices({ agentId, options, hint, disabled, onPick }: {
 
 export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelProps) {
   const { token } = theme.useToken();
-  const { modal, message } = AntdApp.useApp();
+  const { message } = AntdApp.useApp();
   const currentEventId = useDemoStore((s) => s.currentEventId);
   const sidebarCollapsed = useDemoStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useDemoStore((s) => s.toggleSidebar);
@@ -107,6 +109,22 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   const scope = useActiveScope();
 
   const [input, setInput] = useState('');
+  const [pendingEventAction, setPendingEventAction] = useState<{ conversationId: string; label: string; run: () => void } | null>(null);
+  const [skillPickerOpen, setSkillPickerOpen] = useState(false);
+  const [incidentPickerOpen, setIncidentPickerOpen] = useState(false);
+  useEffect(() => { setIncidentPickerOpen(false); setPendingEventAction(null); }, [activeConversationId]);
+  const [skillQuery, setSkillQuery] = useState<string | null>(null);
+  const skillCommandStart = useRef<number | null>(null);
+  const changeSkillPickerOpen = useCallback((open: boolean) => {
+    setSkillPickerOpen(open);
+    if (open) { setIncidentPickerOpen(false); setPendingEventAction(null); }
+    if (!open) {
+      const start = skillCommandStart.current;
+      if (start !== null) setInput(previous => previous.slice(0, start));
+      skillCommandStart.current = null;
+      setSkillQuery(null);
+    }
+  }, []);
   const composerRef = useRef<HTMLDivElement>(null);
   const [mobileComposer, setMobileComposer] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -202,20 +220,39 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   /** 只传了附件、输入框里还没打字：等材料期间这就算一条完整输入，回车与发送按钮都交得出去。 */
   const submittingSources = waitingUpload != null && attachments.length > 0;
 
-  const handleSend = (raw: string) => {
+  const requestEventBeforeTask = async (text: string, run: () => void, agentId?: string, label?: string) => {
+    if (!activeConversationId || !session) return true;
+    const conversationId = activeConversationId;
+    const current = useConversationStore.getState().conversations[conversationId];
+    if (incidentById.has(current?.eventId ?? '')) return false;
+    const required = await eventRequirement(text, session, agentId);
+    // 识别期间切换了对话，则放弃这次待执行操作。
+    const conversations = useConversationStore.getState();
+    if (conversations.activeConversationId !== conversationId) return true;
+    if (!required || incidentById.has(conversations.conversations[conversationId]?.eventId ?? '')) return false;
+    changeSkillPickerOpen(false);
+    setPendingEventAction({ conversationId, label: label ?? required.title, run });
+    setIncidentPickerOpen(true);
+    return true;
+  };
+
+  const handleSend = async (raw: string): Promise<void> => {
     const text = raw.trim();
     if (!session || busy) return;
     // 附件随本条消息送出后清空。消费附件的两条路：周工作动态的上传门（下面）、默认问答。
     const pendingAttachments = attachments;
     // 上传门开着时，把文件直接发过来 = 上传并开始生成，所以允许只传文件不写字。
     if (!text && !(waitingUpload && pendingAttachments.length)) return;
+    const waitingSummary = session.messages.find(message => message.documentWorkflow?.stage === 'waiting_input');
+    const documentInput = (waitingUpload && pendingAttachments.length) || waitingSummary || /生成.*工作总结|工作总结.*生成/.test(text);
+    const agentContext = activeConversation?.source === 'agent-management' ? session.messages.find(item => item.kind === 'agent' && item.choices)?.agentId : undefined;
+    if (!documentInput && await requestEventBeforeTask(text, () => { void handleSend(raw); }, agentContext)) return;
     setInput('');
     setAttachments([]);
     if (waitingUpload && pendingAttachments.length) {
       void submitDynamicsSources(session.sessionId, waitingUpload.messageId, pendingAttachments);
       return;
     }
-    const waitingSummary = session.messages.find(message => message.documentWorkflow?.stage === 'waiting_input');
     if (waitingSummary) {
       void submitWorkSummaryImprovement(session.sessionId, waitingSummary.messageId, text);
       return;
@@ -236,7 +273,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     void submitDynamicsSources(session.sessionId, waitingUpload.messageId, files);
   };
 
-  const handleQuickTask = async (text: string) => {
+  const handleQuickTask = async (text: string, agentId?: string, label?: string): Promise<void> => {
+    if (!session || busy) return;
+    if (await requestEventBeforeTask(text, () => { void handleQuickTask(text, agentId, label); }, agentId, label)) return;
     if (text === '生成工作总结') {
       if (session && !busy) await generateWorkSummary(session.sessionId, text);
       return;
@@ -301,45 +340,55 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
     !activeConversation || !activeConversation.eventId || activeConversation.eventId.startsWith('evt-blank-')
       ? BLANK
       : activeConversation.eventId;
-  const handleLinkChange = (value: string) => {
+  const handleLinkChange = (value: string, afterLink?: () => void) => {
     if (!activeConversation) return;
-    // undefined → 会话回到专属虚拟事件（保留其独立消息）
-    const proceed = () => linkConversationToEvent(activeConversation.id, value === BLANK ? undefined : value);
-    const workspace = useWorkspaceStore.getState();
-    if (!workspace.isDirty(scope)) { proceed(); return; }
-    modal.confirm({
-      title: '有未保存的文书修改',
-      // 切事件只解除编辑状态；草稿改动在 documentStore、模拟文书改动在 mockDocumentStore，都不会丢。
-      content: '切换事件不会丢弃修改，改动保留在本次会话（尚未保存）。',
-      okText: '继续切换',
-      cancelText: '继续编辑',
-      onOk: () => { workspace.setDirty(scope, false); workspace.close(scope); proceed(); },
-    });
+    const updated = linkConversationToEvent(activeConversation.id, value);
+    if (!updated) return;
+    if (updated.id !== activeConversation.id) {
+      // 新会话只保留专属智能体身份，不复制原会话的消息、文件或任务。
+      const agentId = activeConversation.source === 'agent-management' ? session?.messages.find(item => item.kind === 'agent' && item.choices)?.agentId : undefined;
+      const newSessionId = useSessionStore.getState().sessionByConversation[updated.id];
+      if (agentId && newSessionId) summonAgentInConversation(newSessionId, agentId);
+      message.success('已新开会话并关联事件，原会话已保留');
+    }
+    afterLink?.();
   };
 
-  // 关联灾情：输入框右下角的关联按钮，点开居中的选择弹窗（带事件名称搜索）。
+  // 关联灾情：从输入框入口打开居中弹窗，支持事件名称搜索。
   // 未关联时显示 placeholder「选择关联灾情事件」（标注 vibe_1791787570681）。
-  const [incidentPickerOpen, setIncidentPickerOpen] = useState(false);
   const incidentSelect = (
     <>
       <button
         type="button"
         className={`axn-cp-select${linkValue === BLANK ? ' is-empty' : ''}`}
-        onClick={() => setIncidentPickerOpen(true)}
+        onClick={() => { changeSkillPickerOpen(false); setPendingEventAction(null); setIncidentPickerOpen(!incidentPickerOpen); }}
         aria-label="关联灾情"
         aria-description={linkValue === BLANK ? '未关联灾情' : eventDisplayName(linkValue)}
         aria-haspopup="dialog"
+        aria-expanded={incidentPickerOpen}
         data-testid="chat-link-incident"
       >
         <MapPin size={14} aria-hidden />
         <span className="axn-cp-select-text">{mobileComposer ? '灾情' : linkValue === BLANK ? '选择关联灾情事件' : eventDisplayName(linkValue)}</span>
         <ChevronDown size={12} aria-hidden className="axn-cp-select-caret" />
       </button>
-      <IncidentPickerModal
+      <IncidentPicker
         open={incidentPickerOpen}
+        containerRef={composerRef}
         value={linkValue === BLANK ? 'none' : linkValue}
-        onClose={() => setIncidentPickerOpen(false)}
-        onSelect={(id) => { if (id !== linkValue) handleLinkChange(id === 'none' ? BLANK : id); }}
+        taskLabel={pendingEventAction?.label}
+        hasUnsavedChanges={useWorkspaceStore.getState().isDirty(scope)}
+        onClose={() => { setIncidentPickerOpen(false); setPendingEventAction(null); }}
+        onSelect={(id) => {
+          const pendingAction = pendingEventAction;
+          handleLinkChange(id, () => {
+            if (!pendingAction) return;
+            const conversations = useConversationStore.getState();
+            if (conversations.activeConversationId !== pendingAction.conversationId || !incidentById.has(conversations.conversations[pendingAction.conversationId]?.eventId ?? '')) return;
+            setPendingEventAction(null);
+            pendingAction.run();
+          });
+        }}
       />
     </>
   );
@@ -449,7 +498,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                   options={AGENT_INVITATIONS.find(agent => agent.agentId === m.agentId)?.options ?? m.choices}
                   hint={m.hint ?? ''}
                   disabled={!session || busy}
-                  onPick={(task) => { void handleQuickTask(task); }}
+                  onPick={(task, label) => { void handleQuickTask(task, m.agentId, label); }}
                 />
               ) : null}
             >
@@ -493,7 +542,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
         contentRender: () => <><div>{m.text}</div>{m.text && <ResponseFeedback sessionId={m.sessionId} targetId={m.messageId} />}</>,
       };
     });
-  }, [session?.messages, tasks, onOpenDrawer, busy]);
+  }, [session?.messages, tasks, onOpenDrawer, busy, activeConversationId, attachments]);
 
   const hasMessages = items.length > 0;
 
@@ -666,7 +715,21 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
           )}
           <Sender
             value={input}
-            onChange={(v) => setInput(v)}
+            onChange={(value) => {
+              setInput(value);
+              const command = value.match(/(?:^|\s)\/([^\s/]*)$/);
+              if (command && session && !busy) {
+                skillCommandStart.current = value.lastIndexOf('/');
+                setSkillQuery(command[1]);
+                setIncidentPickerOpen(false);
+                setPendingEventAction(null);
+                setSkillPickerOpen(true);
+              } else if (skillCommandStart.current !== null) {
+                skillCommandStart.current = null;
+                setSkillQuery(null);
+                setSkillPickerOpen(false);
+              }
+            }}
             onSubmit={(message) => handleSend(message)}
             loading={runningTask != null}
             // 受控录音开关：点麦克风在「开始/停止模拟转写」间切换，按钮自己会显示录音中的动画。
@@ -688,7 +751,9 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
                 <Button type="text" className="axn-composer-more" icon={<Plus size={20} />}
                   aria-label="输入工具" aria-expanded={toolsOpen} />
               </Popover> : composerTools}
-              <ComposerKnowledgePicker conversationId={activeConversationId ?? ''} disabled={!session || busy} compact={mobileComposer} />
+              <ComposerSkillPicker conversationId={activeConversationId ?? ''} disabled={!session || busy} compact={mobileComposer}
+                open={skillPickerOpen} slashQuery={skillQuery} containerRef={composerRef} onOpenChange={changeSkillPickerOpen}
+                onAfterClose={() => composerRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus()} />
               {mobileComposer && incidentSelect}
               </div>
             )}
