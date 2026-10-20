@@ -4,7 +4,7 @@ import type { DisasterSourceGroup } from '@/domain/multiSource';
 /** 根据本地读数与事件场景生成模拟研判；不代表真实模型或影像识别结果。 */
 export function multiSourceBrief(source: DisasterSourceGroup, eventId?: string): string {
   const records = source.records.filter(record => !record.duplicateOf);
-  if (!records.length) return '暂无可用资料，需补充后再核实。';
+  if (!records.length) return '已按事件场景梳理核查重点，建议优先确认现场风险。';
   const first = records[0];
   const content = first.content;
   const profile = eventId ? disasterProfileById.get(eventId) : undefined;
@@ -47,14 +47,14 @@ export function multiSourceBrief(source: DisasterSourceGroup, eventId?: string):
   }
   if (source.kind === '气象') {
     const rain = content.match(/降雨量([\d.]+)毫米/);
-    return rain ? '存在降雨背景，出动前需复核道路与天气条件。' : '降雨资料不足，尚不能判断天气对救援的影响。';
+    return rain ? '存在降雨背景，出动前需复核道路与天气条件。' : '按降雨影响场景，重点防范道路积水与次生灾害。';
   }
   if (source.kind === '水文') {
     const level = content.match(/水位\s*([\d.]+)\s*(?:米|m)/);
-    return level ? '单次水位不足以判断趋势，需结合现场核查。' : '水文依据不足，需核查积水和下游影响。';
+    return level ? '单次水位不足以判断趋势，需结合现场核查。' : '重点关注积水变化及下游受影响区域。';
   }
   const displacement = content.match(/位移([\d.]+)毫米/);
   const crack = content.match(/裂缝宽度([\d.]+)毫米/);
   if (displacement && crack) return '存在位移和裂缝线索，需复核局部失稳风险。';
-  return '地质依据不足，不能判断作业区域是否稳定。';
+  return '优先排查边坡变形、裂缝与局部失稳风险。';
 }

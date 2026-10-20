@@ -1,3 +1,8 @@
+import { startMultiSourceConversation } from '@/services/multiSourceConversation';
+import ReplySources from './ReplySources';
+import { replySources } from '@/services/replySources';
+import { startRouteConversation } from '@/services/roadWeather';
+import { answerStageQuestion } from '@/services/questionConversation';
 import SummaryReviewReply from './SummaryReviewReply';
 import { startSummaryConversation, respondToSummaryOffer } from '@/services/summaryConversation';
 import { flowConversationReply } from '@/services/flowConversationReply';
@@ -18,7 +23,7 @@ import IncidentPickerModal from './IncidentPickerModal';
 import { MapPin, ChevronDown } from 'lucide-react';
 import { COMPOSE_EVENT } from '@/components/doc/SelectionAssist';
 import { startWeeklyDynamics, submitDynamicsSources } from '@/services/weeklyDynamicsWorkflow';
-import { floatingActionGroups } from '@/services/floatingActionGroups';
+import { floatingActionGroups, stageChoiceFeature } from '@/services/floatingActionGroups';
 import type { ComponentRef } from 'react';
 import { replyEmbeddedQa, embeddedQaKind, embeddedStageChoices, embeddedChoiceAttachment } from '@/services/embeddedQa';
 import { V2_AI_MODES, V2_AI_DOCUMENT_CODES } from '@/pages/v2/aiNodes';
@@ -33,7 +38,7 @@ import { AGENT_QUICK_TASKS, CONVERSATION_ONLY_ACTIONS } from '@/seed/agentQuickT
 import { tenderName, tenderTaskPrompt } from '@/seed/tenderNames';
 import { isDutyContent, isMeetingMinutesContent, isResourceDataAlertContent, SHOW_DISASTER_EVENTS_LIBRARY } from '@/seed/prototypeVisibility';
 import { FLOW_TASKS } from './OperationalFlows';
-import { submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
+import { generateWorkSummary, submitWorkSummaryImprovement } from '@/services/workSummaryWorkflow';
 import ResourceAuditReply from './ResourceAuditReply';
 import { resourceAuditSample } from '@/services/resourceAudit';
 import { runEventPrecipitation } from '@/services/eventPrecipitation';
@@ -236,6 +241,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
   const scope = useActiveScope();
 
   const openFlowWorkspace = (tab: typeof FLOW_TASKS[number], reply = true) => {
+    if (tab === '规划梯队投送' && session && reply) { startRouteConversation(session.sessionId, conversationRequest(tab), false); return; }
     if (tab === '态势研判预警' || tab === '预警推送') {
       if (!session) return;
       openInlineSituation(session.sessionId, tab);
@@ -395,7 +401,38 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     }
     if (!session || busy) return;
     if (!text && !attachment) return;
+    if (!attachment && session.messages.at(-1)?.summaryOffer?.kind === 'sixData') {
+      const latest = session.messages.at(-1)!;
+      const accepted = /^(是|是的|需要|要|好的?|可以|展示|需要，展示六类数据图表|展示六类数据图表)[。！!，,\s]*$/.test(text);
+      const declined = /^(不需要|不用|暂不生成|暂时不需要|先不用)[。！!\s]*$/.test(text);
+      if (accepted || declined) {
+        const store = useSessionStore.getState();
+        store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', text, taskId: null });
+        store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'assistant', kind: 'text', text: accepted ? '已在右侧展开六类数据，您可以切换查看图表、记录与来源依据。' : '好的，先保留以上汇聚总结，需要时可以继续查看详细数据。', taskId: null, multiSourceDetails: latest.multiSourceDetails });
+        if (accepted) useWorkspaceStore.getState().select(scope, { kind: 'sixData', id: latest.summaryOffer?.request ?? session.eventId });
+        setInput(''); clearPending(); return;
+      }
+    }
+    if (!attachment && /多源数据汇聚|六源汇聚|汇聚.*六类|汇总.*六类/.test(text)) {
+      startMultiSourceConversation(session.sessionId, text); setInput(''); clearPending(); return;
+    }
+    if (!attachment && session.messages.at(-1)?.summaryOffer?.kind === 'map') {
+      const accepted = /^(是|是的|需要|要|好的?|可以|展示|需要，用地图展示|用地图展示线路)[。！!，,\s]*$/.test(text);
+      const declined = /^(不需要|不用|暂不生成|暂时不需要|先不用)[。！!\s]*$/.test(text);
+      if (accepted || declined) {
+        const store = useSessionStore.getState();
+        store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'user', kind: 'text', text, taskId: null });
+        store.appendMessage(session.sessionId, { sessionId: session.sessionId, role: 'assistant', kind: 'text', text: accepted ? '已在右侧地图展示线路，您可以查看路线详情。' : '好的，先保留以上路线信息。', taskId: null });
+        if (accepted) openFlowWorkspace('规划梯队投送', false);
+        setInput(''); clearPending(); return;
+      }
+    }
+    if (!attachment && (/核对道路天气|沿途道路|现场天气|规划.*(?:路线|线路)|投送路线优化/.test(text))) {
+      startRouteConversation(session.sessionId, text, /天气|沿途道路/.test(text));
+      setInput(''); clearPending(); return;
+    }
     if (!attachment && respondToSummaryOffer(session.sessionId, text)) { setInput(''); clearPending(); return; }
+    if (!attachment && answerStageQuestion(session.sessionId, text, queuedChoice)) { setInput(''); clearPending(); return; }
     if (isEmbeddedAssistant && replyEmbeddedQa(session.sessionId, new URLSearchParams(location.search).get('embedded'), text, attachment)) {
       requestAnimationFrame(() => embeddedMessageList.current?.scrollTo({ top: 'bottom' }));
       setInput('');
@@ -441,7 +478,11 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
       return;
     }
     if (text && /复盘总结|生成.*总结|整理.*总结|全面总结|抢险总结|总结.*生成|总结一下/.test(interpretationText)) {
-      startSummaryConversation(session.sessionId, text, interpretationText);
+      if (/(?:生成|出具|编制|起草).*(?:总结|复盘)/.test(text)) {
+        void generateWorkSummary(session.sessionId, text, { interactive: true });
+      } else {
+        startSummaryConversation(session.sessionId, text, interpretationText);
+      }
       return;
     }
     void sendMessage(session.sessionId, {
@@ -652,6 +693,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
     if (EVALUATION_TEXT_ACTIONS.includes(text as EvaluationTextAction)) { replyEvaluationAction(text as EvaluationTextAction); return; }
     if (text === '生成救援方案' || tenderTaskPrompt(text) === '生成救援方案') { if (session && !busy) generateRescuePlanAlternatives(session.sessionId, session.eventId); return; }
     if (text === '资源建议') { replyResourceRecommendation(); return; }
+    if (text === '多源数据汇聚' && session && !busy) { startMultiSourceConversation(session.sessionId, text); return; }
     if (text === '预警推送' || text === '态势研判预警') { openFlowWorkspace(text); return; }
     if (CUSTOMER_ACTIONS.includes(text as CustomerAction)) { setCustomerAction(text as CustomerAction); return; }
     const flowLabel = FLOW_TASKS.filter(name => name !== '现场智能勘察' && name !== '编组确认').find(
@@ -1044,6 +1086,16 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
         };
       }
       return { key: m.messageId, role: 'ai', content: m.text ?? '', avatar: AVATAR, contentRender: () => <StructuredReply text={m.text ?? ''} /> };
+    }).map((item): BubbleItemType => {
+      if (item.role === 'user' || item.role === 'system') return item;
+      const message = messages.find(message => message.messageId === item.key);
+      if (!message) return item;
+      const render = item.contentRender;
+      const sources = replySources(message, message.taskId ? tasks[message.taskId] : undefined, session?.eventId);
+      return { ...item, contentRender: (content) => <>
+        <div className="axn-reply-body">{render ? render() : content}</div>
+        <ReplySources sources={sources} />
+      </> };
     });
   }, [session?.messages, tasks, onOpenDrawer, busy, navigate]);
 
@@ -1337,7 +1389,7 @@ function StandardChatPanel({ onOpenDrawer = noopOpenDrawer, compact = false }: C
                         <button type="button" className="axn-floating-action-item" key={option.id}
                           data-choice-id={option.id} disabled={!session || busy}
                           onClick={() => { selectStageChoice(option.id); setStagePromptOpen(false); }}>
-                          <span>{option.label}</span>
+                          <span>{option.label}<span className="axn-floating-action-feature">对应功能：{stageChoiceFeature(option)}</span></span>
                           <small>{option.id.startsWith('legacy-quick:') ? '发起对话' : option.kind === 'file' ? '附上材料' : '填入问题'}</small>
                         </button>
                       ))}

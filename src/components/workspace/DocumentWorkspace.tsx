@@ -1,3 +1,4 @@
+import MultiSourcePanel from './MultiSourcePanel';
 import { openInlineSituation } from '@/services/inlineSituation';
 import CustomerOperationsPanel from '@/components/chat/CustomerOperationsPanel';
 /**
@@ -119,6 +120,8 @@ export default function DocumentWorkspace() {
         onClose={requestClose} />
     </div></div>;
   }
+
+  if (selection?.kind === 'sixData') return <div className="doc-workspace"><div className="doc-workspace-body"><MultiSourcePanel key={selection.id} eventId={selection.id} onClose={requestClose} /></div></div>;
 
   if (selection?.kind === 'flow') {
     return (

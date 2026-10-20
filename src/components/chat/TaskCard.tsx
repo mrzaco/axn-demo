@@ -294,7 +294,7 @@ function ScenarioSectionsBlock({
         )}
       />}
       <p className="axn-agent-result-lead">{payload.summary}</p>
-      {payload.sections.map((section, index) => <details className="axn-result-details" key={`${index}-${section.title}`} open={index === 0}>
+      {payload.sections.filter(section => !/招标能力补齐/.test(section.title)).map((section, index) => <details className="axn-result-details" key={`${index}-${section.title}`} open={index === 0}>
         <summary>{section.title}</summary><StructuredReply text={section.text} />
       </details>)}
       {[...(payload.table ? [{ title: '明细记录', ...payload.table }] : []), ...(payload.tables ?? [])].map((table, index) => <details className="axn-result-details" key={index}><summary>{table.title} · {table.rows.length} 条</summary>

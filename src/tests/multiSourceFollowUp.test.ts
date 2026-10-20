@@ -8,7 +8,7 @@ describe('汇聚后的补充核实清单', () => {
     const items = multiSourceFollowUp(snapshot.event.sources);
     expect(items).toHaveLength(3);
     expect(items.find(item => item.kind === '现场影像')?.count).toBe(3);
-    expect(items.reduce((total, item) => total + item.count, 0)).toBe(5);
+    expect(items.reduce((total, item) => total + item.count, 0)).toBe(6);
     expect(items.map(item => item.title)).toContain('确认地面和边坡是否安全');
     expect(JSON.stringify(items)).not.toContain('demo-source:');
   });

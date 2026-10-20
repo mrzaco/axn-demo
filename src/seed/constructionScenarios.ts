@@ -249,16 +249,10 @@ const LEDGER_MAINTENANCE_HINT =
 
 /** 按灾种给出道路/天气演示占位（非实时路况）。 */
 function roadWeatherDemo(disasterType: string, isFlood: boolean): string {
-  if (/冰雪|大雪|低温|封山/.test(disasterType)) {
-    return '演示占位（参考镇雄抢险口径）：大雪封山时装备可能无法上高速，人员可改铁路等运输方式；通行保障、票务与对外协调为投送堵点。未接实时路况，正式结论待当地回传。';
-  }
-  if (isFlood || /内涝|积水|洪涝|堤防|决口|堰塞/.test(disasterType)) {
-    return '演示占位：关注低洼路段积水、匝道封闭与绕行条件；装备与人员投送前核对通行保障（含高速免费/快速通行协调）。未接实时路况 API。';
-  }
-  if (/地震|滑坡|泥石流|矿/.test(disasterType)) {
-    return '演示占位：关注塌方阻断、便道承载与展开空间；道路通行与天气条件对先期研判和投送组织至关重要，须据现场回传更新。未接实时路况。';
-  }
-  return '尚无授权实时道路、天气或交通管制记录，请补充当地回传资料；通行保障与对外协调为投送组织常见堵点。本原型不预测灾害边界或认定通行条件。';
+  if (/冰雪|大雪|低温|封山/.test(disasterType)) return '已按冰雪封路场景规划分批转运：装备走防滑保障通道，人员采用铁路与接驳车辆协同投送（模拟）。';
+  if (isFlood || /内涝|积水|洪涝|堤防|决口|堰塞/.test(disasterType)) return '已规划外围绕行路线，避开低洼积水路段，设置通行检查点与前方集结点，工程车辆分批进场（模拟）。';
+  if (/地震|滑坡|泥石流|矿/.test(disasterType)) return '已规划避开塌方与落石区域的绕行路线，先遣核路、工程车辆分批跟进，保障力量在安全集结点接应（模拟）。';
+  return '已按事件位置与投送需求规划基地、检查点、集结点至现场的分批投送路线（模拟）。';
 }
 
 /** 队伍/人员状态时效：突出更新时间与可出动核对（用户关注点）。 */
@@ -403,15 +397,7 @@ function buildConstructionResultInternal(
       result.title = `${profile.name} · 资源智能检索`;
       result.summary = `${profile.category}；${profile.location}；${profile.capturedAt}。${result.summary}`;
       result.dataTime = profile.capturedAt;
-      const resSup = resourceCapabilitySupplement({
-        eventName: profile.name,
-        disasterType: profile.category,
-        location: profile.location,
-        risks: profile.risks,
-        planTitle: profile.planTitle,
-      });
       result.sections.unshift({title:'事件与检索范围',text:`${profile.name} / ${profile.category} / ${profile.location}。${profile.gaps}。资源为当前事件独立候选（模拟），未正式调派。`});
-      result.sections.push({ title: '招标能力补齐（模拟）', text: `${resSup.nlSearch}\n\n${resSup.multiConstraint}` });
       return result;
     }
     if (capability === 'update') {

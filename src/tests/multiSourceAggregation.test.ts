@@ -7,6 +7,17 @@ import { shiftEventIds } from '@/services/factLookup';
 
 beforeEach(() => useDemoStore.getState().reset());
 describe('六源汇聚', () => {
+  it('舆情包含本事件微信群采集原文、渠道、时间、版本与待核状态', () => {
+    const records = buildMultiSourceSnapshot('evt-sim-landslide').event.sources.find(source => source.kind === '舆情')!.records;
+    const wechat = records.find(record => record.id.endsWith('wechat-collection'))!;
+    expect(wechat.source).toContain('微信消息授权采集（模拟）');
+    expect(wechat.content).toContain('青岭村');
+    expect(wechat.capturedAt).toBeTruthy();
+    expect(wechat.version).toBe('V1-demo');
+    expect(wechat.verification).toBe('待核实');
+    expect(wechat.refs).toEqual(['demo-source:evt-sim-landslide:wechat-collection']);
+  });
+
   it('归并同一事件的重复转发并保留原来源，待核样例不改成已核', () => {
     const snapshot = buildMultiSourceSnapshot('evt-demo-001');
     const counts = aggregationCounts(snapshot.event.sources);

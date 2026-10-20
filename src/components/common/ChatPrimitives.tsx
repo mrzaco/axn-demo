@@ -75,7 +75,7 @@ export function RunBar({ title, steps, status, meta, defaultOpen = false, side }
       <div className="axn-task-head">
         <button type="button" className="axn-task-process-toggle" aria-expanded={open} onClick={() => setOpen(v => !v)}>
           <ChevronRight size={14} aria-hidden className="axn-task-process-caret" />
-          <span className="axn-task-title">{title}</span>
+          <span className="axn-task-title" title={title}>{title}</span>
           <span className="axn-task-process-meta">{running ? '正在执行 · ' : ''}{done}/{steps.length} 步{meta ? ` · ${meta}` : ''}</span>
         </button>
         <div className="axn-task-head-side">

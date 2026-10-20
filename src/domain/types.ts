@@ -220,8 +220,9 @@ export interface SessionMaterial {
 }
 
 export interface ChatMessage {
+  multiSourceDetails?: MultiSourceSnapshot;
   reviewSummary?: { conclusion: string; rows: { label: string; value: string }[] };
-  summaryOffer?: { kind: 'report' | 'knowledge'; request?: string; documentId?: string };
+  summaryOffer?: { kind: 'report' | 'knowledge' | 'analysis' | 'map' | 'sixData'; request?: string; documentId?: string; title?: string };
 
   regionalDisasters?: MultiSourceSnapshot;
   /** 生成后的独立文书检查气泡，进度按会话和文书存储。 */

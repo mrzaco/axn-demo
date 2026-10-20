@@ -22,6 +22,7 @@ export type WorkspaceSelection =
   | { kind: 'draft'; id: string }
   /** 业务流程补充：与公文一样嵌在右侧工作区，id 为 FlowTask 名称 */
   | { kind: 'flow'; id: string }
+  | { kind: 'sixData'; id: string }
   | { kind: 'operations'; id: string }
   /** 资源与态势：与公文同一右侧槽位，id 为默认 Tab（list / map） */
   | { kind: 'resource'; id: 'list' | 'map' };

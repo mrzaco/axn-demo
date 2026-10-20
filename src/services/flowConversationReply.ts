@@ -9,7 +9,7 @@ export function flowConversationReply(task: FlowTask, eventId: string, eventName
   if (mode === 'future') return `当前事件处于“${stage}”，尚未进入${tenderName(task)}环节。我已打开对应内容供您查看，完成前置阶段后再继续操作。`;
   const seed = buildFlowSeedSnapshot(eventId, disasterProfileById.get(eventId), eventName);
   const replies: Partial<Record<FlowTask, string>> = {
-    规划梯队投送: `已为“${eventName}”整理投送路线${mode === 'past' ? '回放' : '草案'}（模拟）。\n\n道路条件：${seed.road}\n建议路线：${seed.route}\n协调负责人：${seed.owner}\n\n建议按“基地出发 → 通行检查点 → 前方集结点 → 现场到达”组织投送，出动前核实道路通行、车辆条件和现场接应。右侧可查看路线图、节点进度及导出计划；这条路线为演示方案，未接入实时路况。`,
+    规划梯队投送: `已经按照“${eventName}”的事件位置、道路条件和投送需求，为您规划好路线${mode === 'past' ? '回放' : '草案'}（模拟）。\n\n道路条件：${seed.road}\n建议路线：${seed.route}\n协调负责人：${seed.owner}\n\n建议按“基地出发 → 通行检查点 → 前方集结点 → 现场到达”组织投送，出动前核实道路通行、车辆条件和现场接应。右侧可查看路线图、节点进度及导出计划；以上为本事件的模拟投送方案。`,
     资源维护与导出: '已打开资源数据更新清单。请补充需要核对的资源名称、数量和状态，逐项核实后再更新；当前为本地模拟，不会自动回写正式台账。',
     方案修订对比: '已打开方案修订对比。请补充现场发生了哪些变化，我会据此核对受影响的部署、安全条件和方案章节，并展示版本差异。',
     编组确认: '已打开人装编组清单。请核对车辆、人员、操作手和负责人，再确认本次编组。',

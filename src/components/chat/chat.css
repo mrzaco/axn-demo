@@ -249,16 +249,16 @@
 .axn-status--err > i { background: var(--axn-error); }
 /* 运行条（v3）：任务名 · 步数 · 耗时 | 状态 —— 一行浅底条，展开后执行过程接在条内 */
 .axn-task-run { border-radius: var(--radius-md); background: var(--axn-soft); overflow: hidden; }
-.axn-task-head { display: flex; align-items: center; gap: var(--space-2); min-height: 36px; padding: 0 var(--space-2) 0 var(--space-1); }
+.axn-task-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-height: 52px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-1); }
 .axn-task-head > .axn-task-title { padding-inline-start: var(--space-2); }
-.axn-task-title.ant-typography { font-size: var(--fs-body); font-weight: 600; color: var(--axn-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.axn-task-process-toggle { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--space-1-5); height: 36px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; cursor: pointer; text-align: left; color: var(--axn-text); }
+.axn-task-title, .axn-task-title.ant-typography { font-size: var(--fs-body); font-weight: 600; color: var(--axn-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.axn-task-process-toggle { flex: 1 1 220px; min-width: 0; display: grid; grid-template-columns: 14px minmax(0, 1fr); align-items: center; column-gap: var(--space-1-5); row-gap: 3px; min-height: 36px; height: auto; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; cursor: pointer; text-align: left; color: var(--axn-text); }
 .axn-task-process-toggle:hover .axn-task-title { color: var(--axn-primary-text); }
 .axn-task-process-toggle:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
 .axn-task-process-caret { flex-shrink: 0; color: var(--axn-faint); transition: transform var(--transition-fast); }
 .axn-task-run.is-open .axn-task-process-caret { transform: rotate(90deg); }
-.axn-task-process-meta { flex-shrink: 0; font-size: var(--fs-meta); color: var(--axn-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.axn-task-process-meta::before { content: '·'; margin-inline-end: var(--space-1-5); }
+.axn-task-process-meta { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-meta); color: var(--axn-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.axn-task-process-meta::before { content: none; }
 .axn-task-head-side { flex-shrink: 0; display: flex; align-items: center; gap: var(--space-1-5); margin-inline-start: auto; }
 .axn-task-run.is-running .axn-task-title { background: linear-gradient(90deg, var(--axn-text) 0%, var(--axn-faint) 50%, var(--axn-text) 100%) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: axn-shimmer-text 2s linear infinite; }
 @keyframes axn-shimmer-text { to { background-position: -200% 0; } }
@@ -764,3 +764,13 @@
 .axn-floating-actions-hint { margin-top: 12px; padding: 12px 4px 0; border-top: 1px solid #edf0f5; color: #929bad; font-size: 12px; line-height: 1.7; }
 
 .axn-incident-stage { flex-shrink: 0; margin-inline-end: 0; }
+
+/* 所有 AI 回复共用底部来源入口；默认收起，避免增加正文长度。 */
+.axn-reply-sources { margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--axn-border); min-width: 0; }
+.axn-reply-sources > summary { cursor: pointer; color: var(--axn-muted); font-size: var(--fs-meta); line-height: 1.7; }
+.axn-reply-sources > summary span { color: var(--axn-faint); }
+.axn-reply-sources > .axn-qa-sources { border-top: 0; }
+.axn-reply-sources > .axn-qa-sources > .axn-qa-sources-title { display: none; }
+.axn-reply-body .axn-qa-sources { display: none; }
+
+.axn-floating-action-feature { display: block; margin-top: 5px; color: var(--axn-faint); font-size: var(--fs-meta); line-height: 1.5; font-weight: 400; }

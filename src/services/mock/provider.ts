@@ -550,9 +550,9 @@ async function* runSummary(req: Ctx, signal: AbortSignal, paceMs: number): Async
     yield { type: 'step_started', stepId: 'rw1', name: '核对当前事件的道路与天气资料' };
     await sleep(paceMs, signal);
     assertActive(req);
-    yield { type: 'step_completed', stepId: 'rw1', outputSummary: '缺少实时路况、交通管制和天气记录，已列明待核事项' };
+    yield { type: 'step_completed', stepId: 'rw1', outputSummary: '已整理路线信息与天气道路提醒' };
     yield { type: 'text_delta', text: roadWeatherReply(req.eventId) };
-    yield { type: 'completed', summary: '道路天气待核事项已整理' };
+    yield { type: 'completed', summary: '路线与天气道路提醒已整理' };
     return;
   }
   const incidentIn = incidentById.get(req.eventId);

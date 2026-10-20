@@ -63,6 +63,14 @@ function sourceEvent(eventId: string): DisasterSourceEvent {
       source: `${kind}监测适配器（本地模拟）`, capturedAt, version: 'V1-demo',
       refs: [`demo-source:${eventId}:${kind}`], verification: '待核实' }]);
   }
+  const publicGroup = sources.find(group => group.kind === '舆情')!;
+  publicGroup.records.push({
+    id: `${eventId}-wechat-collection`,
+    title: '属地应急工作群消息采集（模拟）',
+    content: `群内消息样例：现场联络员反馈“${location}附近道路通行受影响，建议车辆从外围道路绕行；救援力量正在开展现场排查，请关注后续进展。”已提取地点、道路影响与救援进展三项信息，待与现场接报交叉核实。`,
+    source: '属地应急工作群 · 微信消息授权采集（模拟）',
+    capturedAt, version: 'V1-demo', refs: [`demo-source:${eventId}:wechat-collection`], verification: '待核实',
+  });
   return { eventId, title, location, sources };
 }
 export function buildMultiSourceSnapshot(eventId: string): MultiSourceSnapshot {

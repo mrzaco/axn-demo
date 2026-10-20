@@ -1,83 +1,81 @@
-/** 本地投送路线示意，不提供真实导航或里程估算。 */
-import { useId } from 'react';
-import { Tag, Typography } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Button, Space, Spin, Tag, Typography } from 'antd';
 import type { DisasterProfile } from '@/seed/disasterScenarios';
+import { amapConfig } from '@/config/amap';
+import { loadAmap, type AmapMap, mergeRouteOptions, type RouteOption, type DrivingRoute, type DrivingResult } from '@/services/amap';
 import './events.css';
 
-export default function DeliveryRouteMap({ profile, route = '东侧绕行（示例）', road = '主路阻断（示例）', progress = 0 }: {
-  profile?: DisasterProfile;
-  route?: string;
-  road?: string;
-  /** 0–3，当前轨迹节点。 */
-  progress?: number;
-}) {
-  const id = useId().replace(/:/g, '');
-  const rail = /铁路/.test(route);
-  const location = profile?.location ?? '事发地';
-  const reached = Math.min(3, Math.max(0, progress));
-  const nodes = [
-    { label: '基地出发', x: 92, y: 248 },
-    { label: rail ? '铁路转运点' : '通行检查点', x: 280, y: 224 },
-    { label: '前方集结点', x: 520, y: 220 },
-    { label: '现场到达', x: 714, y: 108 },
-  ];
-  const path = 'M92 248 C168 248 198 224 280 224 L476 224 Q510 224 520 220 C610 204 638 108 714 108';
-  const main = 'M92 248 C150 240 160 120 270 120 L610 120 Q672 120 714 108';
-  return (
-    <div className="axn-delivery-map" data-testid="delivery-route-map">
-      <div className="axn-delivery-map-head">
-        <Typography.Text strong>投送路线示意</Typography.Text>
-        <Tag color="blue">{rail ? '铁路投送' : '东侧绕行'} · 模拟</Tag>
-      </div>
-      <div className="axn-delivery-map-location">{location}</div>
-      <svg viewBox="0 0 800 340" role="img" aria-label={`${location}投送路径示意图：${route}`}>
-        <title>{route}；{road}；轨迹节点 {reached + 1}/4（示意，非真实导航）</title>
-        <defs>
-          <pattern id={`${id}-grid`} width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#e7ede9" strokeWidth=".6" /></pattern>
-          <marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M2 2L8 5L2 8" fill="none" stroke="white" strokeWidth="1.6" /></marker>
-        </defs>
-        <rect width="800" height="340" fill="#f4f7f3" />
-        <rect width="800" height="340" fill={`url(#${id}-grid)`} />
-        <path d="M0 60Q140 6 276 66T570 44T800 78V0H0Z" fill="#e5eee3" />
-        <path d="M0 302Q180 236 340 294T800 264V340H0Z" fill="#e4eddf" />
-        <path d="M-20 123C160 82 246 118 394 70S642 22 830 60" fill="none" stroke="#d5e8ef" strokeWidth="22" />
-        <path d="M-20 123C160 82 246 118 394 70S642 22 830 60" fill="none" stroke="#edf7fb" strokeWidth="2" />
-        <g fill="none" stroke="#fff" strokeWidth="8">
-          <path d="M0 207L180 300L430 256L800 308" /><path d="M167 0L230 100L392 340" /><path d="M566 0L610 150L800 228" />
-        </g>
-        <g fontSize="11" fill="#93a2a0"><text x="75" y="48">基地周边</text><text x="356" y="43">河道</text><text x="634" y="284">作业区域</text></g>
-        <path d={main} fill="none" stroke="#fff" strokeWidth="9" />
-        <path d={main} fill="none" stroke="#df8d82" strokeWidth="4" strokeDasharray="7 7" />
-        <path d={path} fill="none" stroke="#fff" strokeWidth="12" strokeLinecap="round" />
-        <path d={path} fill="none" stroke="#3477ed" strokeWidth="6" strokeLinecap="round" />
-        {rail && <path d={path} fill="none" stroke="#c8ddff" strokeWidth="9" strokeDasharray="2 9" />}
-        <path d="M350 224H370 M440 224H460 M590 179L604 166" fill="none" stroke="#3477ed" strokeWidth="4" markerEnd={`url(#${id}-arrow)`} />
-        <g transform="translate(408 120)">
-          <circle r="13" fill="#fff" stroke="#dd6b5e" strokeWidth="2" />
-          <path d="M-4 -4L4 4M4 -4L-4 4" stroke="#dd6b5e" strokeWidth="2.5" strokeLinecap="round" />
-          <rect x="-48" y="-47" width="96" height="27" rx="7" fill="#fff1ef" stroke="#f1d1cc" />
-          <text y="-29" textAnchor="middle" fontSize="12" fill="#b95448">主通道阻断</text>
-        </g>
-        {nodes.map((node, index) => {
-          const done = index < reached;
-          const current = index === reached;
-          const labelY = index === 3 ? node.y - 51 : node.y + 25;
-          return <g key={node.label}>
-            {current && <circle cx={node.x} cy={node.y} r="22" fill="#3477ed" opacity=".13" />}
-            <circle cx={node.x} cy={node.y} r="13" fill={done || current ? '#3477ed' : '#fff'} stroke={done || current ? '#fff' : '#8eaddb'} strokeWidth="3" />
-            {done ? <path d={`M${node.x - 5} ${node.y}l3 3 7 -7`} stroke="#fff" strokeWidth="2.3" strokeLinecap="round" fill="none" /> : <text x={node.x} y={node.y + 4} textAnchor="middle" fill={current ? '#fff' : '#6381ab'} fontSize="12" fontWeight="600">{index + 1}</text>}
-            <rect x={node.x - 61} y={labelY} width="122" height="29" rx="7" fill="#fff" stroke="#e0e7ee" />
-            <text x={node.x} y={labelY + 19} textAnchor="middle" fontSize="13" fontWeight="500" fill="#334155">{node.label}</text>
-          </g>;
-        })}
-        <g transform="translate(756 32)" fill="#6e8191"><path d="M0 1L-6 17L0 13L6 17Z" /><text y="-5" textAnchor="middle" fontSize="10">N</text></g>
-        <g transform="translate(24 318)" fontSize="11" fill="#65788b">
-          <path d="M0 -4H23" stroke="#3477ed" strokeWidth="4" strokeLinecap="round" /><text x="31">选用路线</text>
-          <path d="M112 -4H135" stroke="#df8d82" strokeWidth="3" strokeDasharray="5 4" /><text x="143">阻断通道</text>
-        </g>
-        <g transform="translate(651 310)"><rect width="125" height="22" rx="6" fill="#fff" opacity=".94" /><text x="62" y="15" textAnchor="middle" fontSize="11" fill="#54729a">当前节点：{nodes[reached].label}</text></g>
-      </svg>
-      <Typography.Text type="secondary" className="axn-delivery-map-hint">路线与地形均为模拟示意，不代表真实导航、距离或实时路况。</Typography.Text>
+export default function DeliveryRouteMap(_props: { profile?: DisasterProfile; route?: string; road?: string; progress?: number }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
+  const [options, setOptions] = useState<RouteOption[]>([]);
+  const [selected, setSelected] = useState(0);
+  const drawRoute = useRef<(route: DrivingRoute) => void>(() => {});
+  useEffect(() => {
+    let disposed = false;
+    let map: AmapMap | undefined;
+    const planners: { clear(): void }[] = [];
+    const timers: number[] = [];
+    let observer: ResizeObserver | undefined;
+    loadAmap().then(sdk => {
+      if (disposed || !container.current) return;
+      map = new sdk.Map(container.current, { zoom: 11, center: [104.066, 30.573], viewMode: '2D', resizeEnable: true });
+      observer = new ResizeObserver(() => map?.resize());
+      observer.observe(container.current);
+      drawRoute.current = route => {
+        if (disposed || !map) return;
+        map.clearMap();
+        const path = route.steps.flatMap(step => step.path);
+        map.add([new sdk.Polyline({ path, strokeColor: '#1677ff', strokeWeight: 7, showDir: true, lineJoin: 'round' }), new sdk.Marker({ position: path[0], title: amapConfig.origin, label: { content: '起点', direction: 'top' } }), new sdk.Marker({ position: path.at(-1), title: amapConfig.destination, label: { content: '终点', direction: 'top' } })]);
+        map.setFitView();
+      };
+      const policies = [
+        { label: '时间优先', policy: sdk.DrivingPolicy.LEAST_TIME },
+        { label: '少收费', policy: sdk.DrivingPolicy.LEAST_FEE },
+        { label: '距离优先', policy: sdk.DrivingPolicy.LEAST_DISTANCE },
+      ];
+      const requests = policies.map(({ label, policy }) => new Promise<{ label: string; data: DrivingResult }>((resolve, reject) => {
+        const planner = new sdk.Driving({ policy, extensions: 'all' });
+        planners.push(planner);
+        const timer = window.setTimeout(() => reject(new Error('路线查询超时')), 15000);
+        timers.push(timer);
+        planner.search([{ keyword: amapConfig.origin, city: amapConfig.city }, { keyword: amapConfig.destination, city: amapConfig.city }], (status, data) => {
+          window.clearTimeout(timer);
+          if (status === 'complete' && data.routes?.length) resolve({ label, data });
+          else reject(new Error('路线查询失败'));
+        });
+      }));
+      void Promise.allSettled(requests).then(results => {
+        if (disposed) return;
+        setLoading(false);
+        const successful = results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+        const choices = mergeRouteOptions(successful);
+        if (!choices.length) { setError('路线规划未完成，请检查起终点、服务权限及调用额度后重试。'); return; }
+        setOptions(choices);
+        setSelected(0);
+        drawRoute.current(choices[0].route);
+      });
+    }).catch(reason => { if (!disposed) { setError(reason instanceof Error ? reason.message : '地图加载失败，请重试。'); setLoading(false); } });
+    return () => { disposed = true; observer?.disconnect(); timers.forEach(window.clearTimeout); planners.forEach(planner => planner.clear()); drawRoute.current = () => {}; map?.destroy(); };
+  }, [retry]);
+  const route = options[selected]?.route;
+  return <div className="axn-delivery-map" data-testid="delivery-route-map">
+    <div className="axn-delivery-map-head"><Typography.Text strong>投送路线规划</Typography.Text><Tag color="blue">高德地图 · 驾车</Tag></div>
+    <div className="axn-delivery-map-location">{amapConfig.origin} → {amapConfig.destination} <Typography.Text type="secondary">（演示起终点）</Typography.Text></div>
+    {options.length > 0 && <div role="group" aria-label="备选驾车路线" style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      {options.map((option, index) => <Button key={index} type={selected === index ? 'primary' : 'default'} aria-pressed={selected === index} style={{ height: 'auto', padding: '10px 16px', textAlign: 'left', whiteSpace: 'normal' }} onClick={() => { setSelected(index); drawRoute.current(option.route); }}>
+        <div><strong>方案{index + 1}</strong> · {option.labels.join(' / ')}</div>
+        <div style={{ marginTop: 4 }}>约 {Math.ceil(option.route.time / 60)} 分钟 · {(option.route.distance / 1000).toFixed(1)} 公里</div>
+      </Button>)}
+    </div>}
+    {options.length === 1 && <Typography.Text type="secondary">当前规划偏好返回相同路线，已合并为一个方案。</Typography.Text>}
+    <div style={{ position: 'relative' }}>
+      <div ref={container} aria-label="高德驾车路线地图" style={{ width: '100%', height: 'clamp(360px, 52vh, 640px)', borderRadius: 10, overflow: 'hidden', background: '#f5f7fa' }} />
+      {loading && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: '#ffffffb3' }}><Spin description="正在比较驾车备选路线…" /></div>}
     </div>
-  );
+    {error && <Alert style={{ marginTop: 12 }} type="info" title={error} action={<Button size="small" onClick={() => { setError(''); setOptions([]); setSelected(0); setLoading(true); setRetry(value => value + 1); }}>重新加载</Button>} />}
+    {route && <><Space wrap style={{ marginTop: 12 }}><Typography.Text strong>全程 {(route.distance / 1000).toFixed(1)} 公里</Typography.Text><Typography.Text>预计 {Math.ceil(route.time / 60)} 分钟</Typography.Text><Typography.Text type="secondary">高德路线规划结果</Typography.Text></Space><details style={{ marginTop: 12 }}><summary>查看行驶指引</summary><ol>{route.steps.map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></details></>}
+  </div>;
 }

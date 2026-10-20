@@ -194,7 +194,7 @@ export default function ChatControlsPage() {
     },
     {
       id: 'progress', name: '任务运行条', group: '信息反馈',
-      description: '一行「任务名 · 步数 · 耗时 | 状态」；运行中标题有微光，点开是逐步时间线。',
+      description: '任务名与步骤信息分行展示，右侧保留状态；窄屏下操作区自动换行，点开查看执行过程。',
       preview: <div className="axn-controls-stack">
         <RunBar title="汇总灾情摘要" status={{ tone: 'busy', label: '执行中' }} defaultOpen steps={[
           { name: '读取现场接报', status: 'completed', output: '3 条记录', time: '0.6s' },
