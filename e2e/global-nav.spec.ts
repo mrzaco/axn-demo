@@ -163,7 +163,7 @@ test('6. 会话列表切换 A→B：B 空上下文（无候选、无任务卡）
   await expect(page.locator('.axn-task-card')).toHaveCount(0);
   // B 无查询任务卡：显示欢迎空态（候选区在资源抽屉内，无任务卡即无查询）
   // 欢迎空态：首页标题（问候语已合并进标题，标注 vibe_1791788298951）
-  await expect(page.locator('.axn-home-title')).toContainText('您好，我是安小能');
+  await expect(page.locator('.axn-home-title')).toContainText('我是安小能');
 });
 
 test('7. 从 B 切回 A：候选恢复（1 支）', async ({ page }) => {
@@ -199,12 +199,12 @@ test('10. 折叠功能已按标注移除（无折叠按钮，侧栏固定宽度�
   expect(width).toBeGreaterThan(200);
 });
 
-test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知识库管理可访问', async ({ page }) => {
+test('10b. 文书库入口隐藏，应急专家与定时任务入口可用，知识库管理可访问', async ({ page }) => {
   for (const label of ['文书库', '应急项目', '智能体与 Skill']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
   // 保留的入口仍在（含已恢复的「知识库」）
-  for (const label of ['安小能', '数字专家', '定时任务', '技能管理', '我的文件', '知识库']) {
+  for (const label of ['安小能', '应急专家', '定时任务', '技能管理', '我的文件', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
   // 知识库入口进入管理模块
@@ -215,16 +215,16 @@ test('10b. 文书库入口隐藏，数字专家与定时任务入口可用，知
   await expect(page.getByRole('heading', { name: '知识库管理', exact: true })).toBeVisible();
 });
 
-test('数字专家展示已有能力，每次召唤新开对话并能选择任务', async ({ page }) => {
+test('应急专家展示已有能力，每次召唤新开对话并能选择任务', async ({ page }) => {
   await newConversation(page);
   const activeConversation = page.locator('.axn-gs-conversation.is-active');
   const conversationId = await activeConversation.getAttribute('data-testid');
   await expect(page.locator('.axn-chips')).toBeVisible();
   const count = await page.locator('.axn-gs-conversation').count();
   for (const [index, agent] of AGENT_INVITATIONS.entries()) {
-    await page.getByRole('button', { name: '数字专家', exact: true }).click();
-    await expect(page.getByRole('heading', { name: '数字专家', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: '数字专家', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: '应急专家', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '应急专家', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '应急专家', exact: true })).toBeVisible();
     const card = page.locator(`.axn-agent-card[data-agent-id="${agent.agentId}"]`);
     await expect(card.getByRole('heading', { name: agent.name, exact: true })).toBeVisible();
     await expect(card.locator('.axn-np-desc')).not.toBeEmpty();
@@ -249,7 +249,7 @@ test('数字专家展示已有能力，每次召唤新开对话并能选择任�
   await page.reload();
   await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
   await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
-  await page.getByRole('button', { name: '数字专家', exact: true }).click();
+  await page.getByRole('button', { name: '应急专家', exact: true }).click();
   await page.getByRole('button', { name: '召唤救援资源管理智能体', exact: true }).click();
   await page.locator('.axn-doc-choices[data-agent-id="agent-resource"]').getByRole('button', { name: '周边救援资源', exact: true }).click();
   await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
@@ -257,7 +257,7 @@ test('数字专家展示已有能力，每次召唤新开对话并能选择任�
   await expect(page.locator('.axn-task-card').first()).toBeVisible();
 });
 
-test('11. 数字专家 / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
+test('11. 应急专家 / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
   // 侧栏入口已按下线标注隐藏，页面本身仍可通过深链直达。
   // 应用用 HashRouter，深链形式为 /#/agents
   await page.goto('/#/agents');

@@ -45,7 +45,7 @@ type NavKey = NavPage;
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
   { key: 'assistant', label: '安小能', icon: <Sparkles /> },
-  { key: 'agents', label: '数字专家', icon: <Bot /> },
+  { key: 'agents', label: '应急专家', icon: <Bot /> },
   { key: 'skills', label: '技能管理', icon: <Puzzle /> },
   { key: 'files', label: '我的文件', icon: <FolderClosed /> },
   { key: 'schedules', label: '定时任务', icon: <Clock /> },

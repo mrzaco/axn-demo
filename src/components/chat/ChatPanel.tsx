@@ -100,6 +100,7 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
   const currentEventId = useDemoStore((s) => s.currentEventId);
   const sidebarCollapsed = useDemoStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useDemoStore((s) => s.toggleSidebar);
+  const actorUserName = useDemoStore((s) => s.getActor().userName);
   const activeConversation = useConversationStore((s) =>
     s.activeConversationId ? s.conversations[s.activeConversationId] : null,
   );
@@ -612,9 +613,10 @@ export default function ChatPanel({ onOpenDrawer, compact = false }: ChatPanelPr
             <div className="axn-home-hero">
               <BrandMark size={44} className="axn-home-mark" />
               {/* 标注 vibe_1791788298951：原「有什么我能帮你的吗？」+ 下方 secondary 问候语合并成这一句。
-                  两段各自 inline-block：窄屏只在逗号处折行，不会把「应急」拆成两行。 */}
+                  两段各自 inline-block：窄屏只在逗号处折行，不会把「应急」拆成两行。
+                  标注 vibe_1792574805907：问候语带上当前用户名（与侧栏底部展示的 userName 同源）。 */}
               <Typography.Title level={1} className="axn-home-title">
-                <span>您好，我是安小能，</span><span>您的应急智能助手</span>
+                <span>您好，{actorUserName}，我是安小能，</span><span>您的应急智能助手</span>
               </Typography.Title>
               {/* 标注 vibe_1791788359448 */}
               <Typography.Paragraph className="axn-home-copy">

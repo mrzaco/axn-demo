@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('定时任务可创建、编辑、暂停、恢复、删除并在刷新后保留', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: '数字专家', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '应急专家', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '定时任务', exact: true }).click();
   await page.getByRole('button', { name: '新建定时任务', exact: true }).click();
   const modal = page.getByRole('dialog');
