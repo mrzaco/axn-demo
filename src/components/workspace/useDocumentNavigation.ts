@@ -13,16 +13,19 @@ export function useDocumentNavigation() {
   const location = useLocation();
   const embedded = location.pathname.startsWith('/phase1')
     || V2_AI_MODES.includes(new URLSearchParams(location.search).get('embedded') ?? '');
-  return useCallback((targetScope: string, selection: WorkspaceSelection) => {
+  return useCallback((targetScope: string, selection: WorkspaceSelection, onOpened?: () => void) => {
     const workspace = useWorkspaceStore.getState();
     const current = workspace.selectionOf(scope);
     if (targetScope === scope && current?.kind === selection.kind && current.id === selection.id) {
+      if (selection.kind === 'draft' && selection.edit) workspace.select(targetScope, selection);
       if (!embedded) navigate(NAV_PATH.assistant);
+      onOpened?.();
       return;
     }
     const open = () => {
       workspace.select(targetScope, selection);
       if (!embedded) navigate(NAV_PATH.assistant);
+      onOpened?.();
     };
     if (!workspace.isDirty(scope)) { open(); return; }
     modal.confirm({

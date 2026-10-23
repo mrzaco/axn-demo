@@ -257,7 +257,7 @@ export function recognize(rawText: string, ctx: { lastResourceResultIds: string[
  * 意图 → 协同智能体映射（模拟协同）：任务执行前先在对话中展示召唤效果。
  * 知识问答/解释/停止/未知不召唤（直接回答或兜底）。
  */
-function summonFor(intent: Ctx['intent']):
+export function agentForIntent(intent: Ctx['intent']):
   | { agentId: string; agentName: string; agentRole: string; action: string }
   | null {
   switch (intent) {
@@ -380,7 +380,7 @@ function hasBoundEvent(eventId: string): boolean {
 async function* runIntent(req: Ctx, signal: AbortSignal): AsyncIterable<TaskEvent> {
   const demo = useDemoStore.getState();
   const paceMs = demo.pace === 'fast' ? 130 : 620;
-  const summon = req.params.capability === 'disasterSummary' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '汇总事件事实与监测数据', action: '正在读取当前事件事实并生成灾情摘要' } : req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在结合现场影像与侦测资料分析灾害类型和隐患风险' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : summonFor(req.intent);
+const summon = req.params.capability === 'disasterSummary' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '汇总事件事实与监测数据', action: '正在读取当前事件事实并生成灾情摘要' } : req.params.capability === 'group' ? { agentId: 'agent-resource', agentName: '救援资源管理智能体', agentRole: '结合灾种、需求、道路条件、距离与时效比较人装物资组合', action: '正在筛选候选并生成智能编组推荐方案' } : req.params.capability === 'survey' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '结合现场资料、监测记录与专业预案模拟勘察分析', action: '正在结合现场影像与侦测资料分析灾害类型和隐患风险' } : req.params.capability === 'multiSource' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '整合六类数据来源，汇总授权范围内的灾情信息', action: '正在读取多源记录并按事件自动归并' } : req.params.capability === 'roadWeather' ? { agentId: 'agent-situation', agentName: '态势感知智能体', agentRole: '核对事件所在地的道路通行与天气资料', action: '正在核对道路、天气资料及其来源时效' } : agentForIntent(req.intent);
   if (summon) yield { type: 'agent_summon', ...summon };
   if (EVENT_BOUND_INTENTS.has(req.intent) && !hasBoundEvent(req.eventId)) {
     yield { type: 'step_started', stepId: 'context', name: '检查关联灾情' };

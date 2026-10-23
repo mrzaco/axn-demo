@@ -5,8 +5,9 @@ for (const entry of ['分类按钮', '对话输入', '快捷操作'] as const) {
   test(`抢险总结通过${entry}自动汇总并生成报告`, async ({ page }) => {
     await page.goto('/');
     if (entry === '分类按钮') {
-      await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).first().click();
-      await page.getByTestId('document-library').getByRole('button', { name: '生成抢险总结', exact: true }).click();
+      await page.goto('/#/library');
+      await page.getByTestId('document-library').getByRole('tab', { name: /^工作总结 / }).click();
+      await page.getByTestId('document-library').getByRole('button', { name: '生成工作总结', exact: true }).click();
     } else if (entry === '快捷操作') {
       await clickQuickTask(page, '生成工作总结');
     } else {

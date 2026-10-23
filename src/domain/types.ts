@@ -799,6 +799,8 @@ export type ConversationType = 'emergency' | 'daily' | 'resource' | 'general';
 export type ConversationStatus = 'active' | 'processing' | 'completed' | 'draft';
 
 export interface Conversation {
+  /** 数字专家管理页召唤创建的专属对话。未设置时为普通对话。 */
+  source?: 'agent-management';
   id: string;
   title: string;
   type: ConversationType;
@@ -812,7 +814,7 @@ export interface Conversation {
 }
 
 /** 一级导航页；'library' 为本次 UI 改版新增的独立文书库入口。 */
-export type NavPage = 'assistant' | 'library' | 'projects' | 'agents' | 'schedules' | 'knowledge' | 'controls' | 'controlExamples';
+export type NavPage = 'assistant' | 'library' | 'projects' | 'agents' | 'skills' | 'files' | 'schedules' | 'knowledge' | 'controls' | 'controlExamples';
 
 export interface ConversationSettings {
   openRecentOnStart: boolean;

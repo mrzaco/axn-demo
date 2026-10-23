@@ -468,8 +468,8 @@ export default function TaskCard({ task, onOpenDrawer, onTask, onNavigate, onOpe
       {showFollowUps && (
         <NextStepActionsBar
           actions={followUps}
-          onTask={onTask}
-          onNavigate={onNavigate}
+          onTask={onTask ?? (() => {})}
+          onNavigate={onNavigate ?? (() => {})}
           busy={busy}
           testId="task-next-steps"
         />

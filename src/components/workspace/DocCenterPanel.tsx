@@ -112,7 +112,9 @@ export default function DocCenterPanel({ view, onClose = () => window.dispatchEv
 
   const selection = useWorkspaceStore((s) => s.scopes[libraryScope]?.selection ?? null);
 
-  const [editorDocId, setEditorDocId] = useState<string | null>(null);
+  const [editorDocId, setEditorDocId] = useState<string | null>(() =>
+    view === 'workspace' && selection?.kind === 'draft' && selection.edit && draftsMap[selection.id]?.lifecycle === 'draft' ? selection.id : null,
+  );
   const [versionDocId, setVersionDocId] = useState<string | null>(null);
   const [sourceFactId, setSourceFactId] = useState<string | null>(null);
   const [sourceDocumentId, setSourceDocumentId] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import { Button, Descriptions, Progress, Space, Typography } from 'antd';
-import { Circle, CircleAlert, CircleCheck, LoaderCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Circle, CircleAlert, CircleCheck, Crosshair, LoaderCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { DOCUMENT_CHECK_ITEMS, useDocumentReviewStore, type DocumentReview } from '@/store/documentReviewStore';
 import { applyReviewDemoFixes } from '@/services/documentReviewScenario';
 import { useMockDocumentStore } from '@/store/mockDocumentStore';
@@ -28,8 +28,9 @@ function ReviewStages({ review }: { review: DocumentReview }) {
     const active = review.status === 'running' && !done && review.completedCount >= stage.start;
     const state: CheckState = done ? count ? 'issue' : 'done' : active ? 'active' : 'pending';
     return <div key={stage.label} className={`doc-review-stage is-${state}`}>
-      <CheckIcon state={state} /><Text>{stage.label}{done ? count ? `发现 ${count} 项问题` : '通过' : active ? '中' : stale ? '待重新检查' : '待开始'}</Text>
-      {active && <Text type="secondary">正在检查{DOCUMENT_CHECK_ITEMS[review.completedCount]?.label}</Text>}
+      <Text className="doc-review-stage-label">{stage.label}</Text>
+      <span className="doc-review-stage-value"><CheckIcon state={state} />{done ? count ? `${count} 项问题` : '通过' : active ? '检查中' : stale ? '待重新检查' : '待开始'}</span>
+      {active && <span className="doc-review-stage-detail">{DOCUMENT_CHECK_ITEMS[review.completedCount]?.label}</span>}
     </div>;
   })}</div>;
 }
@@ -52,14 +53,19 @@ export function DocumentReviewCard({ scope, documentId }: { scope: string; docum
     <div className="axn-agent-summon-body">
       <div className="axn-agent-summon-head"><span className="axn-agent-summon-name">文书检查</span><span className={`axn-status axn-status--${complete ? 'ok' : hasIssues ? 'err' : stale ? 'warn' : 'busy'}`}><i aria-hidden />{complete ? '已完成' : hasIssues ? '待修改' : stale ? '待重新检查' : '检查中'}</span></div>
       <Text type="secondary" className="doc-review-title">《{document.title}》</Text>
-      <ReviewStages review={review} />
-      <Paragraph className="doc-review-summary">{complete ? '未发现需修改事项，文书待人工确认。' : hasIssues ? `发现 ${issues.length} 项待修改事项，请修改后重新检查。` : stale ? '内容已更新，需重新检查。' : '草稿已生成，正在依次进行数据校验、内容初审与格式审核。'}</Paragraph>
-      {issues.length > 0 && <ul className="doc-review-issue-summary">{issues.map(issue => <li key={issue.id}>{issue.title}<span>{issue.location}</span></li>)}</ul>}
-      <Space wrap size={8}>
-        <Button size="small" onClick={() => open(false)}>查看文书</Button>
-        <Button size="small" type={hasIssues ? 'primary' : 'default'} onClick={() => open(true)}>查看检查详情</Button>
-        {(stale || hasIssues) && <Button size="small" onClick={() => useDocumentReviewStore.getState().start(scope, document)}>重新检查</Button>}
-      </Space>
+      <Paragraph className="doc-review-summary">{complete ? '未发现需修改事项，文书待人工确认。' : hasIssues ? `发现 ${issues.length} 项待修改事项，请修改后重新检查。` : stale ? '内容已更新，需重新检查。' : '正在核对文书数据、内容与格式。'}</Paragraph>
+      <div className="axn-artifact doc-review-report">
+        <ReviewStages review={review} />
+        {issues.length > 0 && <div className="doc-review-findings">
+          <div className="doc-review-findings-label">待修改事项 <span>{issues.length}</span></div>
+          <ol className="doc-review-issue-summary">{issues.map(issue => <li key={issue.id}><button type="button" className="doc-review-issue-link" aria-label={`定位${issue.title}`} onClick={() => openDocument(scope, { kind: 'mock', id: documentId }, () => useDocumentReviewStore.getState().focusIssue(scope, documentId, issue.id))}><strong>{issue.title}<Crosshair size={14} aria-hidden /></strong><span>{issue.location}</span></button></li>)}</ol>
+        </div>}
+        <div className="axn-artifact-actions">
+          <Button size="small" type={hasIssues ? 'primary' : 'default'} onClick={() => open(true)}>查看检查详情</Button>
+          <Button size="small" onClick={() => open(false)}>查看文书</Button>
+          {(stale || hasIssues) && <Button size="small" type="text" onClick={() => useDocumentReviewStore.getState().start(scope, document)}>重新检查</Button>}
+        </div>
+      </div>
     </div>
   </section>;
 }
@@ -93,6 +99,7 @@ export function DocumentReviewDetails({ scope, document }: { scope: string; docu
       {issues.map((issue, index) => <article className="doc-review-problem" key={issue.id}>
         <strong><CircleAlert size={16} aria-hidden />{index + 1}. {issue.title}</strong>
         <Text type="secondary">位置：{issue.location}</Text>
+        <Button size="small" type="link" icon={<Crosshair size={14} />} onClick={() => useDocumentReviewStore.getState().focusIssue(scope, document.id, issue.id)}>定位原文</Button>
         <blockquote>{issue.original}</blockquote>
         <Paragraph>{issue.explanation}</Paragraph>
         <div className="doc-review-suggestion"><Text strong>修改建议</Text><Paragraph>{issue.suggestion}</Paragraph></div>
@@ -108,7 +115,7 @@ export function DocumentReviewDetails({ scope, document }: { scope: string; docu
       const issue = done && issues.some(item => item.checkIndex === index);
       const active = review.status === 'running' && index === review.completedCount;
       const state: CheckState = issue ? 'issue' : done ? 'done' : active ? 'active' : 'pending';
-      return <li key={item.label} className={`doc-review-check is-${state}`}><CheckIcon state={state} /><div><Text strong>{item.label}</Text><Text type="secondary">{item.detail}</Text></div><span className={`axn-status axn-status--${issue ? 'err' : done ? 'ok' : active ? 'busy' : 'idle'}`}>{issue ? '需修改' : done ? '通过' : active ? '检查中' : stale ? '待重新检查' : '待开始'}</span></li>;
+      return <li key={item.label} className={`doc-review-check is-${state}`}><CheckIcon state={state} /><div><div className="doc-review-check-heading"><Text strong>{item.label}</Text><span className={`axn-status axn-status--${issue ? 'err' : done ? 'ok' : active ? 'busy' : 'idle'}`}>{issue ? '需修改' : done ? '通过' : active ? '检查中' : stale ? '待重新检查' : '待开始'}</span></div><Text type="secondary">{item.detail}</Text></div></li>;
     })}</ul></section>)}
     {(stale || hasIssues) && <Button onClick={() => useDocumentReviewStore.getState().start(scope, document)}>重新检查</Button>}
   </div>;

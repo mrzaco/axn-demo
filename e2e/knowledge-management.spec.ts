@@ -1,0 +1,171 @@
+import { expect, test } from '@playwright/test';
+
+test('知识库主流程：导入、模拟解析、切片、命中测试与共享历史', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: '知识库', exact: true }).click();
+  await expect(page.getByTestId('knowledge-page')).toBeVisible();
+  await expect(page.getByText('共 24 份文件', { exact: true })).toBeVisible();
+  await page.screenshot({ path: '/tmp/axn-knowledge-home.png', fullPage: true });
+  await page.locator('.axn-k-category').getByText('星澜产品资料库', { exact: true }).click();
+  await page.getByRole('button', { name: '导入文件', exact: true }).click();
+  await expect(page.getByTestId('knowledge-import')).toBeVisible();
+  await expect(page.getByRole('button', { name: '知识库', exact: true })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('button', { name: /点击选择示例文件/ }).click();
+  await expect(page.getByText('星澜设备现场维护补充指引.pdf', { exact: true })).toBeVisible();
+  await page.getByRole('radio', { name: '自定义切片', exact: true }).check();
+  await page.getByRole('spinbutton', { name: '最大长度', exact: true }).fill('1000');
+  await expect(page.getByRole('spinbutton', { name: '重叠度', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '提交并解析', exact: true }).click();
+  const imported = page.getByRole('row').filter({ hasText: '星澜设备现场维护补充指引.pdf' });
+  await expect(imported).toContainText('解析中');
+  await imported.getByRole('button', { name: /^更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '模拟完成解析', exact: true }).click();
+  await expect(imported).toContainText('解析完成');
+  await imported.getByRole('button', { name: '查看切片', exact: true }).click();
+  await expect(page.getByTestId('knowledge-chunks')).toBeVisible();
+  await page.locator('.axn-k-chunk-body').nth(1).click();
+  await expect(page.locator('.axn-k-paper .is-highlighted')).toContainText('维护时先关闭电源');
+  await page.getByRole('button', { name: '新建切片', exact: true }).click();
+  await page.getByRole('textbox', { name: '切片内容', exact: true }).fill('完成设备自检后，应记录结果并确认交接信息完整。');
+  await page.getByRole('dialog').getByRole('button', { name: /^保\s*存$/ }).click();
+  await expect(page.getByRole('tab', { name: '全部 7', exact: true })).toBeVisible();
+  await expect(page.locator('.ant-modal-mask')).toHaveCount(0);
+  await page.screenshot({ path: '/tmp/axn-knowledge-chunks.png', fullPage: true });
+  await page.getByRole('button', { name: '命中测试', exact: true }).click();
+  await page.getByRole('textbox', { name: '测试问题', exact: true }).fill('星澜设备日常维护需要注意什么？');
+  await page.getByRole('button', { name: '查询设置', exact: true }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: '向量检索', exact: true }).check();
+  await page.getByRole('button', { name: '应用设置', exact: true }).click();
+  await page.getByRole('button', { name: '开始测试', exact: true }).click();
+  await expect(page.locator('.axn-k-result')).toHaveCount(3);
+  await expect(page.locator('.axn-k-result').first()).toContainText('0.94');
+  await page.screenshot({ path: '/tmp/axn-knowledge-hit-test.png', fullPage: true });
+  await page.getByRole('radio', { name: '暂无结果', exact: true }).check();
+  await page.getByRole('button', { name: '开始测试', exact: true }).click();
+  await expect(page.getByText('暂无匹配结果，可调整问题或查询设置后重试')).toBeVisible();
+  await page.locator('.axn-k-history').filter({ hasText: '星澜设备日常维护需要注意什么？' }).last().click();
+  await page.getByRole('button', { name: '开始测试', exact: true }).click();
+  await expect(page.locator('.axn-k-result')).toHaveCount(3);
+  await page.getByRole('button', { name: '查看详情', exact: true }).first().click();
+  await page.getByRole('button', { name: '共享文件', exact: true }).click();
+  await page.getByRole('dialog', { name: '共享文件', exact: true }).getByRole('checkbox', { name: '林沐（示例）', exact: true }).check();
+  await page.getByRole('button', { name: '确认共享', exact: true }).click();
+  await page.getByRole('button', { name: '共享历史', exact: true }).click();
+  const history = page.getByRole('dialog', { name: '共享历史', exact: true });
+  await expect(history).toContainText('共享成功');
+  await expect(history).toContainText('林沐（示例）');
+  await history.getByRole('button', { name: '全部取消', exact: true }).click();
+  await page.getByRole('dialog').last().getByRole('button', { name: '确认取消', exact: true }).click();
+  await expect(history.getByRole('row').filter({ hasText: '共享成功' })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('知识库范围状态、筛选、元数据、共享与配置均可操作', async ({ page }) => {
+  await page.goto('/#/knowledge');
+  await page.getByRole('tab', { name: '单位知识库', exact: true }).click();
+  await expect(page.getByText('单位知识库暂无资料')).toBeVisible();
+  await page.getByRole('tab', { name: '公共知识库', exact: true }).click();
+  await expect(page.getByText('共 30 份文件', { exact: true })).toBeVisible();
+  await expect(page.locator('.axn-k-category').getByText('预案法规知识库', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: '部门知识库', exact: true }).click();
+  await expect(page.getByText('共 16 份文件', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: '个人知识库', exact: true }).click();
+  await page.getByRole('button', { name: '收起统计', exact: true }).click();
+  await expect(page.locator('.axn-k-stats')).toHaveCount(0);
+  await page.getByRole('textbox', { name: '文件名称', exact: true }).fill('星澜巡检终端');
+  await expect(page.getByText('共 1 份文件', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '重置筛选', exact: true }).click();
+  await page.locator('.axn-k-category').getByText('星澜产品资料库', { exact: true }).click();
+  await page.getByRole('button', { name: '元数据', exact: true }).click();
+  const meta = page.getByRole('dialog', { name: '星澜产品资料库 · 元数据管理', exact: true });
+  await expect(meta).toContainText('String');
+  await expect(meta).toContainText('Number');
+  await expect(meta).toContainText('Time');
+  await meta.getByRole('button', { name: '新增字段', exact: true }).click();
+  await page.getByRole('dialog').last().getByRole('textbox', { name: '字段名称', exact: true }).fill('适用型号');
+  await page.getByRole('dialog').last().getByRole('button', { name: /^保\s*存$/ }).click();
+  await expect(meta).toContainText('适用型号');
+  await meta.getByRole('button', { name: '完成', exact: true }).click();
+  const firstRow = page.getByRole('row').filter({ hasText: '星澜巡检终端使用手册.pdf' });
+  await firstRow.getByRole('checkbox').check();
+  await expect(page.getByText('已选 1 项', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '批量共享', exact: true }).click();
+  await page.getByRole('dialog').getByRole('checkbox', { name: '林沐（示例）', exact: true }).check();
+  await page.getByRole('button', { name: '确认共享', exact: true }).click();
+  await expect(page.getByText('已向 1 位成员共享 1 份文件（演示）')).toBeVisible();
+  await page.getByRole('button', { name: '批量修改配置', exact: true }).click();
+  await expect(page.getByTestId('knowledge-config')).toBeVisible();
+  await page.getByRole('radio', { name: '父子切片', exact: true }).check();
+  await page.getByRole('button', { name: '保存配置', exact: true }).click();
+  await expect(page.getByTestId('knowledge-page')).toBeVisible();
+});
+
+test('公共知识库五类资料与切片、命中测试及返回范围保持一致', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/#/knowledge?scope=public');
+  const tree = page.locator('.axn-k-category');
+  const examples = [
+    { category: '预案法规知识库', library: '防汛预案与法规', file: '青岚片区防汛应急预案（示例）.pdf' },
+    { category: '事件案例知识库', library: '典型险情处置案例', file: '青岚镇内涝处置复盘（示例）.pdf' },
+    { category: '值守文书知识库', library: '值守文书与报送模板', file: '突发事件要情报送模板（示例）.docx' },
+    { category: '资源保障知识库', library: '救援资源与保障指南', file: '抢险救援装备使用手册（示例）.pdf' },
+    { category: '态势感知知识库', library: '监测预警与态势研判', file: '雨水情监测指标释义（示例）.pdf' },
+  ];
+  await expect(tree.getByText('产品资料', { exact: true })).toHaveCount(0);
+  for (const item of examples) {
+    await tree.getByText(item.category, { exact: true }).click();
+    await expect(page.getByText('共 6 份文件', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: item.file, exact: true })).toBeVisible();
+    await expect(tree.getByText(item.library, { exact: true })).toBeVisible();
+  }
+  await tree.getByText('全部分类', { exact: false }).click();
+  await expect(page.getByText('共 30 份文件', { exact: true })).toBeVisible();
+  await page.screenshot({ path: '/tmp/axn-knowledge-public.png', fullPage: true });
+  await tree.getByText('防汛预案与法规', { exact: true }).click();
+  await page.getByRole('row').filter({ hasText: '青岚片区防汛应急预案（示例）.pdf' }).getByRole('button', { name: '查看切片', exact: true }).click();
+  await expect(page.locator('.axn-k-paper')).toContainText('虚构的青岚片区');
+  await expect(page.locator('.axn-k-paper')).not.toContainText('星澜设备');
+  await page.getByRole('button', { name: '命中测试', exact: true }).click();
+  await page.locator('.axn-k-history').first().click();
+  await expect(page.getByRole('textbox', { name: '测试问题', exact: true })).toHaveValue('防汛应急预案包含哪些内容？');
+  await page.getByRole('button', { name: '开始测试', exact: true }).click();
+  await expect(page.locator('.axn-k-result')).toHaveCount(3);
+  await expect(page.locator('.axn-k-result').first()).toContainText('青岚片区防汛应急预案');
+  await page.getByRole('button', { name: '返回文件列表', exact: true }).click();
+  await expect(page.getByRole('tab', { name: '公共知识库', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('共 6 份文件', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: '个人知识库', exact: true }).click();
+  await expect(page.getByText('共 24 份文件', { exact: true })).toBeVisible();
+  await expect(tree.getByText('预案法规知识库', { exact: true })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('知识库弹窗、更多操作与文件删除使用演示反馈', async ({ page }) => {
+  await page.goto('/#/knowledge');
+  await page.getByRole('button', { name: '新建知识库', exact: true }).click();
+  await page.getByRole('textbox', { name: '知识库名称', exact: true }).fill('演示资料库');
+  await page.getByRole('dialog').getByRole('button', { name: /^确\s*定$/ }).click();
+  await expect(page.locator('.axn-k-category')).toContainText('演示资料库');
+  await page.getByRole('button', { name: '星澜产品资料库菜单', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '知识库名称', exact: true })).toHaveValue('星澜产品资料库');
+  await page.getByRole('dialog').getByRole('button', { name: /^取\s*消$/ }).click();
+  const firstRow = page.getByRole('row').filter({ hasText: '星澜巡检终端使用手册.pdf' });
+  await firstRow.getByRole('button', { name: /^更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '共享历史', exact: true }).click();
+  const history = page.getByRole('dialog', { name: '共享历史', exact: true });
+  await expect(history).toContainText('共享失败');
+  await expect(history).toContainText('已取消');
+  await history.getByRole('button', { name: '关闭', exact: true }).click();
+  await firstRow.getByRole('button', { name: /^更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '下载', exact: true }).click();
+  await expect(page.getByText('下载「星澜巡检终端使用手册.pdf」（演示，不生成实际文件）')).toBeVisible();
+  await firstRow.getByRole('button', { name: /^更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '删除', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^删\s*除$/ }).click();
+  await expect(firstRow).toHaveCount(0);
+  await expect(page.getByText('共 23 份文件', { exact: true })).toBeVisible();
+});

@@ -77,6 +77,22 @@ describe('模拟文书检查', () => {
     expect(reviewOf()).toMatchObject({ status: 'passed', issues: [] });
   });
 
+  it('重复定位同一问题可触发新请求，不修改文书或检查结果', () => {
+    const store = useDocumentReviewStore.getState();
+    store.start('session-a', withReviewDemoIssues(doc));
+    const before = reviewOf();
+    store.showDetails({ scope: 'session-a', documentId: doc.id });
+    store.focusIssue('session-a', doc.id, 'number-0');
+    const first = useDocumentReviewStore.getState().issueTarget!;
+    expect(first).toMatchObject({ scope: 'session-a', documentId: doc.id, issueId: 'number-0' });
+    expect(useDocumentReviewStore.getState().detailsTarget).toBeNull();
+    store.focusIssue('session-a', doc.id, 'number-0');
+    expect(useDocumentReviewStore.getState().issueTarget?.requestId).not.toBe(first.requestId);
+    expect(reviewOf()).toBe(before);
+    store.reset();
+    expect(useDocumentReviewStore.getState().issueTarget).toBeNull();
+  });
+
   it('生成文书会自动创建检查，重置后旧任务不能回写', async () => {
     vi.useFakeTimers();
     const generation = useMockDocumentStore.getState().generate('session-a', 'EMERGENCY_BRIEF');

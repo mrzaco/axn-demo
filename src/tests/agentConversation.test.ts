@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { AGENT_INVITATIONS } from '@/seed/agentInvitations';
-import { summonAgentInConversation } from '@/services/agentConversation';
+import { summonAgentFromManagement, summonAgentInConversation } from '@/services/agentConversation';
 import { useConversationStore } from '@/store/conversationStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
@@ -9,6 +9,44 @@ import { resetDemoData } from '@/store/resetDemo';
 beforeEach(() => resetDemoData());
 
 describe('在同一对话召唤智能体', () => {
+  it('管理页每次召唤新建独立对话，保留原会话历史且不提前执行任务', () => {
+    const conversation = useConversationStore.getState().createConversation({ title: '原对话', type: 'general', eventId: 'evt-demo-001' });
+    const sessionId = useSessionStore.getState().sessionByConversation[conversation.id];
+    const original = useSessionStore.getState().appendMessage(sessionId, { sessionId, role: 'user', kind: 'text', text: '已有需求', taskId: null });
+    expect(conversation.source).toBeUndefined();
+    const count = Object.keys(useConversationStore.getState().conversations).length;
+    const createdSessions = new Set<string>();
+    for (const [index, agent] of AGENT_INVITATIONS.entries()) {
+      const invitation = summonAgentFromManagement(agent.agentId)!;
+      const state = useConversationStore.getState();
+      const current = state.conversations[state.activeConversationId!];
+      expect(current.id).not.toBe(conversation.id);
+      expect(current.source).toBe('agent-management');
+      expect(current.title).toBe(`与${agent.name}对话`);
+      expect(current.eventId).toBe(`evt-blank-${current.id}`);
+      expect(Object.keys(state.conversations)).toHaveLength(count + index + 1);
+      expect(invitation).toMatchObject({ agentId: agent.agentId, choices: agent.options });
+      expect(useSessionStore.getState().currentSessionId).toBe(invitation.sessionId);
+      expect(useSessionStore.getState().sessions[invitation.sessionId].messages).toEqual([invitation]);
+      createdSessions.add(invitation.sessionId);
+    }
+    expect(createdSessions.size).toBe(AGENT_INVITATIONS.length);
+    expect(useSessionStore.getState().sessions[sessionId].messages).toEqual([original]);
+    expect(useSessionStore.getState().sessions[sessionId].eventId).toBe('evt-demo-001');
+    expect(Object.keys(useSessionStore.getState().tasks)).toHaveLength(0);
+  });
+
+  it('没有当前对话时也能创建，重复召唤同一智能体仍开启新对话；无效智能体不创建', () => {
+    useConversationStore.setState({ conversations: {}, activeConversationId: null });
+    expect(summonAgentFromManagement('missing')).toBeNull();
+    expect(Object.keys(useConversationStore.getState().conversations)).toHaveLength(0);
+    const first = summonAgentFromManagement('agent-doc');
+    const second = summonAgentFromManagement('agent-doc');
+    expect(first).toMatchObject({ agentId: 'agent-doc' });
+    expect(second?.sessionId).not.toBe(first?.sessionId);
+    expect(Object.keys(useConversationStore.getState().conversations)).toHaveLength(2);
+  });
+
   it.each([undefined, 'evt-demo-001'])('多个智能体保留当前对话、事件、已有记录和工作区（事件 %s）', eventId => {
     const conversation = useConversationStore.getState().createConversation({ title: '原对话', type: 'general', eventId });
     const sessionId = useSessionStore.getState().sessionByConversation[conversation.id];

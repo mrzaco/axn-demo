@@ -2,7 +2,7 @@ import type { MockDocument } from '@/seed/mockDocuments';
 import { richTextToPlain } from './richText';
 
 export type ReviewIssue = {
-  id: string; checkIndex: number; title: string; location: string;
+  id: string; checkIndex: number; sectionIndex?: number; title: string; location: string;
   original: string; explanation: string; suggestion: string;
 };
 export const REVIEW_NUMBER_ERROR = '累计转移群众 108 人，其中已安置 72 人、途中转移 24 人。';
@@ -19,9 +19,9 @@ export function withReviewDemoIssues(document: MockDocument): MockDocument {
 
 export function findReviewIssues(document: MockDocument): ReviewIssue[] {
   const issues: ReviewIssue[] = [];
-  for (const [heading, body] of document.sections) {
+  for (const [sectionIndex, [heading, body]] of document.sections.entries()) {
     if (richTextToPlain(body).includes(REVIEW_NUMBER_ERROR)) issues.push({
-      id: `number-${issues.length}`, checkIndex: 1, title: '人数合计不一致', location: heading,
+      id: `number-${issues.length}`, checkIndex: 1, sectionIndex, title: '人数合计不一致', location: heading,
       original: REVIEW_NUMBER_ERROR,
       explanation: '分项人数合计为 72 + 24 = 96 人，与正文总人数 108 人相差 12 人。',
       suggestion: REVIEW_NUMBER_FIXED,

@@ -19,7 +19,7 @@ import { useSessionStore } from './sessionStore.js';
 
 export type WorkspaceSelection =
   | { kind: 'mock'; id: string }
-  | { kind: 'draft'; id: string }
+  | { kind: 'draft'; id: string; edit?: boolean }
   /** 业务流程补充：与公文一样嵌在右侧工作区，id 为 FlowTask 名称 */
   | { kind: 'flow'; id: string }
   | { kind: 'sixData'; id: string }

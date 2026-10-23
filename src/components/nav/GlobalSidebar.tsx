@@ -1,6 +1,6 @@
 /**
  * 全局导航 + 对话历史管理侧栏（UI 改版）：
- * 区域：品牌（左上，保留安小能身份）/ 一级功能导航（含独立「文书库」）/
+ * 区域：品牌（左上，保留安小能身份）/ 一级功能导航/
  * 新建（新建对话=对话模式；「新建任务」工作模式入口暂时下线）/ 搜索 / 历史会话 / 底部账户区
  * （当前用户头像 + 名称 + 设置菜单：切换用户身份、聊天标准控件）。
  * 改版要点：原全宽业务页头移除，其承载项下移至侧栏底部；折叠与收藏功能保持移除状态。
@@ -10,14 +10,15 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NAV_PATH } from './navRoutes';
 import {
-  // Bot, // 恢复「智能体与 Skill」侧栏入口时一并取回
-  // Clock, // 恢复「定时任务」侧栏入口时一并取回
+  Bot,
+  Clock,
   // FilePlus, // 恢复「新建任务」按钮时一并取回
   FlaskConical,
-  FolderOpen,
+  FolderClosed,
   // LayoutGrid, // 恢复「应急项目」侧栏入口时一并取回
   Pin,
   Plus,
+  Puzzle,
   Search,
   Settings,
   Sparkles,
@@ -43,18 +44,14 @@ import './sidebar.css';
 type NavKey = NavPage;
 
 const NAV: { key: NavKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'library', label: '文书库', icon: <FolderOpen /> },
-  { key: 'assistant', label: '智能助理', icon: <Sparkles /> },
-  // 「知识库」按下线标注恢复入口，样式与其它导航项一致（正常态深灰、可点击）；
-  // 但暂不接功能：点击只给 toast 提示，不跳转（/knowledge 页面与路由保持不变）。
-  // 需要真正启用（正常导航、选中变蓝）时，删除下方 onClick 里的 knowledge 分支即可。
+  { key: 'assistant', label: '安小能', icon: <Sparkles /> },
+  { key: 'agents', label: '应急专家', icon: <Bot /> },
+  { key: 'skills', label: '技能管理', icon: <Puzzle /> },
+  { key: 'files', label: '我的文件', icon: <FolderClosed /> },
+  { key: 'schedules', label: '定时任务', icon: <Clock /> },
   { key: 'knowledge', label: '知识库', icon: <FlaskConical /> },
-  // 「应急项目」「智能体与 Skill」「定时任务」三个入口按下线标注从侧栏隐藏：
-  // 页面（NavPages）与路由（/projects、/agents、/schedules）全部保留，深链直达仍可用；
-  // 取消下列注释并取回对应图标导入（LayoutGrid / Bot / Clock）即可恢复侧栏入口。
+  // 「应急项目」入口隐藏，页面与深链保留。
   // { key: 'projects', label: '应急项目', icon: <LayoutGrid /> },
-  // { key: 'agents', label: '智能体与 Skill', icon: <Bot /> },
-  // { key: 'schedules', label: '定时任务', icon: <Clock /> },
 ];
 
 export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}) {
@@ -116,8 +113,6 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         : `已创建「${conversation.title}」（对话模式：问答建议，模拟）`,
     );
   };
-
-  const openLibrary = () => guardDirty('切换到文书库', () => navigate(NAV_PATH.library));
 
   const list = useMemo(
     () => Object.values(conversations).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)),
@@ -190,7 +185,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
         </Button>
       </div>
 
-      {/* 3. 一级功能导航（含独立文书库） */}
+      {/* 3. 一级功能导航（文书库入口隐藏，页面与工作区内入口保留） */}
       <nav className="axn-gs-nav" aria-label="全局功能导航">
         {NAV.map((item) => (
           <button
@@ -198,15 +193,6 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
             className={`axn-gs-nav-item${activeNav === item.key ? ' is-active' : ''}`}
             aria-current={activeNav === item.key ? 'page' : undefined}
             onClick={() => {
-              if (item.key === 'library') {
-                openLibrary();
-                return;
-              }
-              // 知识库：占位入口，暂不跳转 /knowledge（仅提示）
-              if (item.key === 'knowledge') {
-                message.info('知识库功能建设中');
-                return;
-              }
               guardDirty('切换导航页', () => navigate(`/${item.key}`));
             }}
           >
@@ -214,6 +200,7 @@ export default function GlobalSidebar({ onClose }: { onClose?: () => void } = {}
             <span>{item.label}</span>
           </button>
         ))}
+
       </nav>
 
       {/* 4. 对话搜索 */}
@@ -362,7 +349,7 @@ function ConversationRow({
           </Tooltip>
           <Popconfirm
             title="删除该对话？"
-            description="仅移除会话条目，不影响事件业务数据。"
+            description="该对话产生的文件也会一并删除。"
             okText="删除"
             cancelText="取消"
             okButtonProps={{ danger: true }}

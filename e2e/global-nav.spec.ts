@@ -5,8 +5,10 @@
  * 前置：playwright.config webServer = preview(4173)，需先 pnpm build。
  */
 import { expect, test, type Page } from '@playwright/test';
+import { AGENT_INVITATIONS } from '../src/seed/agentInvitations';
 
 async function openNav(page: Page, label: string) {
+  if (label === '文书库') { await page.goto('/#/library'); return; }
   await page.locator('.axn-gs-nav-item', { hasText: label }).first().click();
 }
 
@@ -72,31 +74,24 @@ test('1. 新建对话 → 直接创建空白对话并激活（无弹窗，标注
 test('2. 对话区内关联灾情 → 切换事件上下文与共享 session', async ({ page }) => {
   await newConversation(page);
   await page.getByTestId('chat-link-incident').click();
-  await page.getByTestId('incident-picker').getByRole('option', { name: /清河段堤防险情/ }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /青岭村山体滑坡/ }).first().click();
+  await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
   await page.waitForTimeout(500);
-  // 切换后安小能提示已关联；提示消息出现后头部事件标题同步显示
-  await expect(page.getByTestId('chat-link-incident')).toContainText('清河段堤防险情');
-  await expect(page.getByText(/已切换关联灾情为「清河段堤防险情」/)).toBeVisible();
+  await expect(page.getByTestId('chat-link-incident')).toContainText('青岭村山体滑坡');
   await expect(page.getByText('【当前状态】')).toBeVisible();
   await expect(page.getByTestId('event-next-steps')).toBeVisible();
   await expect(page.getByTestId('event-next-steps-task-生成救援方案')).toBeVisible();
-  await expect(page.getByTestId('event-next-steps-task-生成应急要情')).toBeVisible();
   await expect(page.getByTestId('open-event-timeline')).toBeVisible();
   await page.getByTestId('open-event-timeline').click();
   await expect(page.getByTestId('event-timeline-drawer')).toBeVisible();
-  await expect(page.getByTestId('event-timeline-drawer')).toContainText('水位监测');
+  await expect(page.getByTestId('event-timeline-drawer')).toContainText('事件接报');
   await page.keyboard.press('Escape');
-  await expect(page.getByTestId('header-event')).toContainText('清河段堤防险情');
-  // 下一步建议按钮可触发快捷任务；完成后任务卡继续给出后续建议
-  await page.getByTestId('event-next-steps-task-生成救援方案').click();
-  await expect(page.getByTestId('task-next-steps')).toBeVisible({ timeout: 30000 });
-  await expect(page.getByTestId('task-next-steps-task-生成应急要情')).toBeVisible();
-  // 取消关联 → 回到未关联（专属虚拟事件）并提示
+  await expect(page.getByTestId('header-event')).toContainText('青岭村山体滑坡');
+  // 取消选择不会解除当前会话的关联。
   await page.getByTestId('chat-link-incident').click();
-  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-  await page.waitForTimeout(500);
-  await expect(page.getByTestId('chat-link-incident')).toContainText('未关联事件');
-  await expect(page.getByText('已取消关联灾情')).toBeVisible();
+  await expect(page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ })).toHaveCount(0);
+  await page.getByRole('button', { name: '取消选择事件' }).click();
+  await expect(page.getByTestId('chat-link-incident')).toContainText('青岭村山体滑坡');
 });
 
 test('3. 搜索"南堤"→过滤；清空→恢复', async ({ page }) => {
@@ -146,10 +141,10 @@ test('4b. 删除对话（Popconfirm 确认 → 条目移除 → active 切换）
 
 test('5. 菜单切换不丢 active 会话', async ({ page }) => {
   const activeTitle = await page.locator('.axn-gs-conversation.is-active .axn-gs-conv-title-text').first().textContent();
-  // 侧栏保留「文书库 / 智能助理 / 智能体与 Skill」入口。
+  // 文书库侧栏入口隐藏，通过深链验证页面仍可访问。
   await openNav(page, '文书库');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
-  await openNav(page, '智能助理');
+  await openNav(page, '安小能');
   await expect(page.locator('.axn-gs-conversation.is-active .axn-gs-conv-title-text').first()).toHaveText(activeTitle ?? '');
 });
 
@@ -159,7 +154,7 @@ test('6. 会话列表切换 A→B：B 空上下文（无候选、无任务卡）
   await page.locator('.axn-gs-conversation', { hasText: '漳河镇' }).first().click();
   await expect(page.locator('.axn-task-card')).toHaveCount(0);
   // B 无查询任务卡：显示欢迎空态（候选区在资源抽屉内，无任务卡即无查询）
-  await expect(page.getByText('您好，我是安小能')).toBeVisible();
+  await expect(page.locator('.axn-home-title')).toContainText('我是安小能');
 });
 
 test('7. 从 B 切回 A：候选恢复（1 支）', async ({ page }) => {
@@ -195,46 +190,85 @@ test('10. 折叠功能已按标注移除（无折叠按钮，侧栏固定宽度�
   expect(width).toBeGreaterThan(200);
 });
 
-test('10b. 「应急项目 / 智能体与 Skill / 定时任务」侧栏入口已隐藏；知识库入口恢复为可点击占位', async ({ page }) => {
-  for (const label of ['应急项目', '智能体与 Skill', '定时任务']) {
+test('10b. 文书库入口隐藏，应急专家与定时任务入口可用，知识库管理可访问', async ({ page }) => {
+  for (const label of ['文书库', '应急项目', '智能体与 Skill']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(0);
   }
   // 保留的入口仍在（含已恢复的「知识库」）
-  for (const label of ['文书库', '智能助理', '知识库']) {
+  for (const label of ['安小能', '应急专家', '定时任务', '技能管理', '我的文件', '知识库']) {
     await expect(page.locator('.axn-gs-nav-item', { hasText: label })).toHaveCount(1);
   }
-  // 知识库入口可点击（非禁用），但暂不接功能：点击只提示、不跳转
+  // 知识库入口进入管理模块
   const knowledgeNav = page.locator('.axn-gs-nav-item', { hasText: '知识库' });
   await expect(knowledgeNav).toBeEnabled();
   await knowledgeNav.click();
-  await expect(page.getByText('知识库功能建设中')).toBeVisible();
-  await expect(page.locator('.axn-chat-page')).toBeVisible();
+  await expect(page.getByTestId('knowledge-page')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '知识库管理', exact: true })).toBeVisible();
 });
 
-test('11. 智能体与 Skill / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
-  // 智能体目录有侧栏入口；其他页面仍可通过深链直达。
+test('应急专家展示已有能力，每次召唤新开对话并能选择任务', async ({ page }) => {
+  await newConversation(page);
+  const activeConversation = page.locator('.axn-gs-conversation.is-active');
+  const conversationId = await activeConversation.getAttribute('data-testid');
+  await expect(page.locator('.axn-chips')).toBeVisible();
+  const count = await page.locator('.axn-gs-conversation').count();
+  for (const [index, agent] of AGENT_INVITATIONS.entries()) {
+    await page.getByRole('button', { name: '应急专家', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '应急专家', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '应急专家', exact: true })).toBeVisible();
+    const card = page.locator(`.axn-agent-card[data-agent-id="${agent.agentId}"]`);
+    await expect(card.getByRole('heading', { name: agent.name, exact: true })).toBeVisible();
+    await expect(card.locator('.axn-np-desc')).not.toBeEmpty();
+    await card.getByRole('button', { name: `召唤${agent.name}`, exact: true }).click();
+    await expect(page.locator('.axn-chat-page')).toBeVisible();
+    await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
+    const invitation = page.getByTestId('agent-summon-card').filter({ has: page.locator(`[data-agent-id="${agent.agentId}"].axn-doc-choices`) }).last();
+    await expect(invitation).toContainText(agent.intro);
+    for (const option of agent.options) {
+      await expect(invitation.getByRole('button', { name: option.label, exact: true })).toBeEnabled();
+    }
+    await expect(activeConversation).not.toHaveAttribute('data-testid', conversationId!);
+    await expect(activeConversation).toContainText(`与${agent.name}对话`);
+    await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
+    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count + index + 1);
+  }
+  const summonedId = await activeConversation.getAttribute('data-testid');
+  await page.getByTestId(conversationId!).click();
+  await expect(page.locator('.axn-chips')).toBeVisible();
+  await page.getByTestId(summonedId!).click();
+  await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('.axn-cp-chips-wrap')).toHaveCount(0);
+  await expect(page.getByTestId('agent-summon-card')).toHaveCount(1);
+  await page.getByRole('button', { name: '应急专家', exact: true }).click();
+  await page.getByRole('button', { name: '召唤救援资源管理智能体', exact: true }).click();
+  await page.locator('.axn-doc-choices[data-agent-id="agent-resource"]').getByRole('button', { name: '周边救援资源', exact: true }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /青岭村山体滑坡/ }).first().click();
+  await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
+  await expect(page.locator('.axn-task-card').first()).toBeVisible();
+});
+
+test('11. 应急专家 / 定时任务 / 知识库导航页可访问，文书库导航独立成页', async ({ page }) => {
   // 应用用 HashRouter，深链形式为 /#/agents
   await page.goto('/#/agents');
   await expect(page.getByTestId('agents-page')).toBeVisible();
-  await expect(page.getByRole('button', { name: '态势感知智能体 灾情研判 · 9 项', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '态势感知智能体', exact: true })).toBeVisible();
   await page.goto('/#/schedules');
   await expect(page.getByTestId('schedules-page')).toBeVisible();
-  await expect(page.getByText('每日值班日报')).toBeVisible();
+  await expect(page.getByText('每日灾情摘要', { exact: true })).toBeVisible();
   await page.goto('/#/knowledge');
   await expect(page.getByTestId('knowledge-page')).toBeVisible();
   await openNav(page, '文书库');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
   await expect(page.getByTestId('document-workspace')).toHaveCount(0);
-  await openNav(page, '智能助理');
+  await openNav(page, '安小能');
   await expect(page.locator('.axn-chat-page')).toBeVisible();
 });
 
 
-test('关联事件保留当前智能体对话和历史，切换、取消关联及刷新后仍可见', async ({ page }) => {
+test('更换事件创建新会话，原会话与记录在刷新后保留', async ({ page }) => {
   await newConversation(page);
-  await page.locator('.axn-chips').getByRole('button', { name: '文书生成智能体', exact: true }).click();
-  const active = page.locator('.axn-gs-conversation.is-active');
-  const originalId = await active.getAttribute('data-testid');
+  const originalId = await page.locator('.axn-gs-conversation.is-active').getAttribute('data-testid');
   const count = await page.locator('.axn-gs-conversation').count();
   const text = '请保留这段对话记录';
   const input = page.getByPlaceholder(/向安小能发送指令/);
@@ -242,17 +276,23 @@ test('关联事件保留当前智能体对话和历史，切换、取消关联�
   await input.press('Enter');
   await expect(page.getByText(text, { exact: true })).toBeVisible();
   const trigger = page.getByTestId('chat-link-incident');
-  for (const option of [/清河段堤防险情/, /漳河镇水位上涨预警/, /不关联灾情/]) {
-    await trigger.click();
-    await page.getByTestId('incident-picker').getByRole('option', { name: option }).click();
-    await expect(page.getByTestId('incident-picker')).not.toBeVisible();
-    await expect(active).toHaveAttribute('data-testid', originalId!);
-    await expect(page.locator('.axn-gs-conversation')).toHaveCount(count);
-    await expect(page.getByTestId('doc-agent-choices')).toBeVisible();
-    await expect(page.getByText(text, { exact: true })).toBeVisible();
-  }
+  const picker = page.getByTestId('incident-picker');
+  await trigger.click();
+  await picker.getByRole('option', { name: /清河段堤防险情/ }).click();
+  await expect(trigger).toHaveAttribute('aria-description', '未关联灾情');
+  await picker.getByRole('button', { name: '确认绑定', exact: true }).click();
+  await expect(page.locator('.axn-gs-conversation.is-active')).toHaveAttribute('data-testid', originalId!);
+  await trigger.click();
+  await picker.getByRole('option', { name: /漳河镇水位上涨预警/ }).click();
+  await expect(picker).toContainText('原会话仍关联原事件');
+  await expect(trigger).toHaveAttribute('aria-description', '清河段堤防险情');
+  await picker.getByRole('button', { name: '新开会话并绑定', exact: true }).click();
+  await expect(page.locator('.axn-gs-conversation')).toHaveCount(count + 1);
+  await expect(page.locator('.axn-gs-conversation.is-active')).not.toHaveAttribute('data-testid', originalId!);
+  await expect(trigger).toHaveAttribute('aria-description', '漳河镇水位上涨预警');
+  await expect(page.getByText(text, { exact: true })).toHaveCount(0);
+  await page.getByTestId(originalId!).click();
   await page.reload();
-  await expect(active).toHaveAttribute('data-testid', originalId!);
-  await expect(page.getByTestId('doc-agent-choices')).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-description', '清河段堤防险情');
   await expect(page.getByText(text, { exact: true })).toBeVisible();
 });

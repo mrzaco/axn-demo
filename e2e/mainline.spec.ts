@@ -20,9 +20,9 @@ async function waitTaskDone(page: Page, title: string, timeout = 30000) {
   return card;
 }
 
-/** 打开独立文书库（原全宽页头「文书中心」入口已改为侧栏「文书库」导航）。 */
+/** 通过深链打开独立文书库（侧栏入口已隐藏）。 */
 async function openLibrary(page: Page) {
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).first().click();
+  await page.goto('/#/library');
 }
 
 test.describe('安小能主线（要情全链路）', () => {

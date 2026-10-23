@@ -14,10 +14,14 @@ import { useConversationStore } from './conversationStore';
 import { useMockDocumentStore } from './mockDocumentStore';
 import { useSessionStore } from './sessionStore';
 import { useWorkspaceStore } from './workspaceStore';
+import { useFeedbackStore } from './feedbackStore';
+import { useScheduleStore } from './scheduleStore';
 
 export function resetDemoData(): void {
   useCustomerOperations.getState().reset();
   window.localStorage.removeItem('anneng-demo:v1:original-materials');
+  useFeedbackStore.getState().reset();
+  useScheduleStore.getState().reset();
   useSessionStore.getState().resetAll();
   useConversationStore.getState().resetAll();
   useWorkspaceStore.getState().resetAll();

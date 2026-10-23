@@ -11,9 +11,9 @@ async function sendChat(page: Page, text: string) {
   await page.keyboard.press('Enter');
 }
 
-/** 打开独立文书库（原全宽页头「文书中心」入口已改为侧栏「文书库」导航）。 */
+/** 通过深链打开独立文书库（侧栏入口已隐藏）。 */
 async function openLibrary(page: Page) {
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).first().click();
+  await page.goto('/#/library');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
 }
 

@@ -21,6 +21,8 @@ export const PATH_TO_NAV: Record<string, NavPage> = {
   '/library': 'library',
   '/projects': 'projects',
   '/agents': 'agents',
+  '/skills': 'skills',
+  '/files': 'files',
   '/schedules': 'schedules',
   '/knowledge': 'knowledge',
   '/settings/chat-controls': 'controls',
@@ -33,6 +35,8 @@ export const NAV_PATH: Record<NavPage, string> = {
   library: '/library',
   projects: '/projects',
   agents: '/agents',
+  skills: '/skills',
+  files: '/files',
   schedules: '/schedules',
   knowledge: '/knowledge',
   controls: '/settings/chat-controls',
@@ -46,7 +50,7 @@ export function useUrlNavSync(): void {
   const setActiveNav = useConversationStore((s) => s.setActiveNav);
 
   useEffect(() => {
-    const page = PATH_TO_NAV[location.pathname];
+    const page = location.pathname.startsWith('/knowledge/') ? 'knowledge' : PATH_TO_NAV[location.pathname];
     if (page && page !== activeNav) {
       setActiveNav(page);
     }

@@ -3,7 +3,7 @@
  *
  * 设计决策：
  * - Conversation 是"交互上下文"（导航/历史/收藏），Event 是"业务对象"。
- *   消息与文书挂在会话专属 session 上；关联事件只更新业务上下文，不替换聊天记录。
+ *   消息与文书挂在会话专属 session 上；首次关联保留当前对话，更换事件会创建新的独立对话。
  *   切换 Conversation = 恢复其专属 session，并同步关联事件。
  * - 一个 Event 可对应多个 Conversation；未绑事件的会话（空白对话）创建时分配专属虚拟事件 evt-blank-<id>，
  *   拥有独立空 session，不与任何业务事件共享消息。
@@ -15,8 +15,10 @@ import type { Conversation, ConversationSettings, NavPage } from '@/domain/types
 import { clearPersist, loadPersist, schedulePersist } from './persistence.js';
 import { useDemoStore } from './demoStore.js';
 import { useSessionStore } from './sessionStore.js';
+import { eventDisplayName } from '@/services/factLookup';
 import { DEMO_CLOCK } from '@/seed/scenario';
 import { DEFAULT_FOCUS_COMBAT_EVENT_ID, resolveSelectableEventId } from '@/seed/disasterScenarios';
+import { deleteConversationOutputs } from '@/services/deleteConversationOutputs';
 
 interface ConversationPersist {
   conversations: Record<string, Conversation>;
@@ -141,6 +143,7 @@ function buildSeedMap(): Record<string, Conversation> {
 }
 
 export interface CreateConversationInput {
+  source?: Conversation['source'];
   title: string;
   type: Conversation['type'];
   eventId?: string;
@@ -156,12 +159,12 @@ interface ConversationState {
 
   createConversation: (input: CreateConversationInput) => Conversation;
   selectConversation: (conversationId: string) => void;
-  /** 在对话界面内切换关联灾情：绑定或取消关联事件时保留当前 session 与消息 */
-  linkConversationToEvent: (conversationId: string, eventId: string | undefined) => void;
+  /** 首次绑定保留当前会话；已绑定事件发生变化时新建会话，保留原会话及其记录 */
+  linkConversationToEvent: (conversationId: string, eventId: string | undefined) => Conversation | null;
   deleteConversation: (conversationId: string) => void;
   /** 置顶/取消置顶：仅切换 pinned（视图属性，不碰 updatedAt，取消置顶后回到原时间分组）。 */
   toggleConversationPin: (conversationId: string) => void;
-  updateConversation: (conversationId: string, patch: Partial<Omit<Conversation, 'id' | 'createdAt'>>) => void;
+  updateConversation: (conversationId: string, patch: Partial<Omit<Conversation, 'id' | 'createdAt' | 'eventId'>>) => void;
   setActiveNav: (nav: NavPage) => void;
   updateSettings: (patch: Partial<ConversationSettings>) => void;
   resetAll: () => void;
@@ -187,6 +190,7 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
       id,
       title: input.title,
       type: input.type,
+      ...(input.source ? { source: input.source } : {}),
       // 未绑定事件的会话（如“空白对话”）分配专属虚拟事件 → ensureSessionForEvent
       // 会为其创建全新的空 session，不复用当前事件的历史消息。
       // 显式传入已下线灾种时回落到三类实战默认事件。
@@ -217,16 +221,24 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
 
   linkConversationToEvent: (conversationId, eventId) => {
     const conversation = get().conversations[conversationId];
-    if (!conversation) return;
-    // eventId 为 undefined：回到该会话专属虚拟事件（保留其独立消息），不落入当前事件。
-    // 已下线灾种回落到三类实战默认事件，避免选择器显示原始 ID。
+    if (!conversation) return null;
     const nextEventId = eventId == null
       ? `evt-blank-${conversationId}`
       : (resolveSelectableEventId(eventId) ?? `evt-blank-${conversationId}`);
-    if (conversation.eventId === nextEventId) return;
+    if (conversation.eventId === nextEventId) return conversation;
+    // 一旦关联真实事件，后续改关联或解除关联都只能创建新会话。
+    if (conversation.eventId && !conversation.eventId.startsWith('evt-blank-')) {
+      return get().createConversation({
+        title: eventId ? eventDisplayName(nextEventId) : '新的对话',
+        type: conversation.type,
+        source: conversation.source,
+        eventId: eventId == null ? undefined : nextEventId,
+      });
+    }
     const updated = { ...conversation, eventId: nextEventId, updatedAt: new Date().toISOString() };
-    set((s) => ({ conversations: { ...s.conversations, [conversationId]: updated } }));
+    set(state => ({ conversations: { ...state.conversations, [conversationId]: updated } }));
     if (get().activeConversationId === conversationId) syncBusinessContext(updated);
+    return updated;
   },
 
   deleteConversation: (conversationId) => {
@@ -234,7 +246,8 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
     if (!conversations[conversationId]) return;
     const remaining = Object.values(conversations).filter((c) => c.id !== conversationId);
     // 被删的是激活会话时，切换到剩余会话中最近更新的一个；全部删光则无激活会话。
-    // 业务数据（session/任务/候选）按事件共享保留，不随会话条目删除。
+    // 会话专属产物随对话删除，关联事件本身保留。
+    const sessionId = useSessionStore.getState().sessionByConversation[conversationId];
     let nextActive: string | null = null;
     if (activeConversationId === conversationId) {
       nextActive =
@@ -243,6 +256,7 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
       nextActive = activeConversationId;
     }
     set({ conversations: Object.fromEntries(remaining.map((c) => [c.id, c])), activeConversationId: nextActive });
+    if (sessionId) deleteConversationOutputs(conversationId, sessionId);
     if (nextActive) syncBusinessContext(get().conversations[nextActive]);
   },
 

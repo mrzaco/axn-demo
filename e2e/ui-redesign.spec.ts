@@ -8,7 +8,7 @@ import { clickQuickTask } from './helpers/quickTasks';
 import { expect, test, type Page } from '@playwright/test';
 
 async function openLibrary(page: Page) {
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).first().click();
+  await page.goto('/#/library');
   await expect(page.getByTestId('document-library-page')).toBeVisible();
 }
 
@@ -206,23 +206,25 @@ test('未保存修改在导航、会话和关联事件切换时受到保护', as
   await openFirstSample(page);
   const title = page.getByRole('textbox', { name: '文书标题', exact: true });
   await title.fill('保护中的工作副本');
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
+  await page.locator('.axn-gs-nav-item', { hasText: '定时任务' }).click();
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.locator('.axn-gs-conversation', { hasText: '漳河镇' }).first().click();
   await page.getByRole('button', { name: '继续编辑' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
   await page.getByTestId('chat-link-incident').click();
-  // 选项悬浮详情改用 Tooltip，不再依赖原生 title 属性
-  await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-  await page.getByRole('button', { name: '继续编辑' }).click();
+  await page.getByTestId('incident-picker').getByRole('option', { name: /南湾堤段洪涝决口/ }).first().click();
+  await expect(page.getByTestId('incident-picker')).toContainText('更换事件将新开一个会话');
+  await page.getByRole('button', { name: '取消选择事件' }).click();
   await expect(title).toHaveValue('保护中的工作副本');
-  await page.locator('.axn-gs-nav-item', { hasText: '文书库' }).click();
+  // 多轮取消期间可能已自动保存；重新编辑以验证最后一次导航的未保存保护。
+  await title.fill('保护中的工作副本（继续导航）');
+  await page.locator('.axn-gs-nav-item', { hasText: '定时任务' }).click();
   await page.getByRole('button', { name: /^继\s*续$/ }).click();
   // 四条切换路径（导航 / 会话 / 关联事件 / 再导航）都不回滚工作副本
   await openFirstSample(page);
   await expect(page.getByTestId('mock-dirty-note')).toBeVisible();
-  await expect(title).toHaveValue('保护中的工作副本');
+  await expect(title).toHaveValue('保护中的工作副本（继续导航）');
   // 真正丢弃只发生在编辑器内的「放弃修改」
   await page.getByTestId('document-workspace').getByRole('button', { name: '放弃修改', exact: true }).click();
   await expect(page.getByTestId('mock-dirty-note')).toHaveCount(0);
@@ -324,7 +326,7 @@ test('语音按钮：转写中再点一下可停止，文字不再增长', async
 
 
 for (const width of [1440, 390]) {
-  test(`关联灾情恢复到输入框内部右下方 ${width}px`, async ({ page }) => {
+  test(`关联灾情保留在输入框内部 ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
@@ -334,14 +336,13 @@ for (const width of [1440, 390]) {
     const button = (await trigger.boundingBox())!;
     const shell = (await page.locator('.axn-composer-shell').boundingBox())!;
     expect(button.x).toBeGreaterThan(shell.x);
-    expect(button.y).toBeGreaterThan(shell.y + shell.height / 2);
+    const textInput = (await page.locator('.axn-composer-shell textarea').boundingBox())!;
+    expect(button.y).toBeGreaterThanOrEqual(textInput.y + textInput.height);
     expect(button.y + button.height).toBeLessThanOrEqual(shell.y + shell.height);
     await trigger.click();
-    await page.getByTestId('incident-picker').getByRole('option', { name: /不关联灾情/ }).click();
-    await expect(trigger).toContainText('选择关联灾情事件');
-    await trigger.click();
-    await page.getByTestId('incident-picker').locator('#axn-incident-opt-evt-sim-landslide').click();
-    await expect(trigger).toContainText('青岭村山体滑坡');
+    await page.getByTestId('incident-picker').getByRole('option', { name: /青岭村山体滑坡/ }).first().click();
+    await page.getByTestId('incident-picker').getByRole('button', { name: /^(确认绑定|新开会话并绑定|确认选择)$/ }).click();
+    await expect(trigger).toHaveAttribute('aria-description', /青岭村山体滑坡/);
     await expect(page.getByTestId('incident-picker')).not.toBeVisible();
     await page.screenshot({ path: `artifacts/ui-polish/incident-inside-composer-${width}.png` });
   });

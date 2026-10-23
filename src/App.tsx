@@ -327,12 +327,22 @@ export default function AppRoot() {
               <Suspense><NavPageContent page="agents" /></Suspense>
             </div>
           } />
+          <Route path="/skills" element={
+            <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Suspense><NavPageContent page="skills" /></Suspense>
+            </div>
+          } />
+          <Route path="/files" element={
+            <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Suspense><NavPageContent page="files" /></Suspense>
+            </div>
+          } />
           <Route path="/schedules" element={
             <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Suspense><NavPageContent page="schedules" /></Suspense>
             </div>
           } />
-          <Route path="/knowledge" element={
+          <Route path="/knowledge/*" element={
             <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Suspense><NavPageContent page="knowledge" /></Suspense>
             </div>
